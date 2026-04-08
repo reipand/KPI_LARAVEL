@@ -23,10 +23,13 @@ class KpiReportResource extends JsonResource
             'persentase' => $this->persentase !== null ? (float) $this->persentase : null,
             'score_label' => $this->score_label,
             'catatan' => $this->catatan,
+            'review_note' => $this->review_note,
             'file_evidence_url' => $this->file_evidence_url,
             'status' => $this->status,
             'submitted_by' => $this->submitted_by,
+            'reviewed_by' => $this->reviewed_by,
             'submitted_at' => optional($this->submitted_at)->toISOString(),
+            'reviewed_at' => optional($this->reviewed_at)->toISOString(),
             'created_at' => optional($this->created_at)->toISOString(),
             'updated_at' => optional($this->updated_at)->toISOString(),
         ];

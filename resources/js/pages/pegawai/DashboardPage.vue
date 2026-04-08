@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useKpiStore } from '@/stores/kpi';
 import { useTaskStore } from '@/stores/task';
 import { useKpiColor } from '@/composables/useKpiColor';
+import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import StatCard from '@/components/shared/StatCard.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
@@ -52,13 +53,16 @@ const statusBadgeMap = {
     Pending: 'badge-warning',
 };
 
-onMounted(async () => {
+async function fetchAll() {
     await Promise.all([
         kpiStore.fetchMyKpi(),
         kpiStore.fetchRanking(),
         taskStore.fetchTasks(),
     ]);
-});
+}
+
+onMounted(fetchAll);
+const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(fetchAll, { interval: 30_000 });
 
 function formatDate(value) {
     if (!value) return '-';
@@ -83,6 +87,23 @@ function formatDate(value) {
                     <p class="mt-2 max-w-3xl text-sm leading-6 text-white/78">
                         Pantau skor KPI, progres pekerjaan, dan indikator kualitas kerja Anda untuk periode {{ bulanLabel }}.
                     </p>
+                </div>
+
+                <!-- Realtime indicator -->
+                <div class="flex items-center gap-2 self-start lg:self-auto">
+                    <span v-if="lastUpdated" class="text-[11px] text-white/50">
+                        Diperbarui {{ formatTime(lastUpdated) }}
+                    </span>
+                    <button
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20"
+                        :class="{ 'animate-spin': isRefreshing }"
+                        title="Refresh data"
+                        @click="refresh"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                        </svg>
+                    </button>
                 </div>
 
                 <div class="grid gap-2 sm:grid-cols-3 lg:min-w-[380px]">

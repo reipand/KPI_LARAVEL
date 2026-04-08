@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(function (Request $request) {
+            return $request->is('api/*') ? null : '/login';
+        });
+
         $middleware->alias([
             'hr' => \App\Http\Middleware\HrMiddleware::class,
             'auth.session' => \App\Http\Middleware\SessionAuthMiddleware::class,

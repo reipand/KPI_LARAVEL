@@ -21,10 +21,16 @@ const pageMap = {
     '/hr/settings': { title: 'Pengaturan', subtitle: 'PT. BASS Training Center & Consultant' },
     '/direktur/dashboard':   { title: 'Executive Dashboard', subtitle: 'PT. BASS Training Center & Consultant' },
     '/direktur/analytics':   { title: 'Analytics',          subtitle: 'PT. BASS Training Center & Consultant' },
-    '/hr/divisi':            { title: 'Manajemen Divisi',   subtitle: 'PT. BASS Training Center & Consultant' },
-    '/hr/analytics':         { title: 'Analytics',          subtitle: 'PT. BASS Training Center & Consultant' },
-    '/laporan-kpi':          { title: 'Laporan KPI',        subtitle: 'PT. BASS Training Center & Consultant' },
-    '/notifikasi':           { title: 'Notifikasi',         subtitle: 'PT. BASS Training Center & Consultant' },
+    '/hr/divisi':            { title: 'Manajemen Divisi',      subtitle: 'PT. BASS Training Center & Consultant' },
+    '/hr/departemen':        { title: 'Manajemen Departemen', subtitle: 'PT. BASS Training Center & Consultant' },
+    '/hr/analytics':         { title: 'Analytics KPI',        subtitle: 'PT. BASS Training Center & Consultant' },
+    '/laporan-kpi':          { title: 'Laporan KPI',          subtitle: 'PT. BASS Training Center & Consultant' },
+    '/progress-kpi':         { title: 'Progress KPI',         subtitle: 'PT. BASS Training Center & Consultant' },
+    '/direktur/ranking':     { title: 'Ranking KPI Pegawai',  subtitle: 'PT. BASS Training Center & Consultant' },
+    '/hr/laporan-review':    { title: 'Tinjau Laporan KPI',  subtitle: 'PT. BASS Training Center & Consultant' },
+    '/hr/kpi-pegawai':       { title: 'Detail KPI Pegawai',  subtitle: 'PT. BASS Training Center & Consultant' },
+    '/hr/logs':              { title: 'Log Aktivitas',        subtitle: 'PT. BASS Training Center & Consultant' },
+    '/notifikasi':           { title: 'Notifikasi',           subtitle: 'PT. BASS Training Center & Consultant' },
 };
 
 const pageInfo = computed(() => pageMap[route.path] || { title: 'Dashboard KPI', subtitle: 'PT. BASS Training Center & Consultant' });

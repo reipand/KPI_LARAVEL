@@ -12,7 +12,7 @@ class HrMiddleware
         $user = session('user');
         
         if (!$user || !$user->isHR()) {
-            return redirect()->route('dashboard')->with('error', 'Akses ditolak');
+            return redirect('/dashboard')->with('error', 'Akses ditolak');
         }
         
         return $next($request);

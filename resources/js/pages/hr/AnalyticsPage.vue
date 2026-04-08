@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAnalyticsStore } from '@/stores/analytics';
+import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import DoughnutChart from '@/components/charts/DoughnutChart.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import { downloadFile } from '@/services/api';
 
 const store = useAnalyticsStore();
 
@@ -13,63 +15,91 @@ const yearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear()
 const selectedYear = ref(new Date().getFullYear());
 
 async function applyFilter() {
-    store.setFilter({ year: selectedYear.value });
+    store.setFilter('tahun', selectedYear.value);
     await store.fetchAll();
 }
 
 onMounted(() => applyFilter());
+const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(applyFilter, { interval: 60_000 });
 
-// ── Chart data mappers ──────────────────────────────────────────────────────
-const trendDatasets = () => {
-    const data = store.trend;
-    if (!data?.length) return { labels: [], datasets: [] };
+// ── Chart data — all computed so they react to store changes ─────────────────
+
+const trendChart = computed(() => {
+    const raw = store.trend;
+    if (!raw?.labels?.length) return { labels: [], datasets: [] };
     return {
-        labels: data.map(d => d.bulan),
-        datasets: [{
-            label: 'Rata-rata Achievement (%)',
-            data: data.map(d => parseFloat(d.avg_achievement ?? 0)),
-            color: '#3b82f6',
-            fill: true,
-        }],
+        labels: raw.labels,
+        datasets: (raw.datasets ?? []).map(ds => ({
+            label: ds.label,
+            data:  ds.data,
+            color: ds.type === 'percentage' ? '#3b82f6' : '#10b981',
+            fill:  ds.type === 'percentage',
+        })),
     };
-};
+});
 
-const divisionDatasets = () => {
-    const data = store.perDivision;
-    if (!data?.length) return { labels: [], datasets: [] };
+const divisionChart = computed(() => {
+    const raw = store.perDivision;
+    if (!raw?.labels?.length) return { labels: [], datasets: [] };
     return {
-        labels: data.map(d => d.division_name ?? 'Tanpa Divisi'),
-        datasets: [{
-            label: 'Rata-rata Achievement (%)',
-            data: data.map(d => parseFloat(d.avg_achievement ?? 0)),
-            color: '#6366f1',
-        }],
+        labels: raw.labels,
+        datasets: (raw.datasets ?? []).map((ds, i) => ({
+            label: ds.label,
+            data:  ds.data,
+            color: ['#6366f1', '#10b981'][i] ?? '#6366f1',
+        })),
     };
-};
+});
 
-const distributionChart = () => {
-    const data = store.distribution;
-    if (!data?.length) return { labels: [], data: [], colors: [] };
-    const colorMap = { excellent: '#22c55e', good: '#3b82f6', average: '#f59e0b', bad: '#ef4444' };
-    const labelMap = { excellent: 'Excellent', good: 'Good', average: 'Average', bad: 'Bad' };
+const distributionChart = computed(() => {
+    const raw = store.distribution?.report_based;
+    if (!raw?.labels?.length) return { labels: [], data: [], colors: [] };
+    const colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'];
     return {
-        labels: data.map(d => labelMap[d.score_label] ?? d.score_label),
-        data: data.map(d => parseInt(d.total ?? 0)),
-        colors: data.map(d => colorMap[d.score_label] ?? '#94a3b8'),
+        labels: raw.labels,
+        data:   raw.data,
+        colors: raw.labels.map((_, i) => colors[i] ?? '#94a3b8'),
     };
-};
+});
 
-function exportKpiCsv() {
-    window.open('/api/export/reports/csv', '_blank');
+const taskDistChart = computed(() => {
+    const raw = store.distribution?.task_based;
+    if (!raw?.labels?.length) return { labels: [], data: [], colors: [] };
+    const colorMap = {
+        'Baik Sekali': '#22c55e', 'Baik': '#3b82f6',
+        'Cukup': '#f59e0b', 'Kurang': '#ef4444', 'Buruk': '#dc2626',
+    };
+    return {
+        labels: raw.labels,
+        data:   raw.data,
+        colors: raw.labels.map(l => colorMap[l] ?? '#94a3b8'),
+    };
+});
+
+// Chart keys — change when data changes so Chart.js reinitialises
+const trendKey        = computed(() => trendChart.value.labels.join(','));
+const divisionKey     = computed(() => divisionChart.value.labels.join(','));
+const distributionKey = computed(() => distributionChart.value.data.join(','));
+const taskDistKey     = computed(() => taskDistChart.value.data.join(','));
+
+async function exportKpiCsv() {
+    await downloadFile('/export/reports/csv', {
+        params: { tahun: selectedYear.value },
+        fallbackFilename: `laporan-kpi-${selectedYear.value}.csv`,
+    });
 }
 
-function exportRankingCsv() {
-    window.open('/api/export/ranking/csv', '_blank');
+async function exportRankingCsv() {
+    await downloadFile('/export/ranking/csv', {
+        params: { tahun: selectedYear.value },
+        fallbackFilename: `ranking-kpi-${selectedYear.value}.csv`,
+    });
 }
 </script>
 
 <template>
     <AppLayout>
+        <!-- Hero -->
         <section class="page-hero">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
@@ -80,9 +110,20 @@ function exportRankingCsv() {
                     </p>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
+                    <span v-if="lastUpdated" class="text-[11px] text-white/50">{{ formatTime(lastUpdated) }}</span>
+                    <button
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20"
+                        :class="{ 'animate-spin': isRefreshing }"
+                        title="Refresh"
+                        @click="refresh"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                        </svg>
+                    </button>
                     <select
                         v-model="selectedYear"
-                        class="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
+                        class="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
                         @change="applyFilter"
                     >
                         <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
@@ -93,86 +134,129 @@ function exportRankingCsv() {
 
         <!-- Overview cards -->
         <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <template v-if="store.loadingOverview">
+            <template v-if="store.isLoadingOverview">
                 <Skeleton v-for="i in 4" :key="i" class="h-24 rounded-2xl" />
             </template>
             <template v-else>
                 <div class="dashboard-panel p-5">
                     <p class="text-xs font-medium text-slate-500">Total Karyawan</p>
                     <p class="mt-1 text-2xl font-bold text-slate-900">{{ store.overview?.total_employees ?? 0 }}</p>
+                    <p class="mt-0.5 text-xs text-slate-400">{{ store.overview?.total_divisions ?? 0 }} divisi aktif</p>
                 </div>
                 <div class="dashboard-panel p-5">
                     <p class="text-xs font-medium text-slate-500">Rata-rata Achievement</p>
-                    <p class="mt-1 text-2xl font-bold text-blue-600">{{ store.overview?.avg_achievement ? parseFloat(store.overview.avg_achievement).toFixed(1) + '%' : '-' }}</p>
+                    <p class="mt-1 text-2xl font-bold text-blue-600">
+                        {{ store.overview?.avg_achievement ? store.overview.avg_achievement + '%' : '-' }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400">{{ store.overview?.total_reports ?? 0 }} laporan</p>
                 </div>
                 <div class="dashboard-panel p-5">
                     <p class="text-xs font-medium text-slate-500">Performa Baik (≥80%)</p>
-                    <p class="mt-1 text-2xl font-bold text-green-600">{{ store.overview?.good_count ?? 0 }}</p>
+                    <p class="mt-1 text-2xl font-bold text-green-600">
+                        {{ (store.overview?.excellent_count ?? 0) + (store.overview?.good_count ?? 0) }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400">excellent + good</p>
                 </div>
                 <div class="dashboard-panel p-5">
                     <p class="text-xs font-medium text-slate-500">Performa Buruk (&lt;50%)</p>
                     <p class="mt-1 text-2xl font-bold text-red-500">{{ store.overview?.bad_count ?? 0 }}</p>
+                    <p class="mt-0.5 text-xs text-slate-400">perlu perhatian</p>
                 </div>
             </template>
         </section>
 
-        <!-- Charts row 1 -->
+        <!-- Trend + Report Distribution -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <!-- Trend line chart -->
-            <div class="dashboard-panel lg:col-span-2">
+            <div class="dashboard-panel overflow-hidden lg:col-span-2">
                 <div class="border-b border-slate-200 px-6 py-4">
                     <p class="section-heading">Tren Bulanan</p>
                     <h3 class="mt-1 text-lg font-bold text-slate-900">Achievement Rate {{ selectedYear }}</h3>
                 </div>
                 <div class="p-6">
-                    <div v-if="store.loadingTrend" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-if="store.isLoadingTrend" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        <svg class="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/>
+                        </svg>
+                        Memuat...
+                    </div>
+                    <div v-else-if="!trendChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        Belum ada data trend untuk tahun ini.
+                    </div>
                     <LineChart
                         v-else
-                        :labels="trendDatasets().labels"
-                        :datasets="trendDatasets().datasets"
-                        title=""
-                        y-label="Achievement (%)"
+                        :key="trendKey"
+                        :labels="trendChart.labels"
+                        :datasets="trendChart.datasets"
+                        y-label="Nilai"
                         :height="260"
                     />
                 </div>
             </div>
 
-            <!-- Distribution doughnut -->
-            <div class="dashboard-panel">
+            <div class="dashboard-panel overflow-hidden">
                 <div class="border-b border-slate-200 px-6 py-4">
-                    <p class="section-heading">Distribusi Nilai</p>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Sebaran Score Label</h3>
+                    <p class="section-heading">Distribusi Laporan KPI</p>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Sebaran Pencapaian</h3>
                 </div>
                 <div class="p-6">
-                    <div v-if="store.loadingDistribution" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-if="store.isLoadingDistribution" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-else-if="!distributionChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        Belum ada data distribusi.
+                    </div>
                     <DoughnutChart
                         v-else
-                        :labels="distributionChart().labels"
-                        :data="distributionChart().data"
-                        :colors="distributionChart().colors"
-                        title=""
+                        :key="distributionKey"
+                        :labels="distributionChart.labels"
+                        :data="distributionChart.data"
+                        :colors="distributionChart.colors"
                         :height="240"
                     />
                 </div>
             </div>
         </div>
 
-        <!-- Per-division bar chart -->
-        <div class="dashboard-panel">
-            <div class="border-b border-slate-200 px-6 py-4">
-                <p class="section-heading">Perbandingan Divisi</p>
-                <h3 class="mt-1 text-lg font-bold text-slate-900">Rata-rata Achievement per Divisi</h3>
+        <!-- Division bar chart + Task distribution -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="dashboard-panel overflow-hidden lg:col-span-2">
+                <div class="border-b border-slate-200 px-6 py-4">
+                    <p class="section-heading">Perbandingan Divisi</p>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Rata-rata Achievement per Divisi</h3>
+                </div>
+                <div class="p-6">
+                    <div v-if="store.isLoadingDivision" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-else-if="!divisionChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        Belum ada data divisi.
+                    </div>
+                    <BarChart
+                        v-else
+                        :key="divisionKey"
+                        :labels="divisionChart.labels"
+                        :datasets="divisionChart.datasets"
+                        y-label="Nilai"
+                        :height="280"
+                    />
+                </div>
             </div>
-            <div class="p-6">
-                <div v-if="store.loadingPerDivision" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
-                <BarChart
-                    v-else
-                    :labels="divisionDatasets().labels"
-                    :datasets="divisionDatasets().datasets"
-                    title=""
-                    y-label="Achievement (%)"
-                    :height="280"
-                />
+
+            <div class="dashboard-panel overflow-hidden">
+                <div class="border-b border-slate-200 px-6 py-4">
+                    <p class="section-heading">Distribusi Skor KPI</p>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Predikat Pegawai</h3>
+                </div>
+                <div class="p-6">
+                    <div v-if="store.isLoadingDistribution" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-else-if="!taskDistChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        Belum ada data.
+                    </div>
+                    <DoughnutChart
+                        v-else
+                        :key="taskDistKey"
+                        :labels="taskDistChart.labels"
+                        :data="taskDistChart.data"
+                        :colors="taskDistChart.colors"
+                        :height="240"
+                    />
+                </div>
             </div>
         </div>
 
@@ -184,13 +268,13 @@ function exportRankingCsv() {
             </div>
             <div class="flex flex-wrap gap-3 p-6">
                 <button class="btn-secondary" @click="exportKpiCsv">
-                    <svg class="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <svg class="mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                         <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/>
                     </svg>
-                    Export KPI Reports (CSV)
+                    Export Laporan KPI (CSV)
                 </button>
                 <button class="btn-secondary" @click="exportRankingCsv">
-                    <svg class="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <svg class="mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                         <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/>
                     </svg>
                     Export Ranking (CSV)

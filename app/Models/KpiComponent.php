@@ -11,6 +11,7 @@ class KpiComponent extends Model
     protected $fillable = [
         'jabatan',
         'division_id',
+        'department_id',
         'position_id',
         'objectives',
         'strategy',
@@ -36,6 +37,11 @@ class KpiComponent extends Model
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function positionRef(): BelongsTo

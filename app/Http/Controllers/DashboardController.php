@@ -13,7 +13,7 @@ class DashboardController extends Controller
         $user = session('user');
 
         if (!$user) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
 
         $tasks = Task::where('user_id', $user->id)->get();

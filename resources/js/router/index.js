@@ -17,8 +17,12 @@ const SlaPage = () => import('@/pages/hr/SlaPage.vue');
 const SettingsPage = () => import('@/pages/hr/SettingsPage.vue');
 
 // HR Manager (new)
-const DivisionPage = () => import('@/pages/hr/DivisionPage.vue');
-const HRAnalyticsPage = () => import('@/pages/hr/AnalyticsPage.vue');
+const DivisionPage           = () => import('@/pages/hr/DivisionPage.vue');
+const DepartmentPage         = () => import('@/pages/hr/DepartmentPage.vue');
+const HRAnalyticsPage        = () => import('@/pages/hr/AnalyticsPage.vue');
+const KpiReportReviewPage    = () => import('@/pages/hr/KpiReportReviewPage.vue');
+const EmployeeKpiPage        = () => import('@/pages/hr/EmployeeKpiPage.vue');
+const ActivityLogsPage       = () => import('@/pages/hr/ActivityLogsPage.vue');
 
 // Pegawai (new)
 const KpiReportPage = () => import('@/pages/pegawai/KpiReportPage.vue');
@@ -26,6 +30,10 @@ const KpiReportPage = () => import('@/pages/pegawai/KpiReportPage.vue');
 // Direktur
 const DirekturDashboard = () => import('@/pages/direktur/DashboardPage.vue');
 const DirekturAnalyticsPage = () => import('@/pages/direktur/AnalyticsPage.vue');
+const DirekturRankingPage = () => import('@/pages/direktur/RankingPage.vue');
+
+// Pegawai progress
+const KpiProgressPage = () => import('@/pages/pegawai/KpiProgressPage.vue');
 
 // Shared
 const NotificationsPage = () => import('@/pages/NotificationsPage.vue');
@@ -52,6 +60,11 @@ const routes = [
     {
         path: '/laporan-kpi',
         component: KpiReportPage,
+        meta: { requiresAuth: true, roles: ['pegawai'] },
+    },
+    {
+        path: '/progress-kpi',
+        component: KpiProgressPage,
         meta: { requiresAuth: true, roles: ['pegawai'] },
     },
 
@@ -92,8 +105,28 @@ const routes = [
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
     {
+        path: '/hr/departemen',
+        component: DepartmentPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
         path: '/hr/analytics',
         component: HRAnalyticsPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
+        path: '/hr/laporan-review',
+        component: KpiReportReviewPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
+        path: '/hr/kpi-pegawai',
+        component: EmployeeKpiPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
+        path: '/hr/logs',
+        component: ActivityLogsPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
 
@@ -106,6 +139,11 @@ const routes = [
     {
         path: '/direktur/analytics',
         component: DirekturAnalyticsPage,
+        meta: { requiresAuth: true, roles: ['direktur'] },
+    },
+    {
+        path: '/direktur/ranking',
+        component: DirekturRankingPage,
         meta: { requiresAuth: true, roles: ['direktur'] },
     },
 

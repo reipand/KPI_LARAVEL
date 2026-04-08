@@ -72,6 +72,16 @@ export const useKpiReportStore = defineStore('kpiReport', () => {
         reports.value = reports.value.filter((r) => r.id !== id);
     }
 
+    async function reviewReport(id, status, reviewNote = '') {
+        const { data: resp } = await api.patch(`/kpi-reports/${id}/review`, {
+            status,
+            review_note: reviewNote,
+        });
+        const idx = reports.value.findIndex(r => r.id === id);
+        if (idx !== -1) reports.value[idx] = resp.data;
+        return resp.data;
+    }
+
     async function uploadEvidence(reportId, file) {
         const form = new FormData();
         form.append('file', file);
@@ -99,6 +109,7 @@ export const useKpiReportStore = defineStore('kpiReport', () => {
         createReport,
         updateReport,
         deleteReport,
+        reviewReport,
         uploadEvidence,
         setFilter,
     };

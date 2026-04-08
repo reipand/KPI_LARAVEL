@@ -13,14 +13,14 @@ class SessionAuthMiddleware
         $userId = session('user_id') ?? session('user')?->id;
 
         if (!$userId) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
 
         $user = User::find($userId);
 
         if (!$user) {
             session()->forget(['user_id', 'user']);
-            return redirect()->route('login');
+            return redirect('/login');
         }
 
         session([

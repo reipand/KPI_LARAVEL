@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/kpi-reports/{kpiReport}', [KpiReportController::class, 'update']);
     Route::delete('/kpi-reports/{kpiReport}', [KpiReportController::class, 'destroy']);
     Route::post('/kpi-reports/{kpiReport}/evidence', [KpiReportController::class, 'uploadEvidence']);
+    Route::patch('/kpi-reports/{kpiReport}/review', [KpiReportController::class, 'review'])->middleware('role:hr_manager,direktur');
 
     // Analytics (HR & Direktur only)
     Route::prefix('analytics')->middleware('role:hr_manager,direktur')->group(function () {

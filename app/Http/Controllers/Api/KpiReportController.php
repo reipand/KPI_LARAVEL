@@ -124,6 +124,35 @@ class KpiReportController extends ApiController
         return $this->success(null, 'Laporan KPI berhasil dihapus');
     }
 
+    public function review(Request $request, KpiReport $kpiReport): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+            'review_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $kpiReport->update([
+            'status' => $data['status'],
+            'review_note' => $data['review_note'] ?? null,
+            'reviewed_by' => $request->user()?->id,
+            'reviewed_at' => now(),
+        ]);
+
+        ActivityLog::record(
+            $request->user(),
+            'review_kpi_report',
+            'KpiReport',
+            $kpiReport->id,
+            ['status' => $data['status'], 'review_note' => $data['review_note'] ?? null],
+            $request
+        );
+
+        return $this->resource(
+            new KpiReportResource($kpiReport->load(['user', 'kpiComponent'])),
+            $data['status'] === 'approved' ? 'Laporan disetujui.' : 'Laporan ditolak.'
+        );
+    }
+
     public function uploadEvidence(Request $request, KpiReport $kpiReport): JsonResponse
     {
         $user = $request->user();

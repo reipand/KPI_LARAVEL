@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useEmployeeStore } from '@/stores/employee';
 import { useKpiColor } from '@/composables/useKpiColor';
 import { useKpiStore } from '@/stores/kpi';
+import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import StatCard from '@/components/shared/StatCard.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
@@ -46,12 +47,15 @@ const maxDistribution = computed(() =>
     Math.max(...distribution.value.map((item) => item.count), 1),
 );
 
-onMounted(async () => {
+async function fetchAll() {
     await Promise.all([
         empStore.fetchEmployees(),
         kpiStore.fetchRanking(),
     ]);
-});
+}
+
+onMounted(fetchAll);
+const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(fetchAll, { interval: 30_000 });
 </script>
 
 <template>
@@ -65,14 +69,31 @@ onMounted(async () => {
                         Tinjau distribusi nilai KPI, pegawai dengan performa tertinggi, dan unit yang perlu perhatian lebih lanjut.
                     </p>
                 </div>
-                <div class="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
-                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                        <div class="text-[11px] uppercase tracking-[0.18em] text-white/60">Total Pegawai</div>
-                        <div class="mt-2 text-3xl font-bold text-white">{{ stats.totalEmployees }}</div>
+                <div class="flex flex-col items-end gap-3">
+                    <div class="flex items-center gap-2">
+                        <span v-if="lastUpdated" class="text-[11px] text-white/50">
+                            Diperbarui {{ formatTime(lastUpdated) }}
+                        </span>
+                        <button
+                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20"
+                            :class="{ 'animate-spin': isRefreshing }"
+                            title="Refresh data"
+                            @click="refresh"
+                        >
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                            </svg>
+                        </button>
                     </div>
-                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                        <div class="text-[11px] uppercase tracking-[0.18em] text-white/60">Rata-rata KPI</div>
-                        <div class="mt-2 text-3xl font-bold text-white">{{ stats.avgScore }}</div>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
+                        <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                            <div class="text-[11px] uppercase tracking-[0.18em] text-white/60">Total Pegawai</div>
+                            <div class="mt-2 text-3xl font-bold text-white">{{ stats.totalEmployees }}</div>
+                        </div>
+                        <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                            <div class="text-[11px] uppercase tracking-[0.18em] text-white/60">Rata-rata KPI</div>
+                            <div class="mt-2 text-3xl font-bold text-white">{{ stats.avgScore }}</div>
+                        </div>
                     </div>
                 </div>
             </div>

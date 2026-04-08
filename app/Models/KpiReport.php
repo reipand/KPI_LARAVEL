@@ -19,10 +19,13 @@ class KpiReport extends Model
         'persentase',
         'score_label',
         'catatan',
+        'review_note',
         'file_evidence',
         'status',
         'submitted_by',
+        'reviewed_by',
         'submitted_at',
+        'reviewed_at',
     ];
 
     protected function casts(): array
@@ -33,6 +36,7 @@ class KpiReport extends Model
             'nilai_aktual' => 'decimal:4',
             'persentase' => 'decimal:2',
             'submitted_at' => 'datetime',
+            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -49,6 +53,11 @@ class KpiReport extends Model
     public function submittedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     public function getFileEvidenceUrlAttribute(): ?string

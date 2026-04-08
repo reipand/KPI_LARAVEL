@@ -31,14 +31,14 @@ class AuthController extends Controller
         Session::put('user_id', $employee->id);
         Session::put('user', $employee);
         
-        return redirect()->route('dashboard');
+        return redirect('/dashboard');
     }
 
     public function logout()
     {
         Session::forget('user_id');
         Session::forget('user');
-        return redirect()->route('login');
+        return redirect('/login');
     }
 
     public function getUser()

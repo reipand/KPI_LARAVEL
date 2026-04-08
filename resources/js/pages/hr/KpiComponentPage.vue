@@ -12,57 +12,80 @@ import { useDivisionStore } from '@/stores/division';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
 
-const store     = useKpiComponentStore();
-const divStore  = useDivisionStore();
+const store = useKpiComponentStore();
+const divStore = useDivisionStore();
 const deptStore = useDepartmentStore();
-const posStore  = usePositionStore();
-const toast     = useToast();
+const posStore = usePositionStore();
+const toast = useToast();
 
 const components = computed(() => store.components);
-const showForm   = ref(false);
-const editMode   = ref(false);
+const showForm = ref(false);
+const editMode = ref(false);
 const selectedId = ref(null);
 const submitting = ref(false);
-const formError  = ref('');
+const formError = ref('');
 const deleteState = ref({ open: false, id: null, name: '' });
+const syncingHierarchy = ref(false);
 
 const emptyForm = () => ({
-    jabatan:     '',
+    jabatan: '',
     division_id: null,
+    department_id: null,
     position_id: null,
-    objectives:  '',
-    strategy:    '',
-    bobot:       0,
-    target:      '',
-    satuan:      '',
-    tipe:        'achievement',
-    kpi_type:    null,
-    period:      'monthly',
-    catatan:     '',
-    is_active:   true,
+    objectives: '',
+    strategy: '',
+    bobot: 0,
+    target: '',
+    satuan: '',
+    tipe: 'achievement',
+    kpi_type: null,
+    period: 'monthly',
+    catatan: '',
+    is_active: true,
 });
 
-const form   = reactive(emptyForm());
+const form = reactive(emptyForm());
 const errors = reactive({});
 
-// Cascade: position changes → auto-fill jabatan string
-const filteredDepts     = computed(() =>
+const filteredDepts = computed(() =>
     form.division_id
-        ? deptStore.departments.filter(d => d.division_id === form.division_id)
+        ? deptStore.departments.filter((department) => department.division_id === form.division_id)
         : deptStore.departments
 );
+
 const filteredPositions = computed(() =>
-    form.division_id
-        ? posStore.positions.filter(p => {
-            const dept = deptStore.findById(p.department_id);
-            return dept?.division_id === form.division_id;
-        })
-        : posStore.positions
+    form.department_id
+        ? posStore.positions.filter((position) => position.department_id === form.department_id)
+        : form.division_id
+            ? posStore.positions.filter((position) => {
+                const department = deptStore.findById(position.department_id);
+                return department?.division_id === form.division_id;
+            })
+            : posStore.positions
 );
 
+watch(() => form.division_id, () => {
+    if (syncingHierarchy.value) return;
+    form.department_id = null;
+    form.position_id = null;
+    form.jabatan = '';
+});
+
+watch(() => form.department_id, (id) => {
+    if (syncingHierarchy.value) return;
+    if (!id) {
+        form.position_id = null;
+        form.jabatan = '';
+        return;
+    }
+
+    form.position_id = null;
+    form.jabatan = '';
+});
+
 watch(() => form.position_id, (id) => {
-    const pos = posStore.findById(id);
-    if (pos) form.jabatan = pos.nama;
+    const position = posStore.findById(id);
+    form.jabatan = position?.nama ?? '';
 });
 
 onMounted(() => {
@@ -79,54 +102,96 @@ function resetForm() {
 }
 
 function openCreate() {
-    editMode.value  = false;
+    editMode.value = false;
     selectedId.value = null;
     resetForm();
-    showForm.value  = true;
+    showForm.value = true;
 }
 
 function openEdit(item) {
-    editMode.value  = true;
+    editMode.value = true;
     selectedId.value = item.id;
     resetForm();
+
+    const selectedPosition = item.position_id ? posStore.findById(item.position_id) : null;
+    const selectedDepartment = selectedPosition?.department_id
+        ? deptStore.findById(selectedPosition.department_id)
+        : null;
+
+    syncingHierarchy.value = true;
     Object.assign(form, {
-        jabatan:     item.jabatan ?? '',
-        division_id: item.division_id ?? null,
+        jabatan: item.jabatan ?? '',
+        division_id: item.division_id ?? selectedDepartment?.division_id ?? null,
+        department_id: selectedDepartment?.id ?? null,
         position_id: item.position_id ?? null,
-        objectives:  item.objectives ?? '',
-        strategy:    item.strategy ?? '',
-        bobot:       item.bobot ?? 0,
-        target:      item.target ?? '',
-        satuan:      item.satuan ?? '',
-        tipe:        item.tipe ?? 'achievement',
-        kpi_type:    item.kpi_type ?? null,
-        period:      item.period ?? 'monthly',
-        catatan:     item.catatan ?? '',
-        is_active:   Boolean(item.is_active),
+        objectives: item.objectives ?? '',
+        strategy: item.strategy ?? '',
+        bobot: item.bobot ?? 0,
+        target: item.target ?? '',
+        satuan: item.satuan ?? '',
+        tipe: item.tipe ?? 'achievement',
+        kpi_type: item.kpi_type ?? null,
+        period: item.period ?? 'monthly',
+        catatan: item.catatan ?? '',
+        is_active: Boolean(item.is_active),
     });
+    syncingHierarchy.value = false;
     showForm.value = true;
 }
 
 function validate() {
     Object.assign(errors, { jabatan: '', objectives: '', strategy: '', bobot: '', tipe: '' });
     let valid = true;
-    if (!form.jabatan) { errors.jabatan = 'Jabatan wajib diisi.'; valid = false; }
-    if (!form.objectives) { errors.objectives = 'Objective wajib diisi.'; valid = false; }
-    if (!form.strategy) { errors.strategy = 'Strategy wajib diisi.'; valid = false; }
-    if (Number(form.bobot) < 0 || Number(form.bobot) > 1) { errors.bobot = 'Bobot harus antara 0 sampai 1.'; valid = false; }
-    if (!form.tipe) { errors.tipe = 'Tipe wajib dipilih.'; valid = false; }
+
+    if (!form.jabatan) {
+        errors.jabatan = 'Jabatan wajib diisi.';
+        valid = false;
+    }
+
+    if (!form.objectives) {
+        errors.objectives = 'Objective wajib diisi.';
+        valid = false;
+    }
+
+    if (!form.strategy) {
+        errors.strategy = 'Strategy wajib diisi.';
+        valid = false;
+    }
+
+    if (Number(form.bobot) < 0 || Number(form.bobot) > 1) {
+        errors.bobot = 'Bobot harus antara 0 sampai 1.';
+        valid = false;
+    }
+
+    if (!form.tipe) {
+        errors.tipe = 'Tipe wajib dipilih.';
+        valid = false;
+    }
+
     return valid;
 }
 
 async function submit() {
     if (!validate()) return;
+
     submitting.value = true;
-    formError.value  = '';
+    formError.value = '';
+
     try {
         const payload = {
-            ...form,
-            bobot:  Number(form.bobot),
+            jabatan: form.jabatan,
+            division_id: form.division_id,
+            position_id: form.position_id,
+            objectives: form.objectives,
+            strategy: form.strategy,
+            bobot: Number(form.bobot),
             target: form.target === '' ? null : Number(form.target),
+            satuan: form.satuan,
+            tipe: form.tipe,
+            kpi_type: form.kpi_type,
+            period: form.period,
+            catatan: form.catatan,
+            is_active: form.is_active,
         };
 
         if (editMode.value && selectedId.value) {
@@ -157,22 +222,22 @@ async function confirmDelete() {
 }
 
 const tipeLabels = {
-    achievement:   'Achievement',
-    csi:           'CSI (Customer Satisfaction Index)',
-    zero_delay:    'Zero Delay',
-    zero_error:    'Zero Error',
-    zero_complaint:'Zero Complaint',
+    achievement: 'Achievement',
+    csi: 'CSI (Customer Satisfaction Index)',
+    zero_delay: 'Zero Delay',
+    zero_error: 'Zero Error',
+    zero_complaint: 'Zero Complaint',
 };
 
 const kpiTypeLabels = {
-    number:     'Number (Angka)',
+    number: 'Number (Angka)',
     percentage: 'Percentage (%)',
-    boolean:    'Boolean (Ya/Tidak)',
+    boolean: 'Boolean (Ya/Tidak)',
 };
 
 const periodLabels = {
-    daily:   'Harian',
-    weekly:  'Mingguan',
+    daily: 'Harian',
+    weekly: 'Mingguan',
     monthly: 'Bulanan',
 };
 </script>
@@ -215,7 +280,7 @@ const periodLabels = {
                                 </div>
                                 <div class="mt-0.5 truncate text-xs text-slate-500">
                                     {{ item.jabatan }}
-                                    <template v-if="item.division_id"> · {{ item.division?.nama ?? '–' }}</template>
+                                    <template v-if="item.division_id"> · {{ item.division?.nama ?? '-' }}</template>
                                     · {{ tipeLabels[item.tipe] ?? item.tipe }}
                                     · Bobot {{ item.bobot }}
                                     <template v-if="item.target"> · Target {{ item.target }}{{ item.satuan ? ' ' + item.satuan : '' }}</template>
@@ -235,92 +300,87 @@ const periodLabels = {
             </div>
         </section>
 
-        <!-- Form Dialog -->
         <Dialog v-model:open="showForm" :title="editMode ? 'Edit Komponen KPI' : 'Tambah Komponen KPI'" class="max-w-3xl">
             <Alert v-if="formError" variant="danger" class="mb-4">{{ formError }}</Alert>
 
             <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-
-                <!-- Divisi -->
                 <div>
                     <label class="form-label">Divisi</label>
                     <select v-model="form.division_id" class="form-input">
                         <option :value="null">— Semua Divisi —</option>
-                        <option v-for="d in divStore.divisions" :key="d.id" :value="d.id">
-                            {{ d.nama }} ({{ d.kode }})
+                        <option v-for="division in divStore.divisions" :key="division.id" :value="division.id">
+                            {{ division.nama }} ({{ division.kode }})
                         </option>
                     </select>
                 </div>
 
-                <!-- Jabatan / Position dropdown -->
                 <div>
+                    <label class="form-label">Departemen</label>
+                    <select v-model="form.department_id" class="form-input">
+                        <option :value="null">— Semua Departemen —</option>
+                        <option v-for="department in filteredDepts" :key="department.id" :value="department.id">
+                            {{ department.nama }}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
                     <label class="form-label">Jabatan <span class="text-red-500">*</span></label>
                     <select v-model="form.position_id" class="form-input">
                         <option :value="null">— Pilih Jabatan —</option>
-                        <option v-for="p in filteredPositions" :key="p.id" :value="p.id">{{ p.nama }}</option>
+                        <option v-for="position in filteredPositions" :key="position.id" :value="position.id">{{ position.nama }}</option>
                     </select>
-                    <Input
-                        v-model="form.jabatan"
-                        class="mt-1.5"
-                        placeholder="Atau ketik jabatan langsung..."
-                        :class="form.position_id ? 'opacity-50' : ''"
-                    />
                     <p v-if="errors.jabatan" class="mt-1 text-xs text-red-500">{{ errors.jabatan }}</p>
+                    <p v-else-if="form.jabatan" class="mt-1 text-xs text-slate-500">
+                        Jabatan tersimpan: {{ form.jabatan }}
+                    </p>
                 </div>
 
-                <!-- Objectives -->
                 <div>
                     <label class="form-label">Objectives <span class="text-red-500">*</span></label>
                     <Input v-model="form.objectives" placeholder="Contoh: System Uptime 99.5%" />
                     <p v-if="errors.objectives" class="mt-1 text-xs text-red-500">{{ errors.objectives }}</p>
                 </div>
 
-                <!-- Tipe -->
                 <div>
                     <label class="form-label">Tipe KPI <span class="text-red-500">*</span></label>
                     <select v-model="form.tipe" class="form-input">
-                        <option v-for="(label, val) in tipeLabels" :key="val" :value="val">{{ label }}</option>
+                        <option v-for="(label, value) in tipeLabels" :key="value" :value="value">{{ label }}</option>
                     </select>
                     <p v-if="errors.tipe" class="mt-1 text-xs text-red-500">{{ errors.tipe }}</p>
                 </div>
 
-                <!-- Bobot -->
                 <div>
-                    <label class="form-label">Bobot <span class="text-red-500">*</span> <span class="text-xs text-slate-400">(0–1)</span></label>
+                    <label class="form-label">Bobot <span class="text-red-500">*</span> <span class="text-xs text-slate-400">(0-1)</span></label>
                     <Input v-model="form.bobot" type="number" min="0" max="1" step="0.01" placeholder="0.40" />
                     <p v-if="errors.bobot" class="mt-1 text-xs text-red-500">{{ errors.bobot }}</p>
                 </div>
 
-                <!-- Target -->
                 <div>
                     <label class="form-label">Target</label>
                     <Input v-model="form.target" type="number" step="0.01" placeholder="Contoh: 95" />
                 </div>
 
-                <!-- Satuan -->
                 <div>
                     <label class="form-label">Satuan</label>
                     <Input v-model="form.satuan" placeholder="Contoh: %, klien, laporan" />
                 </div>
 
-                <!-- KPI Type -->
                 <div>
                     <label class="form-label">Tipe Data</label>
                     <select v-model="form.kpi_type" class="form-input">
                         <option :value="null">— Pilih Tipe Data —</option>
-                        <option v-for="(label, val) in kpiTypeLabels" :key="val" :value="val">{{ label }}</option>
+                        <option v-for="(label, value) in kpiTypeLabels" :key="value" :value="value">{{ label }}</option>
                     </select>
                 </div>
 
-                <!-- Period -->
                 <div>
                     <label class="form-label">Periode</label>
                     <select v-model="form.period" class="form-input">
-                        <option v-for="(label, val) in periodLabels" :key="val" :value="val">{{ label }}</option>
+                        <option v-for="(label, value) in periodLabels" :key="value" :value="value">{{ label }}</option>
                     </select>
                 </div>
 
-                <!-- Status -->
                 <div>
                     <label class="form-label">Status</label>
                     <select v-model="form.is_active" class="form-input">
@@ -329,14 +389,12 @@ const periodLabels = {
                     </select>
                 </div>
 
-                <!-- Strategy -->
                 <div class="md:col-span-2">
                     <label class="form-label">Strategy <span class="text-red-500">*</span></label>
                     <Textarea v-model="form.strategy" rows="3" placeholder="Jelaskan cara mencapai objective ini..." />
                     <p v-if="errors.strategy" class="mt-1 text-xs text-red-500">{{ errors.strategy }}</p>
                 </div>
 
-                <!-- Catatan -->
                 <div class="md:col-span-2">
                     <label class="form-label">Catatan</label>
                     <Textarea v-model="form.catatan" rows="2" placeholder="Catatan tambahan (opsional)..." />
@@ -351,7 +409,6 @@ const periodLabels = {
             </div>
         </Dialog>
 
-        <!-- Delete Dialog -->
         <Dialog v-model:open="deleteState.open" title="Hapus Komponen KPI" class="max-w-lg">
             <p class="mt-3 text-sm text-slate-600">Hapus <strong>{{ deleteState.name }}</strong> dari master komponen KPI?</p>
             <div class="mt-6 flex justify-end gap-3">

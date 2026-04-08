@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useKpiReportStore } from '@/stores/kpiReport';
 import { useKpiColor } from '@/composables/useKpiColor';
 import { useToast } from '@/composables/useToast';
+import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
@@ -88,6 +89,8 @@ onMounted(async () => {
     await loadComponents();
     await loadReports();
 });
+
+const { refresh: refreshReports, lastUpdated, isRefreshing } = useAutoRefresh(loadReports, { interval: 30_000 });
 
 async function loadComponents() {
     const { data: resp } = await api.get('/kpi-components', { params: { per_page: 100 } });

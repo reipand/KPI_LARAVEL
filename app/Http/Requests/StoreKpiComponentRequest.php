@@ -15,8 +15,9 @@ class StoreKpiComponentRequest extends SanitizedFormRequest
     {
         return [
             'jabatan' => ['required', 'string', 'max:255'],
-            'division_id' => ['nullable', 'exists:divisions,id'],
-            'position_id' => ['nullable', 'exists:positions,id'],
+            'division_id'   => ['nullable', 'exists:divisions,id'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'position_id'   => ['nullable', 'exists:positions,id'],
             'objectives' => ['required', 'string', 'max:255'],
             'strategy' => ['required', 'string'],
             'bobot' => ['required', 'numeric', 'min:0', 'max:1'],

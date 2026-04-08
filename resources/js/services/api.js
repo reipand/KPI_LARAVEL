@@ -9,7 +9,60 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// ─── Request interceptor ───────────────────────────────────────────────────
+function extractFilename(contentDisposition, fallback) {
+    if (!contentDisposition) return fallback;
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+        return decodeURIComponent(utf8Match[1]);
+    }
+
+    const plainMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+    if (plainMatch?.[1]) {
+        return plainMatch[1];
+    }
+
+    return fallback;
+}
+
+export async function downloadFile(url, options = {}) {
+    const {
+        params,
+        method = 'get',
+        data,
+        fallbackFilename = 'download',
+    } = options;
+
+    const response = await api.request({
+        url,
+        method,
+        params,
+        data,
+        responseType: 'blob',
+    });
+
+    const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data]);
+
+    const filename = extractFilename(
+        response.headers?.['content-disposition'],
+        fallbackFilename
+    );
+
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = objectUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+
+    return response;
+}
+
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -18,31 +71,26 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// ─── Response interceptor ─────────────────────────────────────────────────
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         const status = error.response?.status;
 
         if (status === 401) {
-            // Token tidak valid atau kedaluwarsa — bersihkan dan arahkan ke login
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
 
         if (status === 429) {
-            // Terlalu banyak permintaan
             const retryAfter = error.response?.headers?.['retry-after'];
             const menit = retryAfter ? Math.ceil(retryAfter / 60) : '?';
             error.userMessage = `Terlalu banyak percobaan, coba lagi dalam ${menit} menit.`;
         }
 
-        // Ekstrak pesan error yang ramah pengguna
         const apiMessage = error.response?.data?.message;
         error.userMessage = error.userMessage || apiMessage || 'Terjadi kesalahan. Coba lagi.';
 
-        // Lempar kembali agar bisa ditangkap di store/komponen
         return Promise.reject(error);
     },
 );

@@ -2,12 +2,15 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
+import { useAutoRefresh } from '@/composables/useAutoRefresh';
 
 const store = useNotificationStore();
 const router = useRouter();
 const open = ref(false);
 
 onMounted(() => store.fetchNotifications());
+// Poll every 15 s so the unread badge stays current across all pages
+useAutoRefresh(() => store.fetchNotifications(), { interval: 15_000 });
 
 function toggle() { open.value = !open.value; }
 function close()  { open.value = false; }

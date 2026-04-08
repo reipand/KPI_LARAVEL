@@ -1,12 +1,14 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { useNotificationStore } from '@/stores/notification';
+import { useAutoRefresh } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 
 const store = useNotificationStore();
 
 onMounted(() => store.fetchNotifications());
+useAutoRefresh(() => store.fetchNotifications(), { interval: 15_000 });
 
 const typeIcon = {
     low_performance:   '⚠️',
