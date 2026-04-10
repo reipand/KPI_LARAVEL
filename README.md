@@ -49,6 +49,8 @@ php artisan migrate
   php artisan route:clear
   php artisan view:clear
   php artisan serve
+
+  npm run dev
 ```
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.

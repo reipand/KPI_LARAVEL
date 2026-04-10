@@ -1,116 +1,203 @@
+import { computed, reactive, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { ref, reactive } from 'vue';
-import api from '@/services/api';
+import { useApiHandler } from '@/composables/useApiHandler';
+import { usePagination } from '@/composables/usePagination';
+import { kpiReportService } from '@/services/kpiReportService';
+
+const defaultFilters = () => ({
+    bulan: new Date().getMonth() + 1,
+    tahun: new Date().getFullYear(),
+    user_id: '',
+    status: '',
+    search: '',
+    page: 1,
+    per_page: 8,
+});
 
 export const useKpiReportStore = defineStore('kpiReport', () => {
     const reports = ref([]);
-    const isLoading = ref(false);
+    const employees = ref([]);
+    const components = ref([]);
     const isSaving = ref(false);
+    const isDeleting = ref(false);
+    const isReviewing = ref(false);
+    const isUploadingEvidence = ref(false);
+    const filters = reactive(defaultFilters());
 
-    const pagination = reactive({
-        currentPage: 1,
-        lastPage: 1,
-        perPage: 20,
-        total: 0,
-    });
+    const listHandler = useApiHandler();
+    const pagination = usePagination({ perPage: filters.per_page });
 
-    const filters = reactive({
-        bulan: new Date().getMonth() + 1,
-        tahun: new Date().getFullYear(),
-        user_id: null,
-        kpi_component_id: null,
-        status: null,
-        per_page: 20,
-    });
+    const employeeOptions = computed(() => employees.value.map((employee) => ({
+        value: String(employee.id),
+        label: employee.nama,
+    })));
 
-    async function fetchReports(params = {}) {
-        isLoading.value = true;
-        try {
-            const merged = { ...filters, ...params };
-            // Remove null/empty
-            Object.keys(merged).forEach((k) => {
-                if (merged[k] === null || merged[k] === '') delete merged[k];
-            });
+    const componentOptions = computed(() => components.value.map((component) => ({
+        value: String(component.id),
+        label: component.objectives,
+    })));
 
-            const { data: resp } = await api.get('/kpi-reports', { params: merged });
-            reports.value = resp.data?.items ?? [];
-            const p = resp.data?.pagination ?? {};
-            pagination.currentPage = p.current_page ?? 1;
-            pagination.lastPage = p.last_page ?? 1;
-            pagination.perPage = p.per_page ?? 20;
-            pagination.total = p.total ?? 0;
-        } finally {
-            isLoading.value = false;
+    async function fetchReports(overrides = {}) {
+        Object.assign(filters, overrides);
+
+        const result = await listHandler.execute(
+            () => kpiReportService.listReports(filters),
+            { rethrow: true }
+        );
+
+        reports.value = result?.items ?? [];
+        pagination.sync(result?.pagination ?? {});
+        return reports.value;
+    }
+
+    async function bootstrapReferenceData(loadEmployees = false) {
+        const requests = [kpiReportService.listComponents()];
+
+        if (loadEmployees) {
+            requests.push(kpiReportService.listEmployees());
         }
+
+        const [componentData, employeeData] = await Promise.all(requests);
+
+        components.value = componentData ?? [];
+
+        if (loadEmployees) {
+            employees.value = employeeData ?? [];
+        }
+    }
+
+    function patchLocalReport(id, patch) {
+        const index = reports.value.findIndex((report) => report.id === id);
+
+        if (index === -1) {
+            return null;
+        }
+
+        const previous = { ...reports.value[index] };
+        reports.value[index] = { ...reports.value[index], ...patch };
+        return previous;
     }
 
     async function createReport(payload) {
-        isSaving.value = true;
-        try {
-            const { data: resp } = await api.post('/kpi-reports', payload);
-            reports.value.unshift(resp.data);
-            return resp.data;
-        } finally {
-            isSaving.value = false;
-        }
+        return listHandler.execute(
+            async () => {
+                const created = await kpiReportService.createReport(payload);
+                reports.value = [created, ...reports.value];
+                pagination.state.total += 1;
+                return created;
+            },
+            {
+                loadingRef: isSaving,
+                rethrow: true,
+            }
+        );
     }
 
     async function updateReport(id, payload) {
-        isSaving.value = true;
-        try {
-            const { data: resp } = await api.put(`/kpi-reports/${id}`, payload);
-            const idx = reports.value.findIndex((r) => r.id === id);
-            if (idx !== -1) reports.value[idx] = resp.data;
-            return resp.data;
-        } finally {
-            isSaving.value = false;
-        }
+        const optimistic = patchLocalReport(id, payload);
+
+        return listHandler.execute(
+            async () => {
+                const updated = await kpiReportService.updateReport(id, payload);
+                patchLocalReport(id, updated);
+                return updated;
+            },
+            {
+                loadingRef: isSaving,
+                onError: () => {
+                    if (optimistic) {
+                        patchLocalReport(id, optimistic);
+                    }
+                },
+                rethrow: true,
+            }
+        );
     }
 
     async function deleteReport(id) {
-        await api.delete(`/kpi-reports/${id}`);
-        reports.value = reports.value.filter((r) => r.id !== id);
+        const previousReports = [...reports.value];
+        reports.value = reports.value.filter((report) => report.id !== id);
+        pagination.state.total = Math.max(0, pagination.state.total - 1);
+
+        return listHandler.execute(
+            () => kpiReportService.deleteReport(id),
+            {
+                loadingRef: isDeleting,
+                onError: () => {
+                    reports.value = previousReports;
+                    pagination.state.total += 1;
+                },
+                rethrow: true,
+            }
+        );
     }
 
-    async function reviewReport(id, status, reviewNote = '') {
-        const { data: resp } = await api.patch(`/kpi-reports/${id}/review`, {
-            status,
-            review_note: reviewNote,
-        });
-        const idx = reports.value.findIndex(r => r.id === id);
-        if (idx !== -1) reports.value[idx] = resp.data;
-        return resp.data;
+    async function reviewReport(id, payload) {
+        const optimistic = patchLocalReport(id, payload);
+
+        return listHandler.execute(
+            async () => {
+                const updated = await kpiReportService.reviewReport(id, payload);
+                patchLocalReport(id, updated);
+                return updated;
+            },
+            {
+                loadingRef: isReviewing,
+                onError: () => {
+                    if (optimistic) {
+                        patchLocalReport(id, optimistic);
+                    }
+                },
+                rethrow: true,
+            }
+        );
     }
 
     async function uploadEvidence(reportId, file) {
-        const form = new FormData();
-        form.append('file', file);
-        const { data: resp } = await api.post(`/kpi-reports/${reportId}/evidence`, form, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        const idx = reports.value.findIndex((r) => r.id === reportId);
-        if (idx !== -1) {
-            reports.value[idx] = { ...reports.value[idx], file_evidence_url: resp.data.file_evidence_url };
-        }
-        return resp.data;
+        return listHandler.execute(
+            async () => {
+                const evidence = await kpiReportService.uploadEvidence(reportId, file);
+                patchLocalReport(reportId, evidence);
+                return evidence;
+            },
+            {
+                loadingRef: isUploadingEvidence,
+                rethrow: true,
+            }
+        );
     }
 
     function setFilter(key, value) {
         filters[key] = value;
     }
 
+    function resetFilters() {
+        Object.assign(filters, defaultFilters());
+        pagination.reset();
+    }
+
     return {
         reports,
-        isLoading,
-        isSaving,
-        pagination,
+        employees,
+        components,
         filters,
+        pagination: pagination.state,
+        employeeOptions,
+        componentOptions,
+        isLoading: listHandler.isLoading,
+        isSaving,
+        isDeleting,
+        isReviewing,
+        isUploadingEvidence,
+        error: listHandler.error,
         fetchReports,
+        bootstrapReferenceData,
         createReport,
         updateReport,
         deleteReport,
         reviewReport,
         uploadEvidence,
         setFilter,
+        resetFilters,
     };
 });

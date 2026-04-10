@@ -16,6 +16,7 @@ class KpiReportController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $search = trim((string) $request->input('search', ''));
 
         $query = KpiReport::with(['user', 'kpiComponent'])
             ->when(! $user->canManageAllData(), fn ($q) => $q->where('user_id', $user->id))
@@ -24,9 +25,27 @@ class KpiReportController extends ApiController
             ->when($request->filled('bulan'), fn ($q) => $q->whereMonth('tanggal', $request->bulan))
             ->when($request->filled('tahun'), fn ($q) => $q->whereYear('tanggal', $request->tahun))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->when($search !== '', function ($q) use ($search, $user) {
+                $q->where(function ($subQuery) use ($search, $user) {
+                    $subQuery
+                        ->where('period_label', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%")
+                        ->orWhere('review_note', 'like', "%{$search}%")
+                        ->orWhereHas('kpiComponent', fn ($componentQuery) => $componentQuery->where('objectives', 'like', "%{$search}%"));
+
+                    if ($user->canManageAllData()) {
+                        $subQuery->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery
+                                ->where('nama', 'like', "%{$search}%")
+                                ->orWhere('jabatan', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                    }
+                });
+            })
             ->orderByDesc('tanggal');
 
-        $perPage = (int) $request->input('per_page', 20);
+        $perPage = min(max((int) $request->input('per_page', 20), 1), 50);
         $paginator = $query->paginate($perPage);
 
         return $this->paginated(

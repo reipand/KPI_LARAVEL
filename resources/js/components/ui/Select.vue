@@ -1,7 +1,8 @@
 <script setup>
 import { cn } from '@/lib/utils';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     modelValue: { type: [String, Number], default: '' },
     options: {
         type: Array,
@@ -13,7 +14,9 @@ defineProps({
     class: { type: String, default: '' },
 });
 
-defineEmits(['update:modelValue']);
+defineEmits(['update:modelValue', 'blur']);
+
+const shouldRenderPlaceholder = computed(() => !props.options.some((option) => option.value === ''));
 </script>
 
 <template>
@@ -28,8 +31,9 @@ defineEmits(['update:modelValue']);
             $props.class
         )"
         @change="$emit('update:modelValue', $event.target.value)"
+        @blur="$emit('blur', $event)"
     >
-        <option value="" disabled>{{ placeholder }}</option>
+        <option v-if="shouldRenderPlaceholder" value="" disabled>{{ placeholder }}</option>
         <option v-for="opt in options" :key="opt.value" :value="opt.value">
             {{ opt.label }}
         </option>

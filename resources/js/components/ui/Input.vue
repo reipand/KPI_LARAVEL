@@ -9,7 +9,7 @@ defineProps({
     class: { type: String, default: '' },
 });
 
-defineEmits(['update:modelValue']);
+defineEmits(['update:modelValue', 'blur']);
 </script>
 
 <template>
@@ -27,5 +27,6 @@ defineEmits(['update:modelValue']);
             $props.class
         )"
         @input="$emit('update:modelValue', $event.target.value)"
+        @blur="$emit('blur', $event)"
     />
 </template>
