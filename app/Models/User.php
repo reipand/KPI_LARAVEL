@@ -29,6 +29,7 @@ class User extends Authenticatable
         'no_hp',
         'email',
         'role',
+        'role_id',
         'password',
     ];
 
@@ -48,6 +49,11 @@ class User extends Authenticatable
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class);
+    }
+
+    public function roleRef(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
     public function department(): BelongsTo

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\PositionController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\KpiComponentController;
 use App\Http\Controllers\Api\KpiController;
+use App\Http\Controllers\Api\KpiManagementController;
 use App\Http\Controllers\Api\KpiReportController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Api\NotificationController;
@@ -41,6 +42,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/kpi/me', [KpiController::class, 'me']);
     Route::get('/kpi/ranking', [KpiController::class, 'ranking']);
+    Route::get('/kpi/dashboard', [KpiManagementController::class, 'dashboard']);
+    Route::get('/kpi/user/{id}', [KpiManagementController::class, 'showUser']);
+    Route::post('/kpi/input', [KpiManagementController::class, 'input'])->middleware('role:hr_manager,direktur');
     Route::get('/kpi/{user}', [KpiController::class, 'show'])->middleware('role:hr_manager,direktur');
 
     Route::get('/kpi-components', [KpiComponentController::class, 'index']);

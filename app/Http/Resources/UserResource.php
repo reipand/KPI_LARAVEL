@@ -25,6 +25,8 @@ class UserResource extends JsonResource
             'no_hp' => $this->no_hp,
             'email' => $this->email,
             'role' => $this->role,
+            'role_id' => $this->role_id,
+            'role_ref' => $this->whenLoaded('roleRef', fn () => $this->roleRef?->only(['id', 'name', 'slug'])),
             'created_at' => optional($this->created_at)->toISOString(),
             'updated_at' => optional($this->updated_at)->toISOString(),
         ];

@@ -6,6 +6,14 @@ use App\Models\Task;
 use App\Models\User;
 use App\Policies\EmployeePolicy;
 use App\Policies\TaskPolicy;
+use App\Repositories\Contracts\KpiIndicatorRepositoryInterface;
+use App\Repositories\Contracts\KpiRecordRepositoryInterface;
+use App\Repositories\Contracts\KpiScoreRepositoryInterface;
+use App\Repositories\Contracts\KpiTargetRepositoryInterface;
+use App\Repositories\Eloquent\EloquentKpiIndicatorRepository;
+use App\Repositories\Eloquent\EloquentKpiRecordRepository;
+use App\Repositories\Eloquent\EloquentKpiScoreRepository;
+use App\Repositories\Eloquent\EloquentKpiTargetRepository;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
@@ -20,7 +28,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(KpiIndicatorRepositoryInterface::class, EloquentKpiIndicatorRepository::class);
+        $this->app->bind(KpiTargetRepositoryInterface::class, EloquentKpiTargetRepository::class);
+        $this->app->bind(KpiRecordRepositoryInterface::class, EloquentKpiRecordRepository::class);
+        $this->app->bind(KpiScoreRepositoryInterface::class, EloquentKpiScoreRepository::class);
     }
 
     /**
