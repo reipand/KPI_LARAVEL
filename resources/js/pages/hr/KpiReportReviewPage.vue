@@ -25,7 +25,7 @@ const ui = reactive({
     search: '',
     status: 'submitted',
     user_id: '',
-    bulan: new Date().getMonth() + 1,
+    bulan: '',
     tahun: new Date().getFullYear(),
 });
 
@@ -47,6 +47,11 @@ const yearOptions = computed(() => {
 const employeeOptions = computed(() => [
     { value: '', label: 'Semua pegawai' },
     ...store.employeeOptions,
+]);
+
+const monthFilterOptions = computed(() => [
+    { value: '', label: 'Semua bulan' },
+    ...monthOptions,
 ]);
 
 const summaryCards = computed(() => {
@@ -168,7 +173,7 @@ function handlePageChange(page) {
                 </div>
                 <div>
                     <label class="form-label">Bulan</label>
-                    <Select v-model="ui.bulan" :options="monthOptions" />
+                    <Select v-model="ui.bulan" :options="monthFilterOptions" />
                 </div>
                 <div>
                     <label class="form-label">Tahun</label>

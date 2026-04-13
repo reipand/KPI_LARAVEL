@@ -4,9 +4,8 @@ namespace App\Events;
 
 use App\Models\KpiIndicator;
 use App\Models\KpiScore;
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -24,7 +23,10 @@ class KPIUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('kpi-channel'),
+            new PrivateChannel('kpi.role.admin'),
+            new PrivateChannel('kpi.role.hr_manager'),
+            new PrivateChannel('kpi.role.direktur'),
+            new PrivateChannel("kpi.user.{$this->score->user_id}"),
         ];
     }
 

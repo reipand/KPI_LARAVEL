@@ -20,7 +20,7 @@ async function applyFilter() {
 }
 
 onMounted(() => applyFilter());
-const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(applyFilter, { interval: 60_000 });
+const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(applyFilter, { interval: 30_000 });
 
 // ── Chart data — all computed so they react to store changes ─────────────────
 
@@ -108,9 +108,15 @@ async function exportRankingCsv() {
                     <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
                         Visualisasi performa KPI seluruh karyawan — tren bulanan, distribusi nilai, dan perbandingan antar divisi.
                     </p>
+                    <div class="mt-3 flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+                            <span class="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                            Auto-refresh 30 dtk
+                        </span>
+                        <span v-if="lastUpdated" class="text-[11px] text-white/45">Diperbarui {{ formatTime(lastUpdated) }}</span>
+                    </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                    <span v-if="lastUpdated" class="text-[11px] text-white/50">{{ formatTime(lastUpdated) }}</span>
                     <button
                         class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20"
                         :class="{ 'animate-spin': isRefreshing }"

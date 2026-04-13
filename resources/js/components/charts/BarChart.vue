@@ -21,6 +21,8 @@ const props = defineProps({
     horizontal:  { type: Boolean, default: false },
     yLabel:      { type: String,  default: '' },
     stacked:     { type: Boolean, default: false },
+    animationDuration: { type: Number, default: 850 },
+    delayStep: { type: Number, default: 32 },
 });
 
 const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -42,6 +44,24 @@ const chartOptions = computed(() => ({
     maintainAspectRatio: false,
     indexAxis: props.horizontal ? 'y' : 'x',
     interaction: { mode: 'index', intersect: false },
+    animation: {
+        duration: props.animationDuration,
+        easing: 'easeOutQuart',
+        delay(context) {
+            if (context.type !== 'data' || context.mode === 'resize') {
+                return 0;
+            }
+
+            return context.dataIndex * props.delayStep;
+        },
+    },
+    transitions: {
+        active: {
+            animation: {
+                duration: Math.max(250, Math.round(props.animationDuration * 0.7)),
+            },
+        },
+    },
     plugins: {
         legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } },
         title: {

@@ -5,14 +5,12 @@ import Pusher from 'pusher-js';
 window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// ── Laravel Echo (Pusher / Reverb) ──────────────────────────────────────────
-// Initialise Echo so the dashboard can subscribe to real-time KPI updates.
-// Falls back silently to polling if the keys are not configured in .env.
 window.Pusher = Pusher;
 
 try {
     const broadcaster = import.meta.env.VITE_BROADCAST_DRIVER ?? 'pusher';
     const appKey = import.meta.env.VITE_PUSHER_APP_KEY ?? '';
+    const token = localStorage.getItem('token') ?? '';
 
     if (appKey) {
         window.Echo = new Echo({
@@ -27,12 +25,10 @@ try {
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
             auth: {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('auth_token') ?? ''}`,
-                },
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
             },
         });
     }
 } catch {
-    // Echo configuration is missing — real-time falls back to polling only.
+    // Echo is optional. Dashboard keeps running with polling when websocket is unavailable.
 }
