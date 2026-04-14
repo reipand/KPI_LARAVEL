@@ -42,7 +42,6 @@ const form = reactive({
     nilai_target: '',
     nilai_aktual: '',
     catatan: '',
-    status: 'draft',
     evidence: null,
 });
 
@@ -86,7 +85,6 @@ watch(
             nilai_target: props.report?.nilai_target ?? '',
             nilai_aktual: props.report?.nilai_aktual ?? '',
             catatan: props.report?.catatan ?? '',
-            status: props.report?.status ?? 'draft',
             evidence: null,
         });
 
@@ -124,7 +122,7 @@ function onFileChange(event) {
     form.evidence = event.target.files?.[0] ?? null;
 }
 
-function handleSubmit() {
+function handleSubmit(status = 'draft') {
     const valid = validateForm(form);
 
     Object.keys(touched).forEach((field) => {
@@ -145,7 +143,7 @@ function handleSubmit() {
             nilai_target: form.nilai_target === '' ? null : Number(form.nilai_target),
             nilai_aktual: Number(form.nilai_aktual),
             catatan: form.catatan || null,
-            status: form.status,
+            status,
         },
         evidence: form.evidence,
     });
@@ -222,8 +220,11 @@ function handleSubmit() {
 
             <div class="flex justify-end gap-3">
                 <Button variant="outline" @click="$emit('update:open', false)">Batal</Button>
-                <Button :disabled="isSaving || isUploadingEvidence" @click="handleSubmit">
-                    {{ isSaving ? 'Menyimpan...' : isUploadingEvidence ? 'Mengunggah...' : report ? 'Simpan perubahan' : 'Simpan laporan' }}
+                <Button variant="outline" :disabled="isSaving || isUploadingEvidence" @click="handleSubmit('draft')">
+                    {{ isSaving ? 'Menyimpan...' : isUploadingEvidence ? 'Mengunggah...' : report ? 'Simpan draft' : 'Simpan draft' }}
+                </Button>
+                <Button :disabled="isSaving || isUploadingEvidence" @click="handleSubmit('submitted')">
+                    {{ isSaving ? 'Menyimpan...' : isUploadingEvidence ? 'Mengunggah...' : report ? 'Submit perubahan' : 'Submit ke HR' }}
                 </Button>
             </div>
         </div>

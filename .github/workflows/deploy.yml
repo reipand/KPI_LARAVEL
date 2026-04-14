@@ -1,0 +1,135 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare Laravel app
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run backend tests
+        run: composer test
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Create release archive
+        run: |
+          tar \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules" \
+            --exclude="vendor" \
+            --exclude="tests" \
+            --exclude=".env" \
+            --exclude="storage/logs/*" \
+            -czf release.tar.gz .
+
+      - name: Upload release archive to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          source: release.tar.gz
+          target: /tmp
+
+      - name: Run remote deployment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script_stop: true
+          script: |
+            set -e
+
+            APP_ROOT="${{ secrets.DEPLOY_PATH }}"
+            RELEASES_DIR="$APP_ROOT/releases"
+            SHARED_DIR="$APP_ROOT/shared"
+            RELEASE_DIR="$RELEASES_DIR/${{ github.sha }}"
+            ARCHIVE_PATH="/tmp/release.tar.gz"
+
+            mkdir -p "$RELEASES_DIR" "$SHARED_DIR"
+            mkdir -p \
+              "$SHARED_DIR/storage/app/public" \
+              "$SHARED_DIR/storage/framework/cache/data" \
+              "$SHARED_DIR/storage/framework/sessions" \
+              "$SHARED_DIR/storage/framework/testing" \
+              "$SHARED_DIR/storage/framework/views" \
+              "$SHARED_DIR/storage/logs" \
+              "$SHARED_DIR/bootstrap/cache"
+
+            if [ ! -f "$SHARED_DIR/.env" ]; then
+              echo "Missing $SHARED_DIR/.env on target server."
+              exit 1
+            fi
+
+            rm -rf "$RELEASE_DIR"
+            mkdir -p "$RELEASE_DIR"
+            tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
+
+            ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
+            rm -rf "$RELEASE_DIR/storage"
+            ln -sfn "$SHARED_DIR/storage" "$RELEASE_DIR/storage"
+
+            if [ -d "$RELEASE_DIR/bootstrap/cache" ]; then
+              rm -rf "$RELEASE_DIR/bootstrap/cache"
+            fi
+            ln -sfn "$SHARED_DIR/bootstrap/cache" "$RELEASE_DIR/bootstrap/cache"
+
+            cd "$RELEASE_DIR"
+            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+            php artisan migrate --force
+            php artisan storage:link || true
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            ln -sfn "$RELEASE_DIR" "$APP_ROOT/current"
+
+            if [ -n "${{ secrets.DEPLOY_RELOAD_COMMAND }}" ]; then
+              eval "${{ secrets.DEPLOY_RELOAD_COMMAND }}"
+            fi
+
+            rm -f "$ARCHIVE_PATH"
+            ls -1dt "$RELEASES_DIR"/* | tail -n +6 | xargs -r rm -rf

@@ -1,7 +1,7 @@
 <script setup>
 import Avatar from '@/components/ui/Avatar.vue';
 import Button from '@/components/ui/Button.vue';
-import { Eye, FileSearch, Pencil, Trash2 } from 'lucide-vue-next';
+import { Eye, FileSearch, Pencil, Send, Trash2 } from 'lucide-vue-next';
 import { formatDate, formatPercentage, progressTone, scoreClass, scoreLabel, statusClass, statusLabel } from '@/modules/kpi-reports/utils';
 
 defineProps({
@@ -14,7 +14,7 @@ defineProps({
     allowReview: Boolean,
 });
 
-defineEmits(['edit', 'delete', 'detail', 'evidence', 'approve', 'reject']);
+defineEmits(['edit', 'delete', 'detail', 'evidence', 'approve', 'reject', 'submit']);
 </script>
 
 <template>
@@ -100,6 +100,10 @@ defineEmits(['edit', 'delete', 'detail', 'evidence', 'approve', 'reject']);
                         Evidence
                     </Button>
                     <template v-if="allowManage && report.status === 'draft'">
+                        <Button size="sm" @click="$emit('submit', report)">
+                            <Send class="h-4 w-4" />
+                            Submit
+                        </Button>
                         <Button size="sm" @click="$emit('edit', report)">
                             <Pencil class="h-4 w-4" />
                             Edit

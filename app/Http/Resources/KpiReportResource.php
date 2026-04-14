@@ -24,6 +24,7 @@ class KpiReportResource extends JsonResource
             'score_label' => $this->score_label,
             'catatan' => $this->catatan,
             'review_note' => $this->review_note,
+            'file_evidence' => $this->file_evidence,
             'file_evidence_url' => $this->file_evidence_url,
             'status' => $this->status,
             'submitted_by' => $this->submitted_by,

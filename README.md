@@ -7,6 +7,52 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## GitHub CI/CD
+
+Project ini sudah disiapkan untuk GitHub Actions:
+
+- `CI` di [`.github/workflows/ci.yml`](.github/workflows/ci.yml) akan jalan saat `push` dan `pull_request`.
+- `Deploy Production` di [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) akan jalan saat `push` ke branch `main` atau dijalankan manual lewat `workflow_dispatch`.
+
+### Yang Dicek di CI
+
+- install dependency PHP dan Node.js
+- generate Laravel app key
+- jalankan `composer test`
+- build asset Vite dengan `npm run build`
+
+### Secrets GitHub Yang Wajib Untuk Deploy
+
+Tambahkan secrets berikut di GitHub repository:
+
+- `DEPLOY_HOST`: host server production
+- `DEPLOY_PORT`: port SSH, biasanya `22`
+- `DEPLOY_USERNAME`: user SSH untuk deploy
+- `DEPLOY_SSH_KEY`: private key SSH untuk GitHub Actions
+- `DEPLOY_PATH`: root folder app di server, contoh `/var/www/kpi_laravel`
+- `DEPLOY_RELOAD_COMMAND`: opsional, misalnya `sudo systemctl reload php8.3-fpm && sudo systemctl reload nginx`
+
+### Struktur Folder Di Server
+
+Workflow deploy memakai struktur release berikut:
+
+- `$DEPLOY_PATH/current`
+- `$DEPLOY_PATH/releases/<commit-sha>`
+- `$DEPLOY_PATH/shared/.env`
+- `$DEPLOY_PATH/shared/storage`
+
+Pastikan file environment production sudah ada di:
+
+```bash
+$DEPLOY_PATH/shared/.env
+```
+
+### Catatan Deploy
+
+- server target diasumsikan Linux dan sudah terpasang `php`, `composer`, dan service web yang dibutuhkan
+- workflow deploy akan menjalankan `composer install --no-dev`, `php artisan migrate --force`, dan cache ulang konfigurasi Laravel
+- workflow menyimpan 5 release terakhir agar rollback/manual switch tetap mudah
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

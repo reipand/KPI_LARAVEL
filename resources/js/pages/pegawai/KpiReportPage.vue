@@ -128,7 +128,7 @@ async function handleFormSubmit({ id, payload, evidence }) {
     try {
         const report = id
             ? await store.updateReport(id, payload)
-            : await store.createReport({ ...payload, status: 'draft' });
+            : await store.createReport(payload);
 
         if (evidence && report?.id) {
             await store.uploadEvidence(report.id, evidence);
@@ -136,9 +136,32 @@ async function handleFormSubmit({ id, payload, evidence }) {
 
         dialog.formOpen = false;
         dialog.formReport = null;
-        toast.success(id ? 'Laporan KPI berhasil diperbarui.' : 'Laporan KPI berhasil ditambahkan.');
+        toast.success(
+            payload.status === 'submitted'
+                ? (id ? 'Laporan KPI berhasil diperbarui dan dikirim ke HR.' : 'Laporan KPI berhasil dikirim ke HR.')
+                : (id ? 'Draft laporan KPI berhasil diperbarui.' : 'Draft laporan KPI berhasil disimpan.')
+        );
     } catch (error) {
         formError.value = error.userMessage || 'Gagal menyimpan laporan KPI.';
+    }
+}
+
+async function handleQuickSubmit(report) {
+    try {
+        await store.updateReport(report.id, {
+            kpi_component_id: report.kpi_component_id,
+            period_type: report.period_type,
+            tanggal: report.tanggal,
+            period_label: report.period_label,
+            nilai_target: report.nilai_target,
+            nilai_aktual: report.nilai_aktual,
+            catatan: report.catatan,
+            status: 'submitted',
+        });
+
+        toast.success('Laporan KPI berhasil dikirim ke HR.');
+    } catch (error) {
+        toast.error(error.userMessage || 'Gagal mengirim laporan KPI ke HR.');
     }
 }
 
@@ -218,6 +241,7 @@ function handlePageChange(page) {
                 <KpiReportList
                     :reports="store.reports"
                     allow-manage
+                    @submit="handleQuickSubmit"
                     @edit="openEditDialog"
                     @delete="dialog.deleteReport = $event; dialog.deleteOpen = true"
                     @detail="dialog.detailReport = $event; dialog.detailOpen = true"
