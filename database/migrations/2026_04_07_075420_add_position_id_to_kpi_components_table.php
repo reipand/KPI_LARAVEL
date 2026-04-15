@@ -18,12 +18,11 @@ return new class extends Migration
         Schema::table('kpi_components', function (Blueprint $table) {
             $table->foreignId('position_id')
                 ->nullable()
-                ->after('division_id')
+                ->after('jabatan')
                 ->constrained('positions')
                 ->nullOnDelete();
 
             $table->index(['position_id', 'is_active'], 'idx_kpi_comp_pos_active');
-            $table->index(['division_id', 'is_active'], 'idx_kpi_comp_div_active');
         });
 
         // Same normalization for sla table
@@ -45,7 +44,6 @@ return new class extends Migration
 
         Schema::table('kpi_components', function (Blueprint $table) {
             $table->dropIndex('idx_kpi_comp_pos_active');
-            $table->dropIndex('idx_kpi_comp_div_active');
             $table->dropForeign(['position_id']);
             $table->dropColumn('position_id');
         });

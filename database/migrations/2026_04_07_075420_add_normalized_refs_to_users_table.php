@@ -17,22 +17,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // New normalized FK: replaces free-text 'departemen'
+            // Normalized FK: replaces free-text 'departemen'
             $table->foreignId('department_id')
                 ->nullable()
-                ->after('division_id')
+                ->after('departemen')
                 ->constrained('departments')
                 ->nullOnDelete();
 
-            // New normalized FK: replaces free-text 'jabatan'
+            // Normalized FK: replaces free-text 'jabatan'
             $table->foreignId('position_id')
                 ->nullable()
                 ->after('department_id')
                 ->constrained('positions')
                 ->nullOnDelete();
 
-            // Composite index for division + department lookups (analytics, ranking)
-            $table->index(['division_id', 'department_id', 'role'], 'idx_users_org_role');
+            $table->index(['department_id', 'role'], 'idx_users_org_role');
             $table->index(['position_id', 'status_karyawan'], 'idx_users_pos_status');
         });
     }

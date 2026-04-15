@@ -39,7 +39,6 @@ const pageMap = {
     '/hr/kpi-components': 'Komponen KPI',
     '/hr/sla': 'SLA Pekerjaan',
     '/hr/settings': 'Pengaturan',
-    '/hr/divisi': 'Manajemen Divisi',
     '/hr/departemen': 'Manajemen Departemen',
     '/hr/analytics': 'Analytics KPI',
     '/hr/laporan-review': 'Tinjau Laporan KPI',

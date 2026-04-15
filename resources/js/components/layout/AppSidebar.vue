@@ -52,7 +52,6 @@ const navMap = {
             section: 'HR Panel',
             items: [
                 { label: 'Manajemen Pegawai', to: '/hr/pegawai', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>` },
-                { label: 'Manajemen Divisi', to: '/hr/divisi', icon: `<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>` },
                 { label: 'Manajemen Departemen', to: '/hr/departemen', icon: `<path d="M3 9h18M9 21V9m6 12V9M3 3h18v18H3z"/>` },
                 { label: 'Manajemen Jabatan', to: '/hr/jabatan', icon: `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>` },
                 { label: 'Indikator KPI', to: '/hr/kpi-indicators', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
@@ -85,7 +84,6 @@ const navMap = {
                 { label: 'Detail KPI Pegawai', to: '/hr/kpi-pegawai', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/>` },
                 { label: 'Analytics HR', to: '/hr/analytics', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
                 { label: 'Log Aktivitas', to: '/hr/logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
-                { label: 'Manajemen Divisi', to: '/hr/divisi', icon: `<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>` },
                 { label: 'Manajemen Departemen', to: '/hr/departemen', icon: `<path d="M3 9h18M9 21V9m6 12V9M3 3h18v18H3z"/>` },
                 { label: 'Pengaturan', to: '/hr/settings', icon: `<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M3 12h2m14 0h2M12 3v2m0 14v2M5.64 5.64l1.41 1.41m9.9 9.9 1.41 1.41m0-12.72-1.41 1.41m-9.9 9.9-1.41 1.41"/>` },
             ],

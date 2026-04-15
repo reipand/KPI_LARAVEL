@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('kpi_components', function (Blueprint $table) {
             $table->foreignId('department_id')
                 ->nullable()
-                ->after('division_id')
+                ->after('jabatan')
                 ->constrained('departments')
                 ->nullOnDelete();
 

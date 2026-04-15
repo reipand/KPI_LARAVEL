@@ -6,25 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('division_id')
-                ->nullable()
-                ->after('departemen')
-                ->constrained('divisions')
-                ->nullOnDelete();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeignIdFor(\App\Models\Division::class);
-            $table->dropColumn('division_id');
-        });
-    }
+    // division_id column was removed in 2026_04_15_021144_drop_divisions_and_custom_roles.php
+    public function up(): void {}
+    public function down(): void {}
 };

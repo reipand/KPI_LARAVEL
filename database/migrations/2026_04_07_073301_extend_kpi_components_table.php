@@ -6,17 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('kpi_components', function (Blueprint $table) {
-            $table->foreignId('division_id')
-                ->nullable()
-                ->after('jabatan')
-                ->constrained('divisions')
-                ->nullOnDelete();
             $table->enum('kpi_type', ['number', 'percentage', 'boolean'])
                 ->nullable()
                 ->after('tipe');
@@ -30,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('kpi_components', function (Blueprint $table) {
-            $table->dropForeignIdFor(\App\Models\Division::class);
-            $table->dropColumn(['division_id', 'kpi_type', 'period', 'satuan']);
+            $table->dropColumn(['kpi_type', 'period', 'satuan']);
         });
     }
 };

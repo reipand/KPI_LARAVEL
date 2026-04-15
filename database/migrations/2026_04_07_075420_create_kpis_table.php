@@ -46,12 +46,6 @@ return new class extends Migration
             // Unit label shown in UI (Rp, %, leads, laporan, unit)
             $table->string('unit', 50)->nullable();
 
-            // Which division this KPI is primarily for (can still be assigned cross-division)
-            $table->foreignId('division_id')
-                ->nullable()
-                ->constrained('divisions')
-                ->nullOnDelete();
-
             // Default target — can be overridden per assignment
             $table->decimal('default_target', 20, 4)->nullable();
 
@@ -63,7 +57,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['division_id', 'is_active'], 'idx_kpis_div_active');
             $table->index(['type', 'period'], 'idx_kpis_type_period');
         });
     }

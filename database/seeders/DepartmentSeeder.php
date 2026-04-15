@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class DepartmentSeeder extends Seeder
 {
-    /** 6 departments — no division sub-level */
+    /** 6 departments */
     private const DEPARTMENTS = [
         ['nama' => 'Board of Director',      'kode' => 'BOD', 'deskripsi' => 'Dewan direksi dan pengambil keputusan strategis perusahaan.'],
         ['nama' => 'Finance & Accounting',   'kode' => 'FNA', 'deskripsi' => 'Pengelolaan keuangan, akuntansi, dan pelaporan fiskal.'],

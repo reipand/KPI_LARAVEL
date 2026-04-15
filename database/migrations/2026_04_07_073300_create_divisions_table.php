@@ -6,26 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::create('divisions', function (Blueprint $table) {
-            $table->id();
-            $table->string('nama');
-            $table->string('kode', 20)->unique();
-            $table->text('deskripsi')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('divisions');
-    }
+    // divisions table removed — dropped in 2026_04_15_021144_drop_divisions_and_custom_roles.php
+    public function up(): void {}
+    public function down(): void {}
 };

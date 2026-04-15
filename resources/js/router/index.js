@@ -18,7 +18,6 @@ const SlaPage = () => import('@/pages/hr/SlaPage.vue');
 const SettingsPage = () => import('@/pages/hr/SettingsPage.vue');
 
 // HR Manager (new)
-const DivisionPage           = () => import('@/pages/hr/DivisionPage.vue');
 const DepartmentPage         = () => import('@/pages/hr/DepartmentPage.vue');
 const HRAnalyticsPage        = () => import('@/pages/hr/AnalyticsPage.vue');
 const KpiReportReviewPage    = () => import('@/pages/hr/KpiReportReviewPage.vue');
@@ -109,11 +108,6 @@ const routes = [
     {
         path: '/hr/settings',
         component: SettingsPage,
-        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
-    },
-    {
-        path: '/hr/divisi',
-        component: DivisionPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
     {
