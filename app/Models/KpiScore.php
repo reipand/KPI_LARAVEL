@@ -9,7 +9,6 @@ class KpiScore extends Model
 {
     protected $fillable = [
         'user_id',
-        'role_id',
         'period_type',
         'period_start',
         'period_end',
@@ -36,8 +35,4 @@ class KpiScore extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function role(): BelongsTo
-    {
-        return $this->belongsTo(Role::class);
-    }
 }

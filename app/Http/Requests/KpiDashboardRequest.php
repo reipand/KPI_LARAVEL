@@ -16,7 +16,7 @@ class KpiDashboardRequest extends SanitizedFormRequest
         return [
             'period_type' => ['nullable', Rule::in(['weekly', 'monthly'])],
             'period' => ['nullable', 'date'],
-            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+            'role_id' => ['nullable', 'integer'],
             'employee_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }

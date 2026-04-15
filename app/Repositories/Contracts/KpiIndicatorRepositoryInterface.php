@@ -7,12 +7,10 @@ use Illuminate\Support\Collection;
 
 interface KpiIndicatorRepositoryInterface
 {
-    public function getByRole(int $roleId): Collection;
-
     public function getByDepartment(int $departmentId): Collection;
 
-    /** Indicators for a user — prefers department_id match, falls back to role_id. */
-    public function getForUser(int $roleId, ?int $departmentId): Collection;
+    /** Return indicators for a user scoped to their department. */
+    public function getForUser(?int $roleId, ?int $departmentId): Collection;
 
     public function findById(int $id): ?KpiIndicator;
 

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Department;
 use App\Models\KpiIndicator;
-use App\Models\Role;
 use App\Services\KpiFormulaEngine;
 use Illuminate\Database\Seeder;
 
@@ -157,6 +156,31 @@ class KpiIndicatorSeeder extends Seeder
                     'formula'              => ['type' => 'zero_penalty'],
                 ],
             ],
+
+            // ── Information Technology ────────────────────────────────────
+            'ITD' => [
+                [
+                    'name'                 => 'System Uptime',
+                    'description'          => 'Persentase ketersediaan sistem dan infrastruktur TI.',
+                    'weight'               => 40.00,
+                    'default_target_value' => 99.5,
+                    'formula'              => ['type' => 'conditional'],
+                ],
+                [
+                    'name'                 => 'Incident Resolution Time',
+                    'description'          => 'Rata-rata waktu penyelesaian insiden TI sesuai SLA.',
+                    'weight'               => 35.00,
+                    'default_target_value' => 100,
+                    'formula'              => ['type' => 'threshold', 'thresholds' => $defaultThresholds],
+                ],
+                [
+                    'name'                 => 'Zero Security Breach',
+                    'description'          => 'Tidak ada insiden keamanan data yang terjadi dalam periode.',
+                    'weight'               => 25.00,
+                    'default_target_value' => 0,
+                    'formula'              => ['type' => 'zero_penalty'],
+                ],
+            ],
         ];
 
         foreach ($indicators as $deptKode => $items) {
@@ -178,7 +202,6 @@ class KpiIndicatorSeeder extends Seeder
                         'weight'               => $item['weight'],
                         'default_target_value' => $item['default_target_value'],
                         'formula'              => $item['formula'],
-                        'role_id'              => null, // department-based, not role-based
                     ]
                 );
             }

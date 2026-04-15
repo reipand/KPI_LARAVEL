@@ -8,14 +8,6 @@ use Illuminate\Support\Collection;
 
 class EloquentKpiIndicatorRepository implements KpiIndicatorRepositoryInterface
 {
-    public function getByRole(int $roleId): Collection
-    {
-        return KpiIndicator::query()
-            ->where('role_id', $roleId)
-            ->orderBy('id')
-            ->get();
-    }
-
     public function getByDepartment(int $departmentId): Collection
     {
         return KpiIndicator::query()
@@ -24,35 +16,27 @@ class EloquentKpiIndicatorRepository implements KpiIndicatorRepositoryInterface
             ->get();
     }
 
-    /**
-     * Return department-scoped indicators first; fall back to role-based if none found.
-     */
-    public function getForUser(int $roleId, ?int $departmentId): Collection
+    public function getForUser(?int $roleId, ?int $departmentId): Collection
     {
         if ($departmentId) {
-            $dept = $this->getByDepartment($departmentId);
-
-            if ($dept->isNotEmpty()) {
-                return $dept;
-            }
+            return $this->getByDepartment($departmentId);
         }
 
-        return $this->getByRole($roleId);
+        return collect();
     }
 
     public function findById(int $id): ?KpiIndicator
     {
         return KpiIndicator::query()
-            ->with(['role', 'department'])
+            ->with(['department'])
             ->find($id);
     }
 
     public function all(): Collection
     {
         return KpiIndicator::query()
-            ->with(['role', 'department'])
+            ->with(['department'])
             ->orderBy('department_id')
-            ->orderBy('role_id')
             ->orderBy('id')
             ->get();
     }

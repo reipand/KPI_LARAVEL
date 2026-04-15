@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\KpiIndicator;
-use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskScore;
 use App\Models\User;
@@ -17,15 +17,15 @@ class TaskAssignmentApiTest extends TestCase
 
     public function test_hr_can_assign_manual_task_and_task_score_is_created(): void
     {
-        $hr = User::factory()->create(['role' => 'hr_manager']);
-        $role = Role::query()->create(['name' => 'Operations', 'slug' => 'operations']);
-        $employee = User::factory()->create(['role' => 'pegawai', 'role_id' => $role->id]);
+        $hr   = User::factory()->create(['role' => 'hr_manager']);
+        $dept = Department::factory()->create(['kode' => 'OPS', 'nama' => 'Operations']);
+        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
 
         KpiIndicator::query()->create([
-            'name' => 'Delivery',
-            'description' => 'Delivery KPI',
-            'weight' => 40,
-            'role_id' => $role->id,
+            'name'          => 'Delivery',
+            'description'   => 'Delivery KPI',
+            'weight'        => 40,
+            'department_id' => $dept->id,
         ]);
 
         Sanctum::actingAs($hr);

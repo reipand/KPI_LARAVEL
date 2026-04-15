@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\TaskAssigned;
+use App\Models\KpiNotification;
 use App\Models\Task;
 use App\Models\TaskScore;
 use App\Models\User;
@@ -30,6 +31,28 @@ class TaskAssignmentService
         $assignee = $task->assignee;
 
         if ($assignee) {
+            // Write to kpi_notifications for in-app notification center
+            KpiNotification::create([
+                'user_id' => $assignee->id,
+                'type'    => 'task_assigned',
+                'title'   => 'Task KPI Baru Diberikan',
+                'body'    => sprintf(
+                    'Task "%s" diberikan oleh %s. Deadline: %s.',
+                    $task->judul,
+                    $actor->nama,
+                    optional($task->end_date)->format('d M Y') ?? '-'
+                ),
+                'payload' => [
+                    'task_id'    => $task->id,
+                    'task_title' => $task->judul,
+                    'start_date' => optional($task->start_date)->toDateString(),
+                    'end_date'   => optional($task->end_date)->toDateString(),
+                    'weight'     => (float) $task->weight,
+                    'assigner'   => $actor->nama,
+                ],
+            ]);
+
+            // Also dispatch Laravel notification (for email channel support)
             $assignee->notify(new TaskAssignedNotification($task, $actor));
             event(new TaskAssigned($task, $assignee, $actor));
         }
@@ -98,7 +121,7 @@ class TaskAssignmentService
             'assigned_to' => $assignedTo,
             'tanggal' => $payload['start_date'],
             'start_date' => $payload['start_date'],
-            'end_date' => $payload['end_date'],
+            'end_date' => $payload['end_date'] ?? null,
             'judul' => $payload['judul'] ?? $payload['title'],
             'jenis_pekerjaan' => 'Task KPI',
             'status' => Task::statusForStorage($payload['status']),

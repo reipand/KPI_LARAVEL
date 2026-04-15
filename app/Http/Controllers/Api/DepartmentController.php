@@ -14,9 +14,7 @@ class DepartmentController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $departments = Department::query()
-            ->with('division:id,nama,kode')
             ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
-            ->when($request->filled('division_id'), fn ($q) => $q->where('division_id', $request->integer('division_id')))
             ->orderBy('nama')
             ->get();
 
@@ -26,7 +24,6 @@ class DepartmentController extends ApiController
     public function store(StoreDepartmentRequest $request): JsonResponse
     {
         $department = Department::create($request->validated());
-        $department->load('division:id,nama,kode');
 
         ActivityLog::record($request->user(), 'create_department', 'Department', $department->id, ['nama' => $department->nama], $request);
 
@@ -36,11 +33,10 @@ class DepartmentController extends ApiController
     public function update(StoreDepartmentRequest $request, Department $department): JsonResponse
     {
         $department->update($request->validated());
-        $department->load('division:id,nama,kode');
 
         ActivityLog::record($request->user(), 'update_department', 'Department', $department->id, ['nama' => $department->nama], $request);
 
-        return $this->success($department->fresh(['division']), 'Departemen berhasil diperbarui');
+        return $this->success($department->fresh(), 'Departemen berhasil diperbarui');
     }
 
     public function destroy(Request $request, Department $department): JsonResponse

@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\DivisionResource;
 
 class UserResource extends JsonResource
 {
@@ -16,17 +15,15 @@ class UserResource extends JsonResource
             'nama' => $this->nama,
             'jabatan' => $this->jabatan,
             'departemen' => $this->departemen,
-            'division_id' => $this->division_id,
-            'division' => $this->whenLoaded('division', fn () => new DivisionResource($this->division)),
             'department_id' => $this->department_id,
+            'department' => $this->whenLoaded('department', fn () => $this->department?->only(['id', 'nama', 'kode'])),
             'position_id' => $this->position_id,
             'status_karyawan' => $this->status_karyawan,
             'tanggal_masuk' => optional($this->tanggal_masuk)->toDateString(),
             'no_hp' => $this->no_hp,
             'email' => $this->email,
             'role' => $this->role,
-            'role_id' => $this->role_id,
-            'role_ref' => $this->whenLoaded('roleRef', fn () => $this->roleRef?->only(['id', 'name', 'slug'])),
+            'spatie_roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             'created_at' => optional($this->created_at)->toISOString(),
             'updated_at' => optional($this->updated_at)->toISOString(),
         ];

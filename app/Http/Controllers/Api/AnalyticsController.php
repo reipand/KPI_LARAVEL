@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Division;
+use App\Models\Department;
 use App\Models\KpiReport;
 use App\Models\User;
 use App\Services\KpiCalculatorService;
@@ -14,26 +14,26 @@ class AnalyticsController extends ApiController
     public function __construct(private KpiCalculatorService $kpiCalculator) {}
 
     /**
-     * KPI trend per month for all employees or a specific division.
+     * KPI trend per month for all employees or a specific department.
      * Returns data suitable for a line chart.
      */
     public function trend(Request $request): JsonResponse
     {
         $tahun = (int) $request->input('tahun', now()->year);
-        $divisionId = $request->input('division_id');
+        $departmentId = $request->input('department_id');
 
         $months = range(1, 12);
         $labels = collect($months)->map(fn ($m) => date('M', mktime(0, 0, 0, $m, 1)));
 
         $users = User::query()
-            ->when($divisionId, fn ($q) => $q->where('division_id', $divisionId))
+            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->where('role', 'pegawai')
             ->get();
 
         // Monthly averages from kpi_reports
         $reportData = KpiReport::query()
             ->whereYear('tanggal', $tahun)
-            ->when($divisionId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('division_id', $divisionId)))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
             ->selectRaw('MONTH(tanggal) as bulan, AVG(persentase) as avg_persentase, COUNT(*) as jumlah')
             ->groupBy('bulan')
             ->orderBy('bulan')
@@ -82,46 +82,46 @@ class AnalyticsController extends ApiController
     }
 
     /**
-     * Average KPI achievement per division.
+     * Average KPI achievement per department.
      * Returns data suitable for a bar chart.
      */
-    public function perDivision(Request $request): JsonResponse
+    public function perDepartment(Request $request): JsonResponse
     {
         $tahun = (int) $request->input('tahun', now()->year);
         $bulan = $request->input('bulan');
 
-        $divisions = Division::where('is_active', true)->get();
+        $departments = Department::where('is_active', true)->get();
 
-        $labels = $divisions->pluck('nama')->values()->all();
+        $labels = $departments->pluck('nama')->values()->all();
 
         // Percentage-based scores from kpi_reports
         $reportData = KpiReport::query()
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
-            ->with('user:id,division_id')
+            ->with('user:id,department_id')
             ->selectRaw('kpi_reports.user_id, AVG(persentase) as avg_persen')
             ->groupBy('kpi_reports.user_id')
             ->get()
             ->keyBy('user_id');
 
-        $avgPercentages = $divisions->map(function ($division) use ($reportData) {
-            $userIds = $division->users()->pluck('id');
+        $avgPercentages = $departments->map(function ($department) use ($reportData) {
+            $userIds = $department->users()->pluck('id');
             $scores = $userIds->map(fn ($uid) => $reportData->has($uid) ? (float) $reportData[$uid]->avg_persen : null)->filter();
 
             return $scores->isNotEmpty() ? round($scores->average(), 1) : 0;
         })->values()->all();
 
         // Task-based KPI scores
-        $users = User::with('division')->where('role', 'pegawai')->get()->groupBy('division_id');
+        $users = User::where('role', 'pegawai')->get()->groupBy('department_id');
 
-        $avgTaskScores = $divisions->map(function ($division) use ($users, $tahun, $bulan) {
-            $divisionUsers = $users->get($division->id, collect());
+        $avgTaskScores = $departments->map(function ($department) use ($users, $tahun, $bulan) {
+            $deptUsers = $users->get($department->id, collect());
 
-            if ($divisionUsers->isEmpty()) {
+            if ($deptUsers->isEmpty()) {
                 return 0;
             }
 
-            $scores = $divisionUsers->map(
+            $scores = $deptUsers->map(
                 fn ($user) => $this->kpiCalculator->calculateForUser($user, $bulan ? (int) $bulan : null, $tahun)['total']
             )->filter(fn ($s) => $s > 0);
 
@@ -144,7 +144,7 @@ class AnalyticsController extends ApiController
             ],
             'tahun' => $tahun,
             'bulan' => $bulan,
-        ], 'Data per divisi berhasil dimuat');
+        ], 'Data per departemen berhasil dimuat');
     }
 
     /**
@@ -155,13 +155,13 @@ class AnalyticsController extends ApiController
     {
         $tahun = (int) $request->input('tahun', now()->year);
         $bulan = $request->input('bulan');
-        $divisionId = $request->input('division_id');
+        $departmentId = $request->input('department_id');
 
         // Report-based distribution
         $reportCounts = KpiReport::query()
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
-            ->when($divisionId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('division_id', $divisionId)))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
             ->whereNotNull('score_label')
             ->selectRaw('score_label, COUNT(*) as jumlah')
             ->groupBy('score_label')
@@ -170,7 +170,7 @@ class AnalyticsController extends ApiController
 
         // Task-based distribution
         $userQuery = User::where('role', 'pegawai')
-            ->when($divisionId, fn ($q) => $q->where('division_id', $divisionId));
+            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId));
 
         $taskDistribution = ['Baik Sekali' => 0, 'Baik' => 0, 'Cukup' => 0, 'Kurang' => 0, 'Buruk' => 0];
 
@@ -221,11 +221,11 @@ class AnalyticsController extends ApiController
                 SUM(CASE WHEN score_label = "bad" THEN 1 ELSE 0 END) as bad')
             ->first();
 
-        $totalDivisions = Division::where('is_active', true)->count();
+        $totalDepartments = Department::where('is_active', true)->count();
 
         return $this->success([
             'total_employees' => $totalEmployees,
-            'total_divisions' => $totalDivisions,
+            'total_departments' => $totalDepartments,
             'total_reports' => (int) ($reportStats->total_reports ?? 0),
             'avg_achievement' => round((float) ($reportStats->avg_persen ?? 0), 1),
             'excellent_count' => (int) ($reportStats->excellent ?? 0),

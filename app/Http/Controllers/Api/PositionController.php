@@ -11,10 +11,9 @@ class PositionController extends ApiController
     public function index(Request $request)
     {
         $positions = Position::query()
-            ->with('department:id,nama,division_id')
+            ->with('department:id,nama,kode')
             ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
             ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->integer('department_id')))
-            ->when($request->filled('division_id'), fn ($q) => $q->whereHas('department', fn ($q2) => $q2->where('division_id', $request->integer('division_id'))))
             ->orderBy('nama')
             ->get();
 
@@ -40,7 +39,7 @@ class PositionController extends ApiController
         ]);
 
         return $this->success(
-            $position->load('department:id,nama,division_id'),
+            $position->load('department:id,nama,kode'),
             'Jabatan berhasil ditambahkan.',
             Response::HTTP_CREATED
         );
@@ -59,7 +58,7 @@ class PositionController extends ApiController
         $position->update($data);
 
         return $this->success(
-            $position->refresh()->load('department:id,nama,division_id'),
+            $position->refresh()->load('department:id,nama,kode'),
             'Jabatan berhasil diperbarui.'
         );
     }

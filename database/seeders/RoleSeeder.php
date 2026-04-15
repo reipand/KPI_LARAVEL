@@ -2,40 +2,37 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class RoleSeeder extends Seeder
 {
     private const ROLES = [
         // Board of Director
-        ['name' => 'Direktur Utama',     'description' => 'Pemimpin tertinggi perusahaan.'],
-        ['name' => 'Direktur',           'description' => 'Anggota dewan direksi.'],
+        'Direktur Utama',
+        'Direktur',
         // Business Development
-        ['name' => 'Marketing & Sales',  'description' => 'Tenaga pemasaran dan penjualan.'],
-        ['name' => 'Digital Marketing',  'description' => 'Pengelola pemasaran digital.'],
+        'Marketing & Sales',
+        'Digital Marketing',
         // Finance & Accounting
-        ['name' => 'Finance',            'description' => 'Pengelola keuangan operasional.'],
-        ['name' => 'Accounting',         'description' => 'Pencatatan dan pelaporan akuntansi.'],
+        'Finance',
+        'Accounting',
         // HR & GA
-        ['name' => 'HR & GA Manager',    'description' => 'Manajer SDM dan administrasi umum.'],
-        ['name' => 'Admin GA',           'description' => 'Staf administrasi umum.'],
-        ['name' => 'Driver',             'description' => 'Pengemudi operasional.'],
-        ['name' => 'Office Boy',         'description' => 'Pendukung operasional kantor.'],
+        'HR & GA Manager',
+        'Admin GA',
+        'Driver',
+        'Office Boy',
         // Research & Development
-        ['name' => 'R&D Staff',          'description' => 'Staf riset dan pengembangan.'],
+        'R&D Staff',
+        // Information Technology
+        'IT',
     ];
 
     public function run(): void
     {
-        foreach (self::ROLES as $role) {
-            Role::query()->updateOrCreate(
-                ['slug' => Str::slug($role['name'])],
-                [
-                    'name'        => $role['name'],
-                    'description' => $role['description'],
-                ]
+        foreach (self::ROLES as $name) {
+            Role::query()->firstOrCreate(
+                ['name' => $name, 'guard_name' => 'web']
             );
         }
     }

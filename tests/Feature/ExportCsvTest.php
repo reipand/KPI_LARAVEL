@@ -48,7 +48,7 @@ class ExportCsvTest extends TestCase
         $response->assertHeader('content-disposition', 'attachment; filename="Ranking_KPI_4_2026.csv"');
         $content = $response->streamedContent();
 
-        $this->assertStringContainsString('Rank,NIP,Nama,Jabatan,Departemen,Divisi,"Skor KPI",Predikat', $content);
+        $this->assertStringContainsString('Rank,NIP,Nama,Jabatan,Departemen,"Skor KPI",Predikat', $content);
         $this->assertStringContainsString('PG-001', $content);
     }
 
@@ -110,7 +110,7 @@ class ExportCsvTest extends TestCase
         $response->assertHeader('content-disposition', 'attachment; filename="Laporan_KPI_4_2026.csv"');
         $content = $response->streamedContent();
 
-        $this->assertStringContainsString('NIP,Nama,Divisi,"Komponen KPI",Target,Aktual,"Persentase (%)",Predikat,Tanggal,Status', $content);
+        $this->assertStringContainsString('NIP,Nama,Departemen,"Komponen KPI",Target,Aktual,"Persentase (%)",Predikat,Tanggal,Status', $content);
         $this->assertStringContainsString('PG-002', $content);
         $this->assertStringContainsString('Good (80-100%)', $content);
     }

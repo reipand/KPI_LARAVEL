@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\KpiIndicator;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -16,21 +16,18 @@ class KpiManagementApiTest extends TestCase
     public function test_kpi_input_auto_calculates_user_score(): void
     {
         $actor = User::factory()->create(['role' => 'hr_manager']);
-        $employeeRole = Role::query()->create([
-            'name' => 'Sales',
-            'slug' => 'sales',
-        ]);
+        $dept  = Department::factory()->create(['kode' => 'SLS', 'nama' => 'Sales']);
 
         $employee = User::factory()->create([
-            'role' => 'pegawai',
-            'role_id' => $employeeRole->id,
+            'role'          => 'pegawai',
+            'department_id' => $dept->id,
         ]);
 
         $indicator = KpiIndicator::query()->create([
-            'name' => 'Closing Deal',
-            'description' => 'Jumlah closing deal per bulan',
-            'weight' => 40,
-            'role_id' => $employeeRole->id,
+            'name'          => 'Closing Deal',
+            'description'   => 'Jumlah closing deal per bulan',
+            'weight'        => 40,
+            'department_id' => $dept->id,
         ]);
 
         Sanctum::actingAs($actor);
@@ -55,19 +52,16 @@ class KpiManagementApiTest extends TestCase
     public function test_dashboard_returns_summary_and_ranking(): void
     {
         $actor = User::factory()->create(['role' => 'direktur']);
-        $role = Role::query()->create([
-            'name' => 'Engineering',
-            'slug' => 'engineering',
-        ]);
+        $dept  = Department::factory()->create(['kode' => 'ENG', 'nama' => 'Engineering']);
 
-        $topUser = User::factory()->create(['role' => 'pegawai', 'role_id' => $role->id]);
-        $lowUser = User::factory()->create(['role' => 'pegawai', 'role_id' => $role->id]);
+        $topUser = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $lowUser = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::query()->create([
-            'name' => 'Bug Fix',
-            'description' => 'Penyelesaian bug',
-            'weight' => 100,
-            'role_id' => $role->id,
+            'name'          => 'Bug Fix',
+            'description'   => 'Penyelesaian bug',
+            'weight'        => 100,
+            'department_id' => $dept->id,
         ]);
 
         Sanctum::actingAs($actor);
@@ -90,7 +84,7 @@ class KpiManagementApiTest extends TestCase
             'period' => '2026-04-13',
         ])->assertCreated();
 
-        $response = $this->getJson('/api/kpi/dashboard?period_type=monthly&period=2026-04-13&role_id=' . $role->id);
+        $response = $this->getJson('/api/kpi/dashboard?period_type=monthly&period=2026-04-13');
 
         $response
             ->assertOk()

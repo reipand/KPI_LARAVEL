@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\KpiIndicator;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\KpiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,22 +16,19 @@ class KpiAutomationTest extends TestCase
 
     public function test_generate_monthly_kpi_creates_records_without_duplicates(): void
     {
-        $role = Role::query()->create([
-            'name' => 'Support',
-            'slug' => 'support',
-        ]);
+        $dept = Department::factory()->create(['kode' => 'SPT', 'nama' => 'Support']);
 
         $user = User::factory()->create([
-            'role' => 'pegawai',
-            'role_id' => $role->id,
+            'role'          => 'pegawai',
+            'department_id' => $dept->id,
         ]);
 
         KpiIndicator::query()->create([
-            'name' => 'Ticket Resolution',
-            'description' => 'Jumlah tiket selesai',
-            'weight' => 50,
+            'name'                 => 'Ticket Resolution',
+            'description'         => 'Jumlah tiket selesai',
+            'weight'               => 50,
             'default_target_value' => 80,
-            'role_id' => $role->id,
+            'department_id'        => $dept->id,
         ]);
 
         /** @var KpiService $service */
@@ -52,22 +49,19 @@ class KpiAutomationTest extends TestCase
     public function test_low_score_input_creates_database_notification(): void
     {
         $actor = User::factory()->create(['role' => 'hr_manager']);
-        $role = Role::query()->create([
-            'name' => 'Warehouse',
-            'slug' => 'warehouse',
-        ]);
+        $dept  = Department::factory()->create(['kode' => 'WHS', 'nama' => 'Warehouse']);
 
         $employee = User::factory()->create([
-            'role' => 'pegawai',
-            'role_id' => $role->id,
+            'role'          => 'pegawai',
+            'department_id' => $dept->id,
         ]);
 
         $indicator = KpiIndicator::query()->create([
-            'name' => 'Inventory Accuracy',
-            'description' => 'Akurasi stok',
-            'weight' => 100,
+            'name'                 => 'Inventory Accuracy',
+            'description'         => 'Akurasi stok',
+            'weight'               => 100,
             'default_target_value' => 100,
-            'role_id' => $role->id,
+            'department_id'        => $dept->id,
         ]);
 
         Sanctum::actingAs($actor);
@@ -81,10 +75,11 @@ class KpiAutomationTest extends TestCase
             'period' => '2026-04-13',
         ])->assertCreated();
 
-        $this->assertDatabaseCount('notifications', 1);
-        $this->assertDatabaseHas('notifications', [
-            'notifiable_type' => User::class,
-            'notifiable_id' => $employee->id,
+        // Notifications now go to kpi_notifications (in-app notification center)
+        $this->assertDatabaseCount('kpi_notifications', 2); // 1 kpi_updated + 1 low_performance
+        $this->assertDatabaseHas('kpi_notifications', [
+            'user_id' => $employee->id,
+            'type' => 'low_performance',
         ]);
     }
 }

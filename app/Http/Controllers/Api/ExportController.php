@@ -107,7 +107,7 @@ class ExportController extends ApiController
             // UTF-8 BOM for Excel
             fwrite($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, ['Rank', 'NIP', 'Nama', 'Jabatan', 'Departemen', 'Divisi', 'Skor KPI', 'Predikat']);
+            fputcsv($handle, ['Rank', 'NIP', 'Nama', 'Jabatan', 'Departemen', 'Skor KPI', 'Predikat']);
 
             foreach ($ranking as $index => $item) {
                 fputcsv($handle, [
@@ -116,7 +116,6 @@ class ExportController extends ApiController
                     $item['user']->nama,
                     $item['user']->jabatan,
                     $item['user']->departemen,
-                    $item['user']->division?->nama ?? '-',
                     $item['total'],
                     $item['predikat'],
                 ]);
@@ -135,13 +134,13 @@ class ExportController extends ApiController
     {
         $bulan = (int) $request->input('bulan', now()->month);
         $tahun = (int) $request->input('tahun', now()->year);
-        $divisionId = $request->input('division_id');
+        $departmentId = $request->input('department_id');
 
         $reports = \App\Models\KpiReport::query()
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
-            ->when($divisionId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('division_id', $divisionId)))
-            ->with(['user.division', 'kpiComponent'])
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
+            ->with(['user.department', 'kpiComponent'])
             ->orderByDesc('persentase')
             ->get();
 
@@ -154,13 +153,13 @@ class ExportController extends ApiController
             $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, ['NIP', 'Nama', 'Divisi', 'Komponen KPI', 'Target', 'Aktual', 'Persentase (%)', 'Predikat', 'Tanggal', 'Status']);
+            fputcsv($handle, ['NIP', 'Nama', 'Departemen', 'Komponen KPI', 'Target', 'Aktual', 'Persentase (%)', 'Predikat', 'Tanggal', 'Status']);
 
             foreach ($reports as $r) {
                 fputcsv($handle, [
                     $r->user?->nip ?? '-',
                     $r->user?->nama ?? '-',
-                    $r->user?->division?->nama ?? '-',
+                    $r->user?->department?->nama ?? '-',
                     $r->kpiComponent?->objectives ?? '-',
                     $r->nilai_target ?? '-',
                     $r->nilai_aktual ?? '-',

@@ -10,7 +10,6 @@ class KpiComponent extends Model
 {
     protected $fillable = [
         'jabatan',
-        'division_id',
         'department_id',
         'position_id',
         'objectives',
@@ -32,11 +31,6 @@ class KpiComponent extends Model
             'target' => 'decimal:2',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function division(): BelongsTo
-    {
-        return $this->belongsTo(Division::class);
     }
 
     public function department(): BelongsTo

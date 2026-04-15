@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use HasApiTokens;
     use HasFactory;
+    use HasRoles;
     use Notifiable;
 
     protected $fillable = [
@@ -21,7 +23,6 @@ class User extends Authenticatable
         'nama',
         'jabatan',
         'departemen',
-        'division_id',
         'department_id',
         'position_id',
         'status_karyawan',
@@ -29,7 +30,6 @@ class User extends Authenticatable
         'no_hp',
         'email',
         'role',
-        'role_id',
         'password',
     ];
 
@@ -44,16 +44,6 @@ class User extends Authenticatable
             'tanggal_masuk' => 'date',
             'password' => 'hashed',
         ];
-    }
-
-    public function division(): BelongsTo
-    {
-        return $this->belongsTo(Division::class);
-    }
-
-    public function roleRef(): BelongsTo
-    {
-        return $this->belongsTo(Role::class, 'role_id');
     }
 
     public function department(): BelongsTo
@@ -103,15 +93,7 @@ class User extends Authenticatable
 
     public function hasKpiRole(string $role): bool
     {
-        if (method_exists($this, 'hasRole')) {
-            return $this->hasRole($role);
-        }
-
-        if ($this->role === $role) {
-            return true;
-        }
-
-        return $this->roleRef?->slug === $role;
+        return $this->hasRole($role) || $this->role === $role;
     }
 
     public function activityLogs(): HasMany

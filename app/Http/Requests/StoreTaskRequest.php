@@ -33,7 +33,7 @@ class StoreTaskRequest extends SanitizedFormRequest
                 'deskripsi' => ['nullable', 'string'],
                 'assigned_to' => ['required', 'exists:users,id'],
                 'start_date' => ['required', 'date'],
-                'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+                'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
                 'weight' => ['required', 'numeric', 'min:0', 'max:100'],
                 'target_value' => ['nullable', 'numeric', 'min:0'],
                 'actual_value' => ['nullable', 'numeric', 'min:0'],

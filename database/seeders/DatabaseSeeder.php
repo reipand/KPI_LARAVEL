@@ -2,18 +2,19 @@
 
 namespace Database\Seeders;
 
+use App\Models\Department;
 use App\Models\KpiComponent;
 use App\Models\Setting;
 use App\Models\Sla;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(DivisionSeeder::class);
         $this->call(DepartmentSeeder::class);
         $this->call(RoleSeeder::class);
         $this->call(KpiIndicatorSeeder::class);
@@ -82,6 +83,27 @@ class DatabaseSeeder extends Seeder
                 ['nip' => $user['nip']],
                 $user + ['password' => Hash::make(strtolower($user['nip'].'|'.$user['nama']))]
             );
+        }
+
+        // Link users to their department and assign Spatie jabatan roles
+        $departments = Department::query()->pluck('id', 'kode');
+
+        $userLinks = [
+            // [nip => [dept_kode, spatie_role_name]]
+            'BASS-DIRUT-01-2016' => ['BOD', 'Direktur Utama'],
+            'BASS-DIR-01-2020'   => ['BOD', 'Direktur'],
+            'BASS-HR-01-2026'    => ['HGA', 'HR & GA Manager'],
+            'BASS-MKT-01-2024'   => ['BDV', 'Marketing & Sales'],
+            'BASS-FIN-01-2024'   => ['FNA', 'Finance'],
+        ];
+
+        foreach ($userLinks as $nip => [$deptKode, $roleName]) {
+            $user = User::where('nip', $nip)->first();
+            if (! $user) {
+                continue;
+            }
+            $user->update(['department_id' => $departments[$deptKode] ?? null]);
+            $user->syncRoles([$roleName]);
         }
 
         $components = [

@@ -14,15 +14,13 @@ class KpiComponentController extends ApiController
     public function index(Request $request)
     {
         $user  = $request->user();
-        $query = KpiComponent::query()->with(['division', 'department']);
+        $query = KpiComponent::query()->with(['department']);
 
         if ($user->isPegawai()) {
             // Pegawai: only show components that match their profile.
             // NULL on a field means "applies to everyone in that dimension".
             $query
                 ->where('is_active', true)
-                ->where(fn ($q) => $q->whereNull('division_id')
-                    ->orWhere('division_id', $user->division_id))
                 ->where(fn ($q) => $q->whereNull('department_id')
                     ->orWhere('department_id', $user->department_id))
                 ->where(fn ($q) => $q->whereNull('position_id')
@@ -30,7 +28,6 @@ class KpiComponentController extends ApiController
         } else {
             // HR / Direktur: show all, optional filters
             $query
-                ->when($request->filled('division_id'),   fn ($q) => $q->where('division_id',   $request->integer('division_id')))
                 ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->integer('department_id')))
                 ->when($request->filled('position_id'),   fn ($q) => $q->where('position_id',   $request->integer('position_id')))
                 ->when($request->filled('jabatan'),        fn ($q) => $q->where('jabatan',        $request->string('jabatan')))
@@ -58,7 +55,7 @@ class KpiComponentController extends ApiController
         );
 
         return $this->resource(
-            new KpiComponentResource($component->load(['division', 'department'])),
+            new KpiComponentResource($component->load(['department'])),
             'Komponen KPI berhasil ditambahkan.',
             Response::HTTP_CREATED
         );
@@ -78,7 +75,7 @@ class KpiComponentController extends ApiController
         );
 
         return $this->resource(
-            new KpiComponentResource($kpiComponent->refresh()->load(['division', 'department'])),
+            new KpiComponentResource($kpiComponent->refresh()->load(['department'])),
             'Komponen KPI berhasil diperbarui.'
         );
     }

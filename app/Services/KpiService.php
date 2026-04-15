@@ -4,13 +4,12 @@ namespace App\Services;
 
 use App\Events\KPIUpdated;
 use App\Models\KpiIndicator;
+use App\Models\KpiNotification;
 use App\Models\KpiScore;
 use App\Models\KpiTarget;
-use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskScore;
 use App\Models\User;
-use App\Notifications\KpiLowNotification;
 use App\Repositories\Contracts\KpiIndicatorRepositoryInterface;
 use App\Repositories\Contracts\KpiRecordRepositoryInterface;
 use App\Repositories\Contracts\KpiScoreRepositoryInterface;
@@ -35,22 +34,27 @@ class KpiService
 
     public function inputRecord(array $payload): KpiScore
     {
-        $score = DB::transaction(function () use ($payload) {
-            /** @var User $user */
-            $user = User::query()->with('roleRef')->findOrFail($payload['user_id']);
+        $notificationData = null;
 
-            if (!$user->role_id) {
-                throw new InvalidArgumentException('User belum memiliki role yang terhubung.');
+        $score = DB::transaction(function () use ($payload, &$notificationData) {
+            /** @var User $user */
+            $user = User::query()->findOrFail($payload['user_id']);
+
+            if (! $user->department_id) {
+                throw new InvalidArgumentException('User belum memiliki departemen yang terhubung.');
             }
 
             $indicator = $this->indicatorRepository->findById((int) $payload['indicator_id']);
 
-            if (!$indicator) {
+            if (! $indicator) {
                 throw (new ModelNotFoundException())->setModel('App\\Models\\KpiIndicator', [$payload['indicator_id']]);
             }
 
-            if ((int) $indicator->role_id !== (int) $user->role_id) {
-                throw new InvalidArgumentException('Indicator KPI tidak sesuai dengan role user.');
+            // Validate: indicator must match user's department
+            if ($indicator->department_id && $user->department_id) {
+                if ((int) $indicator->department_id !== (int) $user->department_id) {
+                    throw new InvalidArgumentException('Indicator KPI tidak sesuai dengan departemen user.');
+                }
             }
 
             $period = $this->resolvePeriod($payload['period_type'], $payload['period']);
@@ -87,8 +91,30 @@ class KpiService
                 ]
             );
 
+            // Collect notification data to dispatch outside transaction
+            $notificationData = [
+                'user' => $user,
+                'indicator' => $indicator,
+                'actual_value' => $actualValue,
+                'target_value' => $targetValue,
+                'achievement_ratio' => $achievementRatio,
+                'period_label' => $period['start']->translatedFormat('F Y'),
+            ];
+
             return $this->recalculateUserScore($user, $period['type'], $period['start']->toDateString(), $indicator);
         });
+
+        // Dispatch KPI updated notification outside transaction to avoid partial writes
+        if ($notificationData) {
+            $this->notifyKpiUpdated(
+                $notificationData['user'],
+                $notificationData['indicator'],
+                $notificationData['actual_value'],
+                $notificationData['target_value'],
+                $notificationData['achievement_ratio'],
+                $notificationData['period_label'],
+            );
+        }
 
         $this->flushDashboardCaches($score->period_type, optional($score->period_start)->toDateString());
 
@@ -99,14 +125,13 @@ class KpiService
     {
         $resolvedPeriod = $this->resolvePeriod('monthly', $period ?? now()->toDateString());
         $users = User::query()
-            ->select(['id', 'role_id', 'role', 'nama', 'email', 'jabatan', 'nip'])
-            ->with(['roleRef:id,name,slug'])
-            ->whereNotNull('role_id')
+            ->select(['id', 'department_id', 'role', 'nama', 'email', 'jabatan', 'nip'])
+            ->whereNotNull('department_id')
             ->get();
 
         foreach ($users as $user) {
             $indicators = $this->indicatorRepository->getForUser(
-                (int) $user->role_id,
+                null,
                 $user->department_id ? (int) $user->department_id : null
             );
 
@@ -156,8 +181,8 @@ class KpiService
         string $periodStart,
         ?KpiIndicator $changedIndicator = null,
     ): KpiScore {
-        $indicators = $user->role_id
-            ? $this->indicatorRepository->getForUser((int) $user->role_id, $user->department_id ? (int) $user->department_id : null)
+        $indicators = $user->department_id
+            ? $this->indicatorRepository->getForUser(null, (int) $user->department_id)
             : collect();
         $records = $this->recordRepository->getUserRecordsForPeriod($user->id, $periodType, $periodStart);
         $targets = $indicators->isNotEmpty()
@@ -205,7 +230,6 @@ class KpiService
                 'period_start' => $period['start']->toDateString(),
             ],
             [
-                'role_id' => $user->role_id,
                 'period_end' => $period['end']->toDateString(),
                 'raw_score' => $rawScore,
                 'normalized_score' => $normalizedScore,
@@ -213,7 +237,7 @@ class KpiService
                 'grade' => $this->resolveGrade($normalizedScore),
                 'breakdown' => $breakdown,
             ]
-        )->loadMissing(['user.roleRef', 'role']);
+        )->loadMissing(['user']);
 
         $this->notifyLowPerformance($user, $score);
         event(new KPIUpdated($score, $changedIndicator));
@@ -224,14 +248,12 @@ class KpiService
     public function getDashboard(array $filters): array
     {
         $period = $this->resolvePeriod($filters['period_type'], $filters['period']);
-        $cacheKey = $this->dashboardCacheKey($period['type'], $period['start']->toDateString(), $filters['role_id'] ?? null);
+        $cacheKey = $this->dashboardCacheKey($period['type'], $period['start']->toDateString(), null);
 
         return Cache::remember($cacheKey, now()->addMinutes(config('kpi.cache_ttl')), function () use ($period, $filters) {
-            $roleId = $filters['role_id'] ?? null;
             $scores = $this->scoreRepository->getLeaderboard(
                 $period['type'],
-                $period['start']->toDateString(),
-                $roleId
+                $period['start']->toDateString()
             );
 
             $average = round((float) $scores->avg('normalized_score'), 2);
@@ -242,7 +264,6 @@ class KpiService
                 'filters' => [
                     'period_type' => $period['type'],
                     'period' => $period['start']->toDateString(),
-                    'role_id' => $roleId,
                 ],
                 'summary' => [
                     'average_kpi' => $average,
@@ -261,8 +282,7 @@ class KpiService
 
         /** @var User $user */
         $user = User::query()
-            ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'role_id'])
-            ->with('roleRef:id,name,slug')
+            ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'department_id'])
             ->findOrFail($userId);
 
         if ($actor && !$this->canAccessUserKpi($actor, $userId)) {
@@ -349,17 +369,16 @@ class KpiService
             ->contains(fn (string $role) => $actor->hasKpiRole($role));
     }
 
-    public function getTrend(int $months = 6, ?int $roleId = null, ?string $period = null): array
+    public function getTrend(int $months = 6, ?string $period = null): array
     {
         $current = $this->resolvePeriod('monthly', $period ?? now()->toDateString())['start'];
 
         return collect(range($months - 1, 0))
-            ->map(function (int $offset) use ($current, $roleId) {
+            ->map(function (int $offset) use ($current) {
                 $point = $current->subMonths($offset);
                 $dashboard = $this->getDashboard([
                     'period_type' => 'monthly',
                     'period' => $point->toDateString(),
-                    'role_id' => $roleId,
                 ]);
 
                 return [
@@ -377,13 +396,10 @@ class KpiService
     {
         $dashboard = $this->getDashboard($filters);
         $period = $this->resolvePeriod($filters['period_type'], $filters['period']);
-        $role = !empty($filters['role_id']) ? Role::query()->find($filters['role_id']) : null;
-
         return [
             'company' => config('kpi.company_name'),
             'generated_at' => now(),
             'period_label' => $period['start']->translatedFormat('F Y'),
-            'role_label' => $role?->name,
             'summary' => $dashboard['summary'],
             'ranking' => $dashboard['ranking'],
         ];
@@ -406,8 +422,70 @@ class KpiService
             return;
         }
 
-        $recommendation = 'Tinjau indikator dengan pencapaian terendah dan susun rencana perbaikan bersama atasan.';
-        $user->notify(new KpiLowNotification($score, $recommendation));
+        // Deduplication: only send one low-performance notification per period per user
+        $periodStart = optional($score->period_start);
+        $month = $periodStart->month ?? now()->month;
+        $year  = $periodStart->year ?? now()->year;
+
+        $alreadyNotified = KpiNotification::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'low_performance')
+            ->whereMonth('created_at', $month)
+            ->whereYear('created_at', $year)
+            ->exists();
+
+        if ($alreadyNotified) {
+            return;
+        }
+
+        KpiNotification::create([
+            'user_id' => $user->id,
+            'type'    => 'low_performance',
+            'title'   => 'Peringatan: KPI Di Bawah Standar',
+            'body'    => sprintf(
+                'Skor KPI Anda %.2f berada di bawah ambang batas %.0f. Tinjau indikator dengan pencapaian terendah dan susun rencana perbaikan bersama atasan.',
+                (float) $score->normalized_score,
+                $threshold
+            ),
+            'payload' => [
+                'score'        => (float) $score->normalized_score,
+                'threshold'    => $threshold,
+                'status'       => $score->status,
+                'grade'        => $score->grade,
+                'period_start' => $periodStart->toDateString(),
+                'period_type'  => $score->period_type,
+            ],
+        ]);
+    }
+
+    private function notifyKpiUpdated(
+        User $user,
+        KpiIndicator $indicator,
+        float $actualValue,
+        float $targetValue,
+        float $achievementRatio,
+        string $periodLabel,
+    ): void {
+        KpiNotification::create([
+            'user_id' => $user->id,
+            'type'    => 'kpi_updated',
+            'title'   => 'Data KPI Anda Diperbarui',
+            'body'    => sprintf(
+                'HR telah memperbarui KPI "%s" untuk periode %s. Aktual: %s, Target: %s, Pencapaian: %.1f%%.',
+                $indicator->name,
+                $periodLabel,
+                $actualValue,
+                $targetValue,
+                $achievementRatio * 100
+            ),
+            'payload' => [
+                'indicator_id'      => $indicator->id,
+                'indicator_name'    => $indicator->name,
+                'actual_value'      => $actualValue,
+                'target_value'      => $targetValue,
+                'achievement_ratio' => round($achievementRatio * 100, 2),
+            ],
+        ]);
     }
 
     private function resolveTaskScores(User $user, string $periodType, array $period): Collection
@@ -488,9 +566,5 @@ class KpiService
         $start = $periodStart ?? now()->startOfMonth()->toDateString();
 
         Cache::forget($this->dashboardCacheKey($periodType, $start, null));
-
-        Role::query()->pluck('id')->each(function ($roleId) use ($periodType, $start) {
-            Cache::forget($this->dashboardCacheKey($periodType, $start, (int) $roleId));
-        });
     }
 }

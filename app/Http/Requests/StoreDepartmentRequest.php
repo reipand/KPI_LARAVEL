@@ -13,7 +13,6 @@ class StoreDepartmentRequest extends SanitizedFormRequest
         return [
             'nama'        => ['required', 'string', 'max:100'],
             'kode'        => ['required', 'string', 'max:20', "unique:departments,kode,{$deptId}"],
-            'division_id' => ['nullable', 'exists:divisions,id'],
             'deskripsi'   => ['nullable', 'string'],
             'is_active'   => ['nullable', 'boolean'],
         ];

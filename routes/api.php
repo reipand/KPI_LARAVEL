@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
-use App\Http\Controllers\Api\DivisionController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\PositionController;
 use App\Http\Controllers\Api\ExportController;
@@ -77,12 +76,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/positions/{position}', [PositionController::class, 'update'])->middleware('role:hr_manager,direktur');
     Route::delete('/positions/{position}', [PositionController::class, 'destroy'])->middleware('role:hr_manager,direktur');
 
-    // Divisions
-    Route::get('/divisions', [DivisionController::class, 'index']);
-    Route::post('/divisions', [DivisionController::class, 'store'])->middleware('role:hr_manager,direktur');
-    Route::put('/divisions/{division}', [DivisionController::class, 'update'])->middleware('role:hr_manager,direktur');
-    Route::delete('/divisions/{division}', [DivisionController::class, 'destroy'])->middleware('role:hr_manager,direktur');
-
     // KPI Indicators
     Route::get('/kpi-indicators/meta', [KpiIndicatorController::class, 'meta'])->middleware('role:hr_manager,direktur');
     Route::get('/kpi-indicators', [KpiIndicatorController::class, 'index']);
@@ -102,7 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Analytics (HR & Direktur only)
     Route::prefix('analytics')->middleware('role:hr_manager,direktur')->group(function () {
         Route::get('/trend', [AnalyticsController::class, 'trend']);
-        Route::get('/per-division', [AnalyticsController::class, 'perDivision']);
+        Route::get('/per-department', [AnalyticsController::class, 'perDepartment']);
         Route::get('/distribution', [AnalyticsController::class, 'distribution']);
         Route::get('/overview', [AnalyticsController::class, 'overview']);
     });

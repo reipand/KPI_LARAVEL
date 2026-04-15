@@ -12,17 +12,11 @@ class KpiComponentResource extends JsonResource
         return [
             'id'            => $this->id,
             'jabatan'       => $this->jabatan,
-            'division_id'   => $this->division_id,
-            'division'      => $this->whenLoaded('division', fn () => [
-                'id'   => $this->division->id,
-                'nama' => $this->division->nama,
-                'kode' => $this->division->kode,
-            ]),
             'department_id' => $this->department_id,
             'department'    => $this->whenLoaded('department', fn () => [
-                'id'          => $this->department->id,
-                'nama'        => $this->department->nama,
-                'division_id' => $this->department->division_id,
+                'id'   => $this->department->id,
+                'nama' => $this->department->nama,
+                'kode' => $this->department->kode,
             ]),
             'position_id'   => $this->position_id,
             'objectives'    => $this->objectives,

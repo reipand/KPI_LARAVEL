@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Department;
 use App\Models\KpiIndicator;
-use App\Models\Role;
 use App\Repositories\Contracts\KpiIndicatorRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\Response;
 
 class KpiIndicatorController extends ApiController
@@ -22,11 +22,9 @@ class KpiIndicatorController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $indicators = KpiIndicator::query()
-            ->with(['role', 'department'])
+            ->with(['department'])
             ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->integer('department_id')))
-            ->when($request->filled('role_id'), fn ($q) => $q->where('role_id', $request->integer('role_id')))
             ->orderBy('department_id')
-            ->orderBy('role_id')
             ->orderBy('id')
             ->get()
             ->map(fn (KpiIndicator $ind) => [
@@ -37,8 +35,6 @@ class KpiIndicatorController extends ApiController
                 'default_target_value' => (float) $ind->default_target_value,
                 'formula'              => $ind->formula,
                 'formula_type_label'   => $ind->getFormulaTtypeLabel(),
-                'role_id'              => $ind->role_id,
-                'role'                 => $ind->role ? ['id' => $ind->role->id, 'name' => $ind->role->name] : null,
                 'department_id'        => $ind->department_id,
                 'department'           => $ind->department ? ['id' => $ind->department->id, 'nama' => $ind->department->nama] : null,
             ]);
@@ -58,16 +54,11 @@ class KpiIndicatorController extends ApiController
             'formula.type'         => ['required_with:formula', Rule::in(['percentage', 'conditional', 'threshold', 'zero_penalty', 'flat'])],
             'formula.thresholds'   => ['required_if:formula.type,threshold', 'array'],
             'formula.score'        => ['required_if:formula.type,flat', 'numeric', 'min:0', 'max:1'],
-            'role_id'              => ['nullable', 'exists:roles,id'],
-            'department_id'        => ['nullable', 'exists:departments,id'],
+            'department_id'        => ['required', 'exists:departments,id'],
         ]);
 
-        if (empty($data['role_id']) && empty($data['department_id'])) {
-            return $this->error('Indikator harus dihubungkan ke role atau departemen.', status: Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
         $indicator = KpiIndicator::query()->create($data);
-        $indicator->load(['role', 'department']);
+        $indicator->load(['department']);
 
         return $this->success($indicator, 'Indikator KPI berhasil dibuat.', Response::HTTP_CREATED);
     }
@@ -75,7 +66,7 @@ class KpiIndicatorController extends ApiController
     /** GET /kpi-indicators/{indicator} */
     public function show(KpiIndicator $kpiIndicator): JsonResponse
     {
-        $kpiIndicator->load(['role', 'department']);
+        $kpiIndicator->load(['department']);
 
         return $this->success($kpiIndicator);
     }
@@ -92,12 +83,11 @@ class KpiIndicatorController extends ApiController
             'formula.type'         => ['required_with:formula', Rule::in(['percentage', 'conditional', 'threshold', 'zero_penalty', 'flat'])],
             'formula.thresholds'   => ['required_if:formula.type,threshold', 'array'],
             'formula.score'        => ['required_if:formula.type,flat', 'numeric', 'min:0', 'max:1'],
-            'role_id'              => ['nullable', 'exists:roles,id'],
             'department_id'        => ['nullable', 'exists:departments,id'],
         ]);
 
         $kpiIndicator->update($data);
-        $kpiIndicator->load(['role', 'department']);
+        $kpiIndicator->load(['department']);
 
         return $this->success($kpiIndicator, 'Indikator KPI berhasil diperbarui.');
     }
@@ -110,12 +100,12 @@ class KpiIndicatorController extends ApiController
         return $this->success(null, 'Indikator KPI berhasil dihapus.');
     }
 
-    /** GET /kpi-indicators/meta — departments + roles for form selects */
+    /** GET /kpi-indicators/meta — departments + Spatie roles for form selects */
     public function meta(): JsonResponse
     {
         return $this->success([
             'departments' => Department::query()->where('is_active', true)->get(['id', 'nama', 'kode']),
-            'roles'        => Role::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'roles'        => Role::query()->orderBy('name')->get(['id', 'name']),
             'formula_types' => [
                 ['value' => 'percentage',   'label' => 'Persentase (aktual/target × bobot)'],
                 ['value' => 'conditional',  'label' => 'Kondisional (penuh jika tercapai)'],

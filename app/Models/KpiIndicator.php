@@ -2,19 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KpiIndicator extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'name',
         'description',
         'weight',
         'default_target_value',
         'formula',
-        'role_id',
         'department_id',
     ];
 
@@ -25,11 +26,6 @@ class KpiIndicator extends Model
             'default_target_value' => 'decimal:2',
             'formula'              => 'array',
         ];
-    }
-
-    public function role(): BelongsTo
-    {
-        return $this->belongsTo(Role::class);
     }
 
     public function department(): BelongsTo

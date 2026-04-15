@@ -26,7 +26,7 @@ class EloquentKpiRecordRepository implements KpiRecordRepositoryInterface
     public function getUserRecordsForPeriod(int $userId, string $periodType, string $periodStart): Collection
     {
         return KpiRecord::query()
-            ->with('indicator.role')
+            ->with('indicator')
             ->where('user_id', $userId)
             ->where('period_type', $periodType)
             ->whereDate('period_start', $periodStart)
