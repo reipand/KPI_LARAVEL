@@ -14,6 +14,7 @@ const toast = useToast();
 const showForm = ref(false);
 const editMode = ref(false);
 const editId = ref(null);
+const editTaskType = ref(null);
 const formLoading = ref(false);
 const formError = ref('');
 
@@ -46,6 +47,7 @@ const statusOptions = [
 const currentPage = computed(() => taskStore.pagination.currentPage);
 const lastPage = computed(() => taskStore.pagination.lastPage);
 const tasks = computed(() => taskStore.tasks);
+const isAssignedTaskEdit = computed(() => editMode.value && editTaskType.value === 'manual_assignment');
 
 const taskSummary = computed(() => ({
     total: taskStore.pagination.total,
@@ -97,6 +99,7 @@ function validate() {
 function openCreate() {
     editMode.value = false;
     editId.value = null;
+    editTaskType.value = null;
     Object.assign(form, emptyForm());
     Object.assign(formErrors, {});
     formError.value = '';
@@ -106,6 +109,7 @@ function openCreate() {
 function openEdit(task) {
     editMode.value = true;
     editId.value = task.id;
+    editTaskType.value = task.task_type || null;
     Object.assign(form, {
         judul: task.judul || '',
         tanggal: task.tanggal || task.start_date || '',
@@ -131,7 +135,19 @@ async function submitForm() {
 
     try {
         if (editMode.value && editId.value) {
-            await taskStore.updateTask(editId.value, { ...form });
+            const payload = isAssignedTaskEdit.value
+                ? {
+                    status: form.status,
+                    waktu_mulai: form.waktu_mulai,
+                    waktu_selesai: form.waktu_selesai,
+                    ada_delay: form.ada_delay,
+                    ada_error: form.ada_error,
+                    ada_komplain: form.ada_komplain,
+                    deskripsi: form.deskripsi,
+                }
+                : { ...form };
+
+            await taskStore.updateTask(editId.value, payload);
             toast.success('Pekerjaan berhasil diperbarui.');
         } else {
             await taskStore.createTask({ ...form });
@@ -150,6 +166,7 @@ async function submitForm() {
 function cancelForm() {
     showForm.value = false;
     formError.value = '';
+    editTaskType.value = null;
 }
 
 function openDeleteDialog(task) {
@@ -412,11 +429,14 @@ const statusBadgeMap = {
                 {{ formError }}
             </div>
 
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <h3 class="text-lg font-semibold text-slate-950">{{ editMode ? 'Perbarui detail task' : 'Buat task baru' }}</h3>
-                    <p class="text-sm text-muted-foreground">Form dirapikan dengan spacing yang lebih lega agar proses input terasa lebih nyaman.</p>
-                </div>
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <h3 class="text-lg font-semibold text-slate-950">{{ editMode ? 'Perbarui detail task' : 'Buat task baru' }}</h3>
+                        <p class="text-sm text-muted-foreground">Form dirapikan dengan spacing yang lebih lega agar proses input terasa lebih nyaman.</p>
+                        <p v-if="isAssignedTaskEdit" class="text-xs text-amber-600">
+                            Untuk task dari HR, pegawai hanya bisa memperbarui progres, waktu pengerjaan, indikator masalah, dan deskripsi.
+                        </p>
+                    </div>
 
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div class="md:col-span-2">
@@ -426,6 +446,7 @@ const statusBadgeMap = {
                             type="text"
                             class="form-input"
                             placeholder="Contoh: Pembuatan laporan bulanan"
+                            :disabled="isAssignedTaskEdit"
                         />
                         <p v-if="formErrors.judul" class="mt-1 text-xs text-red-500">{{ formErrors.judul }}</p>
                     </div>
@@ -434,19 +455,19 @@ const statusBadgeMap = {
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <label class="form-label">Tanggal Mulai</label>
-                                <input v-model="form.tanggal" type="date" class="form-input" />
+                                <input v-model="form.tanggal" type="date" class="form-input" :disabled="isAssignedTaskEdit" />
                                 <p v-if="formErrors.tanggal" class="mt-1 text-xs text-red-500">{{ formErrors.tanggal }}</p>
                             </div>
                             <div>
                                 <label class="form-label">Tanggal Selesai</label>
-                                <input v-model="form.tanggal" type="date" class="form-input" />
+                                <input v-model="form.tanggal" type="date" class="form-input" :disabled="isAssignedTaskEdit" />
                             </div>
                         </div>
                     </div>
 
                     <div>
                         <label class="form-label">Jenis Pekerjaan</label>
-                        <select v-model="form.jenis_pekerjaan" class="form-input">
+                        <select v-model="form.jenis_pekerjaan" class="form-input" :disabled="isAssignedTaskEdit">
                             <option value="">Pilih jenis...</option>
                             <option v-for="opt in jobTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
                         </select>

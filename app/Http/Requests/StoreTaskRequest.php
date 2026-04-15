@@ -25,6 +25,18 @@ class StoreTaskRequest extends SanitizedFormRequest
 
     public function rules(): array
     {
+        if ($this->route('task')?->isManualAssignment() && !$this->user()?->canManageAllData()) {
+            return [
+                'status' => ['required', Rule::in(['pending', 'on_progress', 'done', 'Pending', 'Dalam Proses', 'Selesai'])],
+                'waktu_mulai' => ['nullable', 'date_format:H:i'],
+                'waktu_selesai' => ['nullable', 'date_format:H:i'],
+                'ada_delay' => ['nullable', 'boolean'],
+                'ada_error' => ['nullable', 'boolean'],
+                'ada_komplain' => ['nullable', 'boolean'],
+                'deskripsi' => ['nullable', 'string'],
+            ];
+        }
+
         if ($this->isManualAssignmentPayload()) {
             return [
                 'title' => ['sometimes', 'required', 'string', 'max:255'],

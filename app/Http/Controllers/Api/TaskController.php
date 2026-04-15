@@ -77,7 +77,41 @@ class TaskController extends ApiController
 
     public function update(StoreTaskRequest $request, Task $task)
     {
-        if ($task->isManualAssignment() || $request->isManualAssignmentPayload()) {
+        if ($task->isManualAssignment()) {
+            if ($request->user()->canManageAllData()) {
+                $task = $this->taskAssignmentService->update($task, $request->validated(), $request->user());
+
+                ActivityLog::record(
+                    $request->user(),
+                    'task.assignment_updated',
+                    Task::class,
+                    $task->id,
+                    ['judul' => $task->judul, 'assigned_to' => $task->assigned_to_user_id],
+                    $request
+                );
+
+                return $this->resource(new TaskResource($task), 'Task KPI berhasil diperbarui.');
+            }
+
+            if ((int) $task->assigned_to_user_id !== (int) $request->user()->id) {
+                return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
+            }
+
+            $task = $this->taskAssignmentService->updateAssigneeProgress($task, $request->validated());
+
+            ActivityLog::record(
+                $request->user(),
+                'task.assignment_progress_updated',
+                Task::class,
+                $task->id,
+                $request->validated(),
+                $request
+            );
+
+            return $this->resource(new TaskResource($task), 'Progress task berhasil diperbarui.');
+        }
+
+        if ($request->isManualAssignmentPayload()) {
             if (!$request->user()->canManageAllData()) {
                 return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
             }

@@ -91,6 +91,27 @@ class TaskAssignmentService
         });
     }
 
+    public function updateAssigneeProgress(Task $task, array $payload): Task
+    {
+        $previousPeriod = $task->task_period;
+
+        return DB::transaction(function () use ($task, $payload, $previousPeriod) {
+            $task->update([
+                'status' => Task::statusForStorage($payload['status']),
+                'waktu_mulai' => $payload['waktu_mulai'] ?? $task->waktu_mulai,
+                'waktu_selesai' => $payload['waktu_selesai'] ?? $task->waktu_selesai,
+                'ada_delay' => $payload['ada_delay'] ?? false,
+                'ada_error' => $payload['ada_error'] ?? false,
+                'ada_komplain' => $payload['ada_komplain'] ?? false,
+                'deskripsi' => $payload['deskripsi'] ?? $task->deskripsi,
+            ]);
+
+            $this->syncTaskScore($task, $previousPeriod, $task->assigned_to_user_id);
+
+            return $task->loadMissing(['assignee', 'assigner', 'taskScores']);
+        });
+    }
+
     public function delete(Task $task): void
     {
         $previousUser = $task->assignee ?: $task->user;

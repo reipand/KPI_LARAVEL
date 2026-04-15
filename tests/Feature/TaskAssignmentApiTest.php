@@ -152,4 +152,66 @@ class TaskAssignmentApiTest extends TestCase
             ->assertJsonPath('data.items.0.assigned_to', $employee->id)
             ->assertJsonPath('data.items.0.title', 'Task saya');
     }
+
+    public function test_assignee_can_update_manual_assignment_progress_via_regular_update_endpoint(): void
+    {
+        $hr = User::factory()->create(['role' => 'hr_manager']);
+        $employee = User::factory()->create(['role' => 'pegawai']);
+
+        $task = Task::query()->create([
+            'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
+            'user_id' => $employee->id,
+            'assigned_by' => $hr->id,
+            'assigned_to' => $employee->id,
+            'tanggal' => '2026-04-10',
+            'start_date' => '2026-04-10',
+            'end_date' => '2026-04-15',
+            'judul' => 'Follow up lead lama',
+            'jenis_pekerjaan' => 'Task KPI',
+            'status' => Task::statusForStorage('pending'),
+            'weight' => 30,
+        ]);
+
+        TaskScore::query()->create([
+            'task_id' => $task->id,
+            'user_id' => $employee->id,
+            'score' => 0,
+            'period' => '2026-04',
+        ]);
+
+        Sanctum::actingAs($employee);
+
+        $response = $this->putJson('/api/tasks/'.$task->id, [
+            'status' => 'Dalam Proses',
+            'waktu_mulai' => '08:00',
+            'waktu_selesai' => '10:30',
+            'ada_delay' => true,
+            'ada_error' => false,
+            'ada_komplain' => false,
+            'deskripsi' => 'Progress diupdate oleh pegawai.',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.status_code', Task::STATUS_ON_PROGRESS)
+            ->assertJsonPath('data.waktu_mulai', '08:00')
+            ->assertJsonPath('data.waktu_selesai', '10:30')
+            ->assertJsonPath('data.ada_delay', true)
+            ->assertJsonPath('data.deskripsi', 'Progress diupdate oleh pegawai.');
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'status' => 'Dalam Proses',
+            'waktu_mulai' => '08:00',
+            'waktu_selesai' => '10:30',
+            'ada_delay' => true,
+            'deskripsi' => 'Progress diupdate oleh pegawai.',
+        ]);
+
+        $this->assertDatabaseHas('task_scores', [
+            'task_id' => $task->id,
+            'score' => 15,
+            'period' => '2026-04',
+        ]);
+    }
 }
