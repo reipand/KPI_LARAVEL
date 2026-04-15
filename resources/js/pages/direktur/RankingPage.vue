@@ -1,8 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useKpiStore } from '@/stores/kpi';
-import { useEmployeeStore } from '@/stores/employee';
-import { useDivisionStore } from '@/stores/division';
 import { useKpiColor } from '@/composables/useKpiColor';
 import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
@@ -10,20 +8,14 @@ import Skeleton from '@/components/ui/Skeleton.vue';
 import { downloadFile } from '@/services/api';
 
 const kpiStore  = useKpiStore();
-const empStore  = useEmployeeStore();
-const divStore  = useDivisionStore();
 const { getPredikat } = useKpiColor();
 
 const search      = ref('');
-const filterDiv   = ref('');
 const sortField   = ref('rank');
 const sortDir     = ref('asc');
 
 async function fetchAll() {
-    await Promise.all([
-        kpiStore.fetchRanking(),
-        divStore.fetchDivisions(),
-    ]);
+    await kpiStore.fetchRanking();
 }
 
 onMounted(fetchAll);
@@ -38,9 +30,6 @@ const filtered = computed(() => {
             r.name?.toLowerCase().includes(q) ||
             r.position?.toLowerCase().includes(q)
         );
-    }
-    if (filterDiv.value) {
-        list = list.filter(r => String(r.division_id) === String(filterDiv.value));
     }
     return [...list].sort((a, b) => {
         let va = a[sortField.value], vb = b[sortField.value];
@@ -160,10 +149,6 @@ function rankMedal(rank) {
                 placeholder="Cari nama / jabatan..."
                 class="form-input !w-auto min-w-[200px]"
             />
-            <select v-model="filterDiv" class="form-input !w-auto min-w-[160px]">
-                <option value="">Semua Divisi</option>
-                <option v-for="d in divStore.divisions" :key="d.id" :value="d.id">{{ d.nama }}</option>
-            </select>
             <div class="ml-auto text-xs text-slate-400">{{ filtered.length }} pegawai</div>
             <button class="btn-secondary text-xs" @click="exportCsv">
                 <svg class="mr-1.5 inline h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

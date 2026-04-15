@@ -35,13 +35,8 @@ export const useDepartmentStore = defineStore('department', () => {
     }
 
     const asOptions = computed(() =>
-        departments.value.map(d => ({ value: d.id, label: d.nama, division_id: d.division_id }))
+        departments.value.map(d => ({ value: d.id, label: d.nama }))
     );
-
-    function byDivision(divisionId) {
-        if (!divisionId) return departments.value;
-        return departments.value.filter(d => d.division_id === divisionId);
-    }
 
     function findById(id) {
         return departments.value.find(d => d.id === id) ?? null;
@@ -50,6 +45,6 @@ export const useDepartmentStore = defineStore('department', () => {
     return {
         departments, isLoading,
         fetchDepartments, createDepartment, updateDepartment, deleteDepartment,
-        asOptions, byDivision, findById,
+        asOptions, findById,
     };
 });

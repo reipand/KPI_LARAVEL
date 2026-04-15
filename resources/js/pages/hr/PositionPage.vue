@@ -7,11 +7,9 @@ import Alert from '@/components/ui/Alert.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import { useToast } from '@/composables/useToast';
 import { usePositionStore } from '@/stores/position';
-import { useDivisionStore } from '@/stores/division';
 import { useDepartmentStore } from '@/stores/department';
 
 const posStore  = usePositionStore();
-const divStore  = useDivisionStore();
 const deptStore = useDepartmentStore();
 const toast     = useToast();
 
@@ -24,25 +22,11 @@ const formError   = ref('');
 const deleteState = ref({ open: false, id: null, name: '' });
 const deleting    = ref(false);
 
-// ── Filters ────────────────────────────────────────────────────────────────────
-const filterDiv  = ref('');
 const filterDept = ref('');
 const search     = ref('');
 
-const filteredDeptsByDiv = computed(() =>
-    filterDiv.value
-        ? deptStore.departments.filter(d => d.division_id === filterDiv.value)
-        : deptStore.departments
-);
-
 const filteredPositions = computed(() => {
     let list = posStore.positions;
-    if (filterDiv.value) {
-        const deptIds = new Set(
-            deptStore.departments.filter(d => d.division_id === filterDiv.value).map(d => d.id)
-        );
-        list = list.filter(p => deptIds.has(p.department_id));
-    }
     if (filterDept.value) {
         list = list.filter(p => p.department_id === filterDept.value);
     }
@@ -53,11 +37,9 @@ const filteredPositions = computed(() => {
     return list;
 });
 
-// ── Form ────────────────────────────────────────────────────────────────────────
 const emptyForm = () => ({
     nama:          '',
     kode:          '',
-    division_id:   null,
     department_id: null,
     level:         '',
     is_active:     true,
@@ -66,21 +48,8 @@ const emptyForm = () => ({
 const form   = reactive(emptyForm());
 const errors = reactive({});
 
-// Cascade: division → reset dept (only when user changes, not during programmatic fill)
-watch(() => form.division_id, () => {
-    if (syncingHierarchy.value) return;
-    form.department_id = null;
-});
-
-const formDepts = computed(() =>
-    form.division_id
-        ? deptStore.departments.filter(d => d.division_id === form.division_id)
-        : deptStore.departments
-);
-
 onMounted(() => {
     posStore.fetchPositions();
-    divStore.fetchDivisions();
     deptStore.fetchDepartments();
 });
 
@@ -102,12 +71,9 @@ function openEdit(pos) {
     editMode.value   = true;
     selectedId.value = pos.id;
     resetForm();
-    // resolve division from department
-    const dept = deptStore.findById(pos.department_id);
     Object.assign(form, {
         nama:          pos.nama ?? '',
         kode:          pos.kode ?? '',
-        division_id:   dept?.division_id ?? null,
         department_id: pos.department_id ?? null,
         level:         pos.level ?? '',
         is_active:     Boolean(pos.is_active),
@@ -119,8 +85,8 @@ function openEdit(pos) {
 function validate() {
     Object.assign(errors, { nama: '', department_id: '' });
     let valid = true;
-    if (!form.nama.trim()) { errors.nama = 'Nama jabatan wajib diisi.'; valid = false; }
-    if (!form.department_id) { errors.department_id = 'Departemen wajib dipilih.'; valid = false; }
+    if (!form.nama.trim())      { errors.nama = 'Nama jabatan wajib diisi.'; valid = false; }
+    if (!form.department_id)    { errors.department_id = 'Departemen wajib dipilih.'; valid = false; }
     return valid;
 }
 
@@ -164,12 +130,6 @@ async function confirmDelete() {
         deleting.value = false;
     }
 }
-
-function getDivName(pos) {
-    const dept = deptStore.findById(pos.department_id);
-    if (!dept) return null;
-    return divStore.divisions.find(d => d.id === dept.division_id)?.nama ?? null;
-}
 </script>
 
 <template>
@@ -183,7 +143,7 @@ function getDivName(pos) {
                 <div class="page-hero-meta">HR Panel</div>
                 <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Manajemen Jabatan</h2>
                 <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                    Kelola daftar jabatan berdasarkan divisi dan departemen.
+                    Kelola daftar jabatan berdasarkan departemen.
                 </p>
             </div>
         </section>
@@ -191,13 +151,9 @@ function getDivName(pos) {
         <!-- Filters -->
         <div class="flex flex-wrap items-center gap-3">
             <input v-model="search" type="search" placeholder="Cari jabatan..." class="form-input !w-auto min-w-[180px]" />
-            <select v-model="filterDiv" class="form-input !w-auto min-w-[150px]">
-                <option value="">Semua Divisi</option>
-                <option v-for="d in divStore.divisions" :key="d.id" :value="d.id">{{ d.nama }}</option>
-            </select>
             <select v-model="filterDept" class="form-input !w-auto min-w-[160px]">
                 <option value="">Semua Departemen</option>
-                <option v-for="d in filteredDeptsByDiv" :key="d.id" :value="d.id">{{ d.nama }}</option>
+                <option v-for="d in deptStore.departments" :key="d.id" :value="d.id">{{ d.nama }}</option>
             </select>
             <div class="ml-auto text-xs text-slate-400">{{ filteredPositions.length }} jabatan</div>
         </div>
@@ -226,7 +182,6 @@ function getDivName(pos) {
                                     <span v-if="!pos.is_active" class="badge-warning text-[10px]">Nonaktif</span>
                                 </div>
                                 <div class="mt-0.5 flex flex-wrap gap-x-2 text-xs text-slate-500">
-                                    <span v-if="getDivName(pos)" class="badge-neutral !text-[10px]">{{ getDivName(pos) }}</span>
                                     <span v-if="pos.department?.nama" class="badge-neutral !text-[10px]">{{ pos.department.nama }}</span>
                                     <span v-if="pos.level">· Level: {{ pos.level }}</span>
                                 </div>
@@ -250,49 +205,31 @@ function getDivName(pos) {
             <Alert v-if="formError" variant="danger" class="mb-4">{{ formError }}</Alert>
 
             <div class="mt-4 space-y-4">
-
-                <!-- Nama -->
                 <div>
                     <label class="form-label">Nama Jabatan <span class="text-red-500">*</span></label>
                     <Input v-model="form.nama" placeholder="Contoh: Software Engineer" />
                     <p v-if="errors.nama" class="mt-1 text-xs text-red-500">{{ errors.nama }}</p>
                 </div>
 
-                <!-- Kode -->
                 <div>
                     <label class="form-label">Kode Jabatan</label>
                     <Input v-model="form.kode" placeholder="Contoh: SE-01" />
                 </div>
 
-                <!-- Divisi (for cascade only, not saved) -->
-                <div>
-                    <label class="form-label">Divisi</label>
-                    <select v-model="form.division_id" class="form-input">
-                        <option :value="null">— Pilih Divisi —</option>
-                        <option v-for="d in divStore.divisions" :key="d.id" :value="d.id">
-                            {{ d.nama }} ({{ d.kode }})
-                        </option>
-                    </select>
-                    <p class="mt-1 text-[11px] text-slate-400">Pilih divisi untuk mempersempit pilihan departemen.</p>
-                </div>
-
-                <!-- Departemen -->
                 <div>
                     <label class="form-label">Departemen <span class="text-red-500">*</span></label>
                     <select v-model="form.department_id" class="form-input">
                         <option :value="null">— Pilih Departemen —</option>
-                        <option v-for="d in formDepts" :key="d.id" :value="d.id">{{ d.nama }}</option>
+                        <option v-for="d in deptStore.departments" :key="d.id" :value="d.id">{{ d.nama }}</option>
                     </select>
                     <p v-if="errors.department_id" class="mt-1 text-xs text-red-500">{{ errors.department_id }}</p>
                 </div>
 
-                <!-- Level -->
                 <div>
                     <label class="form-label">Level / Grade</label>
                     <Input v-model="form.level" placeholder="Contoh: Senior, Junior, Manager" />
                 </div>
 
-                <!-- Status -->
                 <div>
                     <label class="form-label">Status</label>
                     <select v-model="form.is_active" class="form-input">

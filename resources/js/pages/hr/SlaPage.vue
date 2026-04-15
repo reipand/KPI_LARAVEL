@@ -8,72 +8,45 @@ import Alert from '@/components/ui/Alert.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import { useToast } from '@/composables/useToast';
 import { useSlaStore } from '@/stores/sla';
-import { useDivisionStore } from '@/stores/division';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
 
-const store = useSlaStore();
-const divStore = useDivisionStore();
+const store     = useSlaStore();
 const deptStore = useDepartmentStore();
-const posStore = usePositionStore();
-const toast = useToast();
+const posStore  = usePositionStore();
+const toast     = useToast();
 
-const slas = computed(() => store.slas);
-const showForm = ref(false);
-const editMode = ref(false);
-const selectedId = ref(null);
-const submitting = ref(false);
-const formError = ref('');
-const deleteState = ref({ open: false, id: null, name: '' });
+const slas           = computed(() => store.slas);
+const showForm       = ref(false);
+const editMode       = ref(false);
+const selectedId     = ref(null);
+const submitting     = ref(false);
+const formError      = ref('');
+const deleteState    = ref({ open: false, id: null, name: '' });
 const syncingHierarchy = ref(false);
 
 const emptyForm = () => ({
     nama_pekerjaan: '',
-    division_id: null,
-    department_id: null,
-    jabatan: '',
-    position_id: null,
-    durasi_jam: '',
-    keterangan: '',
+    department_id:  null,
+    jabatan:        '',
+    position_id:    null,
+    durasi_jam:     '',
+    keterangan:     '',
 });
 
-const form = reactive(emptyForm());
+const form   = reactive(emptyForm());
 const errors = reactive({});
-
-const filteredDepts = computed(() =>
-    form.division_id
-        ? deptStore.departments.filter((department) => department.division_id === form.division_id)
-        : deptStore.departments
-);
 
 const filteredPositions = computed(() =>
     form.department_id
-        ? posStore.positions.filter((position) => position.department_id === form.department_id)
-        : form.division_id
-            ? posStore.positions.filter((position) => {
-                const department = deptStore.findById(position.department_id);
-                return department?.division_id === form.division_id;
-            })
-            : posStore.positions
+        ? posStore.positions.filter(p => p.department_id === form.department_id)
+        : posStore.positions
 );
 
-watch(() => form.division_id, () => {
+watch(() => form.department_id, () => {
     if (syncingHierarchy.value) return;
-    form.department_id = null;
     form.position_id = null;
-    form.jabatan = '';
-});
-
-watch(() => form.department_id, (id) => {
-    if (syncingHierarchy.value) return;
-    if (!id) {
-        form.position_id = null;
-        form.jabatan = '';
-        return;
-    }
-
-    form.position_id = null;
-    form.jabatan = '';
+    form.jabatan     = '';
 });
 
 watch(() => form.position_id, (id) => {
@@ -84,7 +57,6 @@ watch(() => form.position_id, (id) => {
 
 onMounted(() => {
     store.fetchSla();
-    divStore.fetchDivisions();
     deptStore.fetchDepartments();
     posStore.fetchPositions();
 });
@@ -92,23 +64,22 @@ onMounted(() => {
 function resetForm() {
     Object.assign(form, emptyForm());
     formError.value = '';
-    Object.keys(errors).forEach((key) => { errors[key] = ''; });
+    Object.keys(errors).forEach(k => { errors[k] = ''; });
 }
 
 function openCreate() {
-    editMode.value = false;
+    editMode.value   = false;
     selectedId.value = null;
     resetForm();
-    showForm.value = true;
+    showForm.value   = true;
 }
 
 function openEdit(item) {
-    syncingHierarchy.value = true;   // before resetForm so reset-watchers are also blocked
-    editMode.value = true;
+    syncingHierarchy.value = true;
+    editMode.value   = true;
     selectedId.value = item.id;
     resetForm();
 
-    // Infer division from position → department chain (SLA doesn't store div/dept directly)
     const selectedPosition   = item.position_id ? posStore.findById(item.position_id) : null;
     const selectedDepartment = selectedPosition?.department_id
         ? deptStore.findById(selectedPosition.department_id)
@@ -116,7 +87,6 @@ function openEdit(item) {
 
     Object.assign(form, {
         nama_pekerjaan: item.nama_pekerjaan ?? '',
-        division_id:    selectedDepartment?.division_id ?? null,
         department_id:  selectedDepartment?.id ?? null,
         jabatan:        item.jabatan ?? '',
         position_id:    item.position_id ?? null,
@@ -130,40 +100,24 @@ function openEdit(item) {
 function validate() {
     Object.assign(errors, { nama_pekerjaan: '', jabatan: '', durasi_jam: '' });
     let valid = true;
-
-    if (!form.nama_pekerjaan) {
-        errors.nama_pekerjaan = 'Nama pekerjaan wajib diisi.';
-        valid = false;
-    }
-
-    if (!form.jabatan) {
-        errors.jabatan = 'Jabatan wajib diisi.';
-        valid = false;
-    }
-
-    if (!form.durasi_jam || Number(form.durasi_jam) <= 0) {
-        errors.durasi_jam = 'Durasi jam harus lebih dari 0.';
-        valid = false;
-    }
-
+    if (!form.nama_pekerjaan)                       { errors.nama_pekerjaan = 'Nama pekerjaan wajib diisi.'; valid = false; }
+    if (!form.jabatan)                              { errors.jabatan = 'Jabatan wajib diisi.'; valid = false; }
+    if (!form.durasi_jam || Number(form.durasi_jam) <= 0) { errors.durasi_jam = 'Durasi jam harus lebih dari 0.'; valid = false; }
     return valid;
 }
 
 async function submit() {
     if (!validate()) return;
-
     submitting.value = true;
-    formError.value = '';
-
+    formError.value  = '';
     try {
         const payload = {
             nama_pekerjaan: form.nama_pekerjaan,
-            jabatan: form.jabatan,
-            position_id: form.position_id,
-            durasi_jam: Number(form.durasi_jam),
-            keterangan: form.keterangan,
+            jabatan:        form.jabatan,
+            position_id:    form.position_id,
+            durasi_jam:     Number(form.durasi_jam),
+            keterangan:     form.keterangan,
         };
-
         if (editMode.value && selectedId.value) {
             await store.updateSla(selectedId.value, payload);
             toast.success('SLA berhasil diperbarui.');
@@ -171,7 +125,6 @@ async function submit() {
             await store.createSla(payload);
             toast.success('SLA berhasil ditambahkan.');
         }
-
         showForm.value = false;
         await store.fetchSla();
     } catch (err) {
@@ -254,32 +207,18 @@ async function confirmDelete() {
                 </div>
 
                 <div>
-                    <label class="form-label">Divisi</label>
-                    <select v-model="form.division_id" class="form-input">
-                        <option :value="null">— Pilih Divisi —</option>
-                        <option v-for="division in divStore.divisions" :key="division.id" :value="division.id">
-                            {{ division.nama }} ({{ division.kode }})
-                        </option>
+                    <label class="form-label">Departemen</label>
+                    <select v-model="form.department_id" class="form-input">
+                        <option :value="null">— Pilih Departemen —</option>
+                        <option v-for="d in deptStore.departments" :key="d.id" :value="d.id">{{ d.nama }}</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="form-label">Departemen</label>
-                    <select v-model="form.department_id" class="form-input">
-                        <option :value="null">— Pilih Departemen —</option>
-                        <option v-for="department in filteredDepts" :key="department.id" :value="department.id">
-                            {{ department.nama }}
-                        </option>
-                    </select>
-                </div>
-
-                <div class="md:col-span-2">
                     <label class="form-label">Jabatan <span class="text-red-500">*</span></label>
                     <select v-model="form.position_id" class="form-input">
                         <option :value="null">— Pilih Jabatan —</option>
-                        <option v-for="position in filteredPositions" :key="position.id" :value="position.id">
-                            {{ position.nama }}
-                        </option>
+                        <option v-for="p in filteredPositions" :key="p.id" :value="p.id">{{ p.nama }}</option>
                     </select>
                     <p v-if="errors.jabatan" class="mt-1 text-xs text-red-500">{{ errors.jabatan }}</p>
                 </div>

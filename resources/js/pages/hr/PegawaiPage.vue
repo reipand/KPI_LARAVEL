@@ -7,13 +7,11 @@ import Alert from '@/components/ui/Alert.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import Avatar from '@/components/ui/Avatar.vue';
 import { useEmployeeStore } from '@/stores/employee';
-import { useDivisionStore } from '@/stores/division';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
 import { useToast } from '@/composables/useToast';
 
 const store     = useEmployeeStore();
-const divStore  = useDivisionStore();
 const deptStore = useDepartmentStore();
 const posStore  = usePositionStore();
 const toast     = useToast();
@@ -33,7 +31,6 @@ const emptyForm = () => ({
     nama:            '',
     jabatan:         '',      // auto-filled from position, sent to API
     departemen:      '',      // auto-filled from department, sent to API
-    division_id:     null,
     department_id:   null,
     position_id:     null,
     status_karyawan: 'Tetap',
@@ -45,15 +42,6 @@ const emptyForm = () => ({
 
 const form   = reactive(emptyForm());
 const errors = reactive({});
-
-// When division changes → reset dept & position
-watch(() => form.division_id, () => {
-    if (syncingHierarchy.value) return;
-    form.department_id = null;
-    form.departemen    = '';
-    form.position_id   = null;
-    form.jabatan       = '';
-});
 
 // When dept changes → fill departemen string & reset position
 watch(() => form.department_id, (id) => {
@@ -71,27 +59,15 @@ watch(() => form.position_id, (id) => {
     form.jabatan = pos?.nama ?? '';
 });
 
-// Filtered lists based on cascade selection
-const filteredDepts = computed(() =>
-    form.division_id
-        ? deptStore.departments.filter(d => d.division_id === form.division_id)
-        : deptStore.departments
-);
-
+// Filtered positions based on department
 const filteredPositions = computed(() =>
     form.department_id
         ? posStore.positions.filter(p => p.department_id === form.department_id)
-        : form.division_id
-            ? posStore.positions.filter(p => {
-                const dept = deptStore.findById(p.department_id);
-                return dept?.division_id === form.division_id;
-            })
-            : posStore.positions
+        : posStore.positions
 );
 
 onMounted(() => {
     store.fetchEmployees();
-    divStore.fetchDivisions();
     deptStore.fetchDepartments();
     posStore.fetchPositions();
 });
@@ -119,7 +95,6 @@ function openEdit(emp) {
         nama:            emp.nama ?? '',
         jabatan:         emp.jabatan ?? '',
         departemen:      emp.departemen ?? '',
-        division_id:     emp.division_id ?? null,
         department_id:   emp.department_id ?? null,
         position_id:     emp.position_id ?? null,
         status_karyawan: emp.status_karyawan ?? 'Tetap',
@@ -199,7 +174,7 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                 <div class="page-hero-meta">HR Panel</div>
                 <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Manajemen Pegawai</h2>
                 <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                    Kelola data karyawan, jabatan, divisi, dan hak akses aplikasi.
+                    Kelola data karyawan, jabatan, dan hak akses aplikasi.
                 </p>
             </div>
         </section>
@@ -281,28 +256,17 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                     <p v-if="errors.nama" class="mt-1 text-xs text-red-500">{{ errors.nama }}</p>
                 </div>
 
-                <!-- Divisi -->
-                <div>
-                    <label class="form-label">Divisi</label>
-                    <select v-model="form.division_id" class="form-input">
-                        <option :value="null">— Pilih Divisi —</option>
-                        <option v-for="d in divStore.divisions" :key="d.id" :value="d.id">
-                            {{ d.nama }} ({{ d.kode }})
-                        </option>
-                    </select>
-                </div>
-
-                <!-- Departemen — single dropdown, string auto-filled -->
+                <!-- Departemen -->
                 <div>
                     <label class="form-label">Departemen <span class="text-red-500">*</span></label>
                     <select v-model="form.department_id" class="form-input">
                         <option :value="null">— Pilih Departemen —</option>
-                        <option v-for="d in filteredDepts" :key="d.id" :value="d.id">{{ d.nama }}</option>
+                        <option v-for="d in deptStore.departments" :key="d.id" :value="d.id">{{ d.nama }}</option>
                     </select>
                     <p v-if="errors.departemen" class="mt-1 text-xs text-red-500">{{ errors.departemen }}</p>
                 </div>
 
-                <!-- Jabatan — single dropdown, string auto-filled -->
+                <!-- Jabatan -->
                 <div>
                     <label class="form-label">Jabatan <span class="text-red-500">*</span></label>
                     <select v-model="form.position_id" class="form-input">

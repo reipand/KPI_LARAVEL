@@ -38,8 +38,8 @@ const trendChart = computed(() => {
     };
 });
 
-const divisionChart = computed(() => {
-    const raw = store.perDivision;
+const departmentChart = computed(() => {
+    const raw = store.perDepartment;
     if (!raw?.labels?.length) return { labels: [], datasets: [] };
     return {
         labels: raw.labels,
@@ -78,7 +78,7 @@ const taskDistChart = computed(() => {
 
 // Chart keys — change when data changes so Chart.js reinitialises
 const trendKey        = computed(() => trendChart.value.labels.join(','));
-const divisionKey     = computed(() => divisionChart.value.labels.join(','));
+const departmentKey     = computed(() => departmentChart.value.labels.join(','));
 const distributionKey = computed(() => distributionChart.value.data.join(','));
 const taskDistKey     = computed(() => taskDistChart.value.data.join(','));
 
@@ -106,7 +106,7 @@ async function exportRankingCsv() {
                     <div class="page-hero-meta">HR Manager</div>
                     <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Analytics KPI</h2>
                     <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                        Visualisasi performa KPI seluruh karyawan — tren bulanan, distribusi nilai, dan perbandingan antar divisi.
+                        Visualisasi performa KPI seluruh karyawan — tren bulanan, distribusi nilai, dan perbandingan antar departemen.
                     </p>
                     <div class="mt-3 flex items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold text-emerald-300">
@@ -147,7 +147,7 @@ async function exportRankingCsv() {
                 <div class="dashboard-panel p-5">
                     <p class="text-xs font-medium text-slate-500">Total Karyawan</p>
                     <p class="mt-1 text-2xl font-bold text-slate-900">{{ store.overview?.total_employees ?? 0 }}</p>
-                    <p class="mt-0.5 text-xs text-slate-400">{{ store.overview?.total_divisions ?? 0 }} divisi aktif</p>
+                    <p class="mt-0.5 text-xs text-slate-400">{{ store.overview?.total_departments ?? 0 }} departemen aktif</p>
                 </div>
                 <div class="dashboard-panel p-5">
                     <p class="text-xs font-medium text-slate-500">Rata-rata Achievement</p>
@@ -221,23 +221,23 @@ async function exportRankingCsv() {
             </div>
         </div>
 
-        <!-- Division bar chart + Task distribution -->
+        <!-- Department bar chart + Task distribution -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="dashboard-panel overflow-hidden lg:col-span-2">
                 <div class="border-b border-slate-200 px-6 py-4">
-                    <p class="section-heading">Perbandingan Divisi</p>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Rata-rata Achievement per Divisi</h3>
+                    <p class="section-heading">Perbandingan Departemen</p>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Rata-rata Achievement per Departemen</h3>
                 </div>
                 <div class="p-6">
-                    <div v-if="store.isLoadingDivision" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
-                    <div v-else-if="!divisionChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
-                        Belum ada data divisi.
+                    <div v-if="store.isLoadingDepartment" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-else-if="!departmentChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        Belum ada data departemen.
                     </div>
                     <BarChart
                         v-else
-                        :key="divisionKey"
-                        :labels="divisionChart.labels"
-                        :datasets="divisionChart.datasets"
+                        :key="departmentKey"
+                        :labels="departmentChart.labels"
+                        :datasets="departmentChart.datasets"
                         y-label="Nilai"
                         :height="280"
                     />

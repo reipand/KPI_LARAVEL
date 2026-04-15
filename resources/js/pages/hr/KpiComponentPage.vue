@@ -8,12 +8,10 @@ import Alert from '@/components/ui/Alert.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import { useToast } from '@/composables/useToast';
 import { useKpiComponentStore } from '@/stores/kpiComponent';
-import { useDivisionStore } from '@/stores/division';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
 
 const store = useKpiComponentStore();
-const divStore = useDivisionStore();
 const deptStore = useDepartmentStore();
 const posStore = usePositionStore();
 const toast = useToast();
@@ -29,7 +27,6 @@ const syncingHierarchy = ref(false);
 
 const emptyForm = () => ({
     jabatan: '',
-    division_id: null,
     department_id: null,
     position_id: null,
     objectives: '',
@@ -47,29 +44,11 @@ const emptyForm = () => ({
 const form = reactive(emptyForm());
 const errors = reactive({});
 
-const filteredDepts = computed(() =>
-    form.division_id
-        ? deptStore.departments.filter((department) => department.division_id === form.division_id)
-        : deptStore.departments
-);
-
 const filteredPositions = computed(() =>
     form.department_id
         ? posStore.positions.filter((position) => position.department_id === form.department_id)
-        : form.division_id
-            ? posStore.positions.filter((position) => {
-                const department = deptStore.findById(position.department_id);
-                return department?.division_id === form.division_id;
-            })
-            : posStore.positions
+        : posStore.positions
 );
-
-watch(() => form.division_id, () => {
-    if (syncingHierarchy.value) return;
-    form.department_id = null;
-    form.position_id = null;
-    form.jabatan = '';
-});
 
 watch(() => form.department_id, (id) => {
     if (syncingHierarchy.value) return;
@@ -91,7 +70,6 @@ watch(() => form.position_id, (id) => {
 
 onMounted(() => {
     store.fetchComponents();
-    divStore.fetchDivisions();
     deptStore.fetchDepartments();
     posStore.fetchPositions();
 });
@@ -110,20 +88,17 @@ function openCreate() {
 }
 
 function openEdit(item) {
-    syncingHierarchy.value = true;   // before resetForm so reset-watchers are also blocked
+    syncingHierarchy.value = true;
     editMode.value   = true;
     selectedId.value = item.id;
     resetForm();
 
-    // department_id is now stored on the item directly (API returns it)
-    // Fall back to inferring from position if not present
     const deptId = item.department_id
-        ?? (item.position_id ? deptStore.findById(posStore.findById(item.position_id)?.department_id)?.id : null)
+        ?? (item.position_id ? posStore.findById(item.position_id)?.department_id : null)
         ?? null;
 
     Object.assign(form, {
         jabatan:       item.jabatan       ?? '',
-        division_id:   item.division_id   ?? null,
         department_id: deptId,
         position_id:   item.position_id   ?? null,
         objectives:    item.objectives    ?? '',
@@ -182,7 +157,6 @@ async function submit() {
     try {
         const payload = {
             jabatan:       form.jabatan,
-            division_id:   form.division_id,
             department_id: form.department_id,
             position_id:   form.position_id,
             objectives:    form.objectives,
@@ -256,7 +230,7 @@ const periodLabels = {
                 <div class="page-hero-meta">HR Panel</div>
                 <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Komponen KPI</h2>
                 <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                    Kelola objective, bobot, target, dan tipe komponen KPI per jabatan dan divisi.
+                    Kelola objective, bobot, target, dan tipe komponen KPI per jabatan dan departemen.
                 </p>
             </div>
         </section>
@@ -282,10 +256,9 @@ const periodLabels = {
                                     <span v-if="!item.is_active" class="badge-warning text-[10px]">Nonaktif</span>
                                 </div>
                                 <div class="mt-0.5 flex flex-wrap gap-x-2 text-xs text-slate-500">
-                                    <span v-if="item.division?.nama" class="badge-neutral !text-[10px]">{{ item.division.nama }}</span>
                                     <span v-if="item.department?.nama" class="badge-neutral !text-[10px]">{{ item.department.nama }}</span>
                                     <span v-if="item.jabatan" class="badge-info !text-[10px]">{{ item.jabatan }}</span>
-                                    <span v-if="!item.division_id && !item.department_id && !item.position_id" class="badge-neutral !text-[10px]">Semua</span>
+                                    <span v-if="!item.department_id && !item.position_id" class="badge-neutral !text-[10px]">Semua</span>
                                     <span>· {{ tipeLabels[item.tipe] ?? item.tipe }}</span>
                                     <span>· Bobot {{ item.bobot }}</span>
                                     <span v-if="item.target">· Target {{ item.target }}{{ item.satuan ? ' ' + item.satuan : '' }}</span>
@@ -310,26 +283,16 @@ const periodLabels = {
 
             <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                    <label class="form-label">Divisi</label>
-                    <select v-model="form.division_id" class="form-input">
-                        <option :value="null">— Semua Divisi —</option>
-                        <option v-for="division in divStore.divisions" :key="division.id" :value="division.id">
-                            {{ division.nama }} ({{ division.kode }})
-                        </option>
-                    </select>
-                </div>
-
-                <div>
                     <label class="form-label">Departemen</label>
                     <select v-model="form.department_id" class="form-input">
                         <option :value="null">— Semua Departemen —</option>
-                        <option v-for="department in filteredDepts" :key="department.id" :value="department.id">
+                        <option v-for="department in deptStore.departments" :key="department.id" :value="department.id">
                             {{ department.nama }}
                         </option>
                     </select>
                 </div>
 
-                <div class="md:col-span-2">
+                <div>
                     <label class="form-label">Jabatan <span class="text-red-500">*</span></label>
                     <select v-model="form.position_id" class="form-input">
                         <option :value="null">— Semua Jabatan (berlaku untuk semua) —</option>
@@ -337,7 +300,7 @@ const periodLabels = {
                     </select>
                     <p v-if="errors.jabatan" class="mt-1 text-xs text-red-500">{{ errors.jabatan }}</p>
                     <p v-else class="mt-1 text-[11px] text-slate-400">
-                        Kosongkan jika komponen ini berlaku untuk semua jabatan pada divisi/departemen yang dipilih.
+                        Kosongkan jika komponen ini berlaku untuk semua jabatan pada departemen yang dipilih.
                     </p>
                 </div>
 

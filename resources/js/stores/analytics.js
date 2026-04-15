@@ -3,27 +3,26 @@ import { ref, reactive } from 'vue';
 import api from '@/services/api';
 
 export const useAnalyticsStore = defineStore('analytics', () => {
-    const trend = ref(null);
-    const perDivision = ref(null);
+    const trend        = ref(null);
+    const perDepartment = ref(null);
     const distribution = ref(null);
-    const overview = ref(null);
+    const overview     = ref(null);
 
-    const isLoadingTrend = ref(false);
-    const isLoadingDivision = ref(false);
+    const isLoadingTrend        = ref(false);
+    const isLoadingDepartment   = ref(false);
     const isLoadingDistribution = ref(false);
-    const isLoadingOverview = ref(false);
+    const isLoadingOverview     = ref(false);
 
     const filters = reactive({
         tahun: new Date().getFullYear(),
         bulan: null,
-        division_id: null,
     });
 
     async function fetchTrend(params = {}) {
         isLoadingTrend.value = true;
         try {
             const { data: resp } = await api.get('/analytics/trend', {
-                params: { tahun: filters.tahun, division_id: filters.division_id || undefined, ...params },
+                params: { tahun: filters.tahun, ...params },
             });
             trend.value = resp.data;
         } finally {
@@ -31,15 +30,15 @@ export const useAnalyticsStore = defineStore('analytics', () => {
         }
     }
 
-    async function fetchPerDivision(params = {}) {
-        isLoadingDivision.value = true;
+    async function fetchPerDepartment(params = {}) {
+        isLoadingDepartment.value = true;
         try {
-            const { data: resp } = await api.get('/analytics/per-division', {
+            const { data: resp } = await api.get('/analytics/per-department', {
                 params: { tahun: filters.tahun, bulan: filters.bulan || undefined, ...params },
             });
-            perDivision.value = resp.data;
+            perDepartment.value = resp.data;
         } finally {
-            isLoadingDivision.value = false;
+            isLoadingDepartment.value = false;
         }
     }
 
@@ -50,7 +49,6 @@ export const useAnalyticsStore = defineStore('analytics', () => {
                 params: {
                     tahun: filters.tahun,
                     bulan: filters.bulan || undefined,
-                    division_id: filters.division_id || undefined,
                     ...params,
                 },
             });
@@ -79,7 +77,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     async function fetchAll() {
         await Promise.all([
             fetchTrend(),
-            fetchPerDivision(),
+            fetchPerDepartment(),
             fetchDistribution(),
             fetchOverview(),
         ]);
@@ -91,16 +89,16 @@ export const useAnalyticsStore = defineStore('analytics', () => {
 
     return {
         trend,
-        perDivision,
+        perDepartment,
         distribution,
         overview,
         filters,
         isLoadingTrend,
-        isLoadingDivision,
+        isLoadingDepartment,
         isLoadingDistribution,
         isLoadingOverview,
         fetchTrend,
-        fetchPerDivision,
+        fetchPerDepartment,
         fetchDistribution,
         fetchOverview,
         fetchAll,

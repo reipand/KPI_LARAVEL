@@ -1,16 +1,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useDepartmentStore } from '@/stores/department';
-import { useDivisionStore } from '@/stores/division';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 
-const store    = useDepartmentStore();
-const divStore = useDivisionStore();
-const toast    = useToast();
+const store = useDepartmentStore();
+const toast = useToast();
 
 const showForm     = ref(false);
 const editMode     = ref(false);
@@ -19,14 +17,13 @@ const formError    = ref('');
 const saving       = ref(false);
 const deleteDialog = reactive({ open: false, id: null, nama: '' });
 
-const emptyForm = () => ({ nama: '', kode: '', division_id: null, deskripsi: '', is_active: true });
+const emptyForm = () => ({ nama: '', kode: '', deskripsi: '', is_active: true });
 const form = reactive(emptyForm());
 
 const departments = computed(() => store.departments);
 
 onMounted(() => {
     store.fetchDepartments();
-    divStore.fetchDivisions();
 });
 
 function openCreate() {
@@ -39,11 +36,10 @@ function openCreate() {
 
 function openEdit(dept) {
     Object.assign(form, {
-        nama:        dept.nama,
-        kode:        dept.kode,
-        division_id: dept.division_id ?? null,
-        deskripsi:   dept.deskripsi ?? '',
-        is_active:   !!dept.is_active,
+        nama:      dept.nama,
+        kode:      dept.kode,
+        deskripsi: dept.deskripsi ?? '',
+        is_active: !!dept.is_active,
     });
     editMode.value  = true;
     editId.value    = dept.id;
@@ -90,13 +86,6 @@ async function doDelete() {
         deleteDialog.open = false;
     }
 }
-
-function divisionName(id) {
-    return divStore.divisions.find(d => d.id === id)?.nama ?? '—';
-}
-function divisionKode(id) {
-    return divStore.divisions.find(d => d.id === id)?.kode ?? '';
-}
 </script>
 
 <template>
@@ -107,7 +96,7 @@ function divisionKode(id) {
                     <div class="page-hero-meta">Master Data</div>
                     <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Manajemen Departemen</h2>
                     <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                        Kelola departemen di bawah setiap divisi organisasi. Departemen digunakan sebagai referensi jabatan dan pengelompokan karyawan.
+                        Kelola departemen organisasi. Departemen digunakan sebagai referensi jabatan dan pengelompokan karyawan.
                     </p>
                 </div>
                 <button class="btn-primary shrink-0" @click="openCreate">+ Tambah Departemen</button>
@@ -145,16 +134,8 @@ function divisionKode(id) {
                             <span class="text-sm font-semibold text-slate-900">{{ dept.nama }}</span>
                             <span v-if="!dept.is_active" class="badge-warning text-[10px]">Nonaktif</span>
                         </div>
-                        <div class="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                            <template v-if="dept.division_id">
-                                <span class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
-                                    {{ divisionKode(dept.division_id) }}
-                                </span>
-                                {{ divisionName(dept.division_id) }}
-                            </template>
-                            <span v-else class="text-slate-400">Tanpa divisi</span>
-                            <span v-if="dept.deskripsi" class="text-slate-300">·</span>
-                            <span v-if="dept.deskripsi" class="truncate">{{ dept.deskripsi }}</span>
+                        <div v-if="dept.deskripsi" class="mt-0.5 truncate text-xs text-slate-500">
+                            {{ dept.deskripsi }}
                         </div>
                     </div>
 
@@ -177,22 +158,12 @@ function divisionKode(id) {
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="form-label">Nama Departemen <span class="text-red-500">*</span></label>
-                        <Input v-model="form.nama" placeholder="Contoh: IT Department" />
+                        <Input v-model="form.nama" placeholder="Contoh: Information Technology" />
                     </div>
                     <div>
                         <label class="form-label">Kode <span class="text-red-500">*</span></label>
-                        <Input v-model="form.kode" placeholder="Contoh: IT_DEP" class="uppercase" />
+                        <Input v-model="form.kode" placeholder="Contoh: ITD" class="uppercase" />
                     </div>
-                </div>
-
-                <div>
-                    <label class="form-label">Divisi</label>
-                    <select v-model="form.division_id" class="form-input">
-                        <option :value="null">— Tanpa Divisi —</option>
-                        <option v-for="d in divStore.divisions" :key="d.id" :value="d.id">
-                            {{ d.nama }} ({{ d.kode }})
-                        </option>
-                    </select>
                 </div>
 
                 <div>

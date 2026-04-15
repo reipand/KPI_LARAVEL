@@ -40,8 +40,8 @@ const trendChart = computed(() => {
     };
 });
 
-const divisionChart = computed(() => {
-    const raw = store.perDivision;
+const departmentChart = computed(() => {
+    const raw = store.perDepartment;
     if (!raw?.labels?.length) return { labels: [], datasets: [] };
     return {
         labels: raw.labels,
@@ -80,7 +80,7 @@ const taskDistChart = computed(() => {
 
 // Chart keys
 const trendKey        = computed(() => trendChart.value.labels.join(','));
-const divisionKey     = computed(() => divisionChart.value.labels.join(','));
+const departmentKey     = computed(() => departmentChart.value.labels.join(','));
 const distributionKey = computed(() => distributionChart.value.data.join(','));
 const taskDistKey     = computed(() => taskDistChart.value.data.join(','));
 
@@ -89,7 +89,7 @@ const overviewCards = computed(() => [
     {
         label: 'Total Karyawan',
         value: store.overview?.total_employees ?? 0,
-        sub:   `${store.overview?.total_divisions ?? 0} divisi aktif`,
+        sub:   `${store.overview?.total_departments ?? 0} departemen aktif`,
         icon:  `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
         color: 'text-slate-700', bg: 'bg-slate-100',
     },
@@ -143,7 +143,7 @@ async function exportReportsCsv() {
                     <div class="page-hero-meta">Executive View</div>
                     <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Analytics & Insights</h2>
                     <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                        Ringkasan eksekutif performa KPI organisasi — tren, distribusi, dan benchmarking antar divisi.
+                        Ringkasan eksekutif performa KPI organisasi — tren, distribusi, dan benchmarking antar departemen.
                     </p>
                 </div>
                 <div class="flex shrink-0 flex-wrap items-center gap-2">
@@ -253,23 +253,23 @@ async function exportReportsCsv() {
             </div>
         </div>
 
-        <!-- Division bar + Distribution -->
+        <!-- Department bar + Distribution -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="dashboard-panel overflow-hidden lg:col-span-2">
                 <div class="border-b border-slate-200 px-6 py-4">
-                    <p class="section-heading">Benchmarking Divisi</p>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Rata-rata Achievement per Divisi</h3>
+                    <p class="section-heading">Benchmarking Departemen</p>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Rata-rata Achievement per Departemen</h3>
                 </div>
                 <div class="p-6">
-                    <div v-if="store.isLoadingDivision" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
-                    <div v-else-if="!divisionChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
-                        Belum ada data divisi.
+                    <div v-if="store.isLoadingDepartment" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
+                    <div v-else-if="!departmentChart.labels.length" class="flex h-64 items-center justify-center text-sm text-slate-400">
+                        Belum ada data departemen.
                     </div>
                     <BarChart
                         v-else
-                        :key="divisionKey"
-                        :labels="divisionChart.labels"
-                        :datasets="divisionChart.datasets"
+                        :key="departmentKey"
+                        :labels="departmentChart.labels"
+                        :datasets="departmentChart.datasets"
                         y-label="Nilai"
                         :height="300"
                     />
