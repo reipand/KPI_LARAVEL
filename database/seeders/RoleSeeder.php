@@ -19,13 +19,13 @@ class RoleSeeder extends Seeder
         'Accounting',
         // HR & GA
         'HR & GA Manager',
-        'Admin GA',
         'Driver',
-        'Office Boy',
+        'Office Boy & Admin GA',
         // Research & Development
         'R&D Staff',
         // Information Technology
-        'IT',
+        'IT Support',
+        'IT Staff',
     ];
 
     public function run(): void

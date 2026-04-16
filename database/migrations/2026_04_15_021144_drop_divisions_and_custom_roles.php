@@ -57,8 +57,11 @@ return new class extends Migration
         // ── Drop role_id from kpi_indicators ─────────────────────────────────
         if (Schema::hasColumn('kpi_indicators', 'role_id')) {
             Schema::table('kpi_indicators', function (Blueprint $table) {
+                // Drop FK constraint first (MySQL requires this before dropping the index).
+                // dropConstrainedForeignId handles: FK → column → index, in correct order.
+                try { $table->dropForeign(['role_id']); } catch (\Throwable) {}
                 try { $table->dropIndex('kpi_indicators_role_id_index'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('role_id');
+                $table->dropColumn('role_id');
             });
         }
 
@@ -72,8 +75,9 @@ return new class extends Migration
         // ── Drop role_id from kpi_scores ──────────────────────────────────────
         if (Schema::hasTable('kpi_scores') && Schema::hasColumn('kpi_scores', 'role_id')) {
             Schema::table('kpi_scores', function (Blueprint $table) {
+                try { $table->dropForeign(['role_id']); } catch (\Throwable) {}
                 try { $table->dropIndex('kpi_scores_role_id_period_type_period_start_index'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('role_id');
+                $table->dropColumn('role_id');
             });
         }
 

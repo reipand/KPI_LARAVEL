@@ -29,8 +29,8 @@ class PositionSeeder extends Seeder
         // ── Research & Development ───────────────────────────────────────
         ['nama' => 'R&D Staff',             'kode' => 'RNDS',   'dept' => 'RND', 'level' => 'Staff'],
         // ── Information Technology ───────────────────────────────────────
-        ['nama' => 'IT Support',            'kode' => 'ITS',    'dept' => 'IT',  'level' => 'Staff'],
-        ['nama' => 'IT Staff',              'kode' => 'ITST',   'dept' => 'IT',  'level' => 'Staff'],
+        ['nama' => 'IT Support',            'kode' => 'ITS',    'dept' => 'ITD', 'level' => 'Staff'],
+        ['nama' => 'IT Staff',              'kode' => 'ITST',   'dept' => 'ITD', 'level' => 'Staff'],
 
     ];
 
