@@ -91,6 +91,11 @@ class User extends Authenticatable
         return $this->hasMany(KpiNotification::class);
     }
 
+    public function fcmTokens(): HasMany
+    {
+        return $this->hasMany(FcmToken::class);
+    }
+
     public function hasKpiRole(string $role): bool
     {
         return $this->hasRole($role) || $this->role === $role;
