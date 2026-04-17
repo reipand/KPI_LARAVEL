@@ -58,38 +58,40 @@ const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUppe
     <header class="app-topbar">
 
         <!-- Left: menu button + title ───────────────────────────────────── -->
-        <div class="flex min-w-0 flex-1 items-center gap-3">
+        <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <!-- Mobile hamburger -->
             <button
                 type="button"
-                class="topbar-menu-button lg:hidden"
+                class="topbar-menu-button md:hidden"
                 aria-label="Buka menu"
                 @click="$emit('open-sidebar')"
             >
-                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <path d="M4 7h16M4 12h16M4 17h16"/>
                 </svg>
             </button>
 
             <div class="min-w-0">
-                <h1 class="truncate text-[14.5px] font-semibold leading-tight text-slate-900 dark:text-slate-100">
+                <h1 class="truncate text-[13px] font-semibold leading-tight text-slate-900 sm:text-[14.5px] dark:text-slate-100">
                     {{ pageTitle }}
                 </h1>
-                <p class="truncate text-[11px] text-slate-400 dark:text-slate-500">
+                <p class="hidden truncate text-[11px] text-slate-400 sm:block dark:text-slate-500">
                     PT. BASS Training Center &amp; Consultant
                 </p>
             </div>
         </div>
 
-        <!-- Slot for extra page actions -->
-        <slot name="actions" />
+        <!-- Slot for extra page actions (collapses on tiny screens) -->
+        <div class="hidden shrink-0 sm:flex">
+            <slot name="actions" />
+        </div>
 
         <!-- Right: live dot + dark toggle + notifications + user ─────────── -->
-        <div class="flex shrink-0 items-center gap-2">
+        <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
 
-            <!-- Live indicator -->
+            <!-- Live indicator — md+ only -->
             <div
-                class="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 dark:border-slate-700 dark:bg-slate-900 sm:flex"
+                class="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 md:flex dark:border-slate-700 dark:bg-slate-900"
                 :title="isLive ? 'Realtime aktif (WebSocket)' : 'Realtime via polling'"
             >
                 <span
@@ -112,12 +114,10 @@ const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUppe
                 :title="isDark ? 'Mode terang' : 'Mode gelap'"
                 @click="toggleTheme"
             >
-                <!-- Sun -->
                 <svg v-if="isDark" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <circle cx="12" cy="12" r="4"/>
                     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
                 </svg>
-                <!-- Moon -->
                 <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/>
                 </svg>
@@ -126,16 +126,16 @@ const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUppe
             <!-- Notifications -->
             <NotificationBell />
 
-            <!-- User chip -->
-            <div class="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900 sm:flex">
-                <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-600 text-[11px] font-bold text-white">
+            <!-- User chip — sm+ only -->
+            <div class="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 sm:flex dark:border-slate-700 dark:bg-slate-900">
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-600 text-[11px] font-bold text-white">
                     {{ avatarLetter }}
                 </div>
                 <div class="min-w-0">
-                    <p class="max-w-[130px] truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                    <p class="max-w-[120px] truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
                         {{ user?.nama || '-' }}
                     </p>
-                    <p class="max-w-[130px] truncate text-[10px] text-slate-400 dark:text-slate-500">
+                    <p class="max-w-[120px] truncate text-[10px] text-slate-400 dark:text-slate-500">
                         {{ user?.jabatan || user?.role || '-' }}
                     </p>
                 </div>

@@ -11,7 +11,7 @@ class SecurityHeaders
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
-        $isLocal = app()->environment('local');
+        $isLocal = app()->environment('local', 'development');
 
         $scriptSrc = ["'self'"];
         $styleSrc = ["'self'", 'https://fonts.googleapis.com'];
@@ -27,6 +27,9 @@ class SecurityHeaders
             $styleSrc[] = "'unsafe-inline'";
             $styleSrc[] = 'http://localhost:5173';
             $styleSrc[] = 'http://127.0.0.1:5173';
+
+            $fontSrc[] = 'http://localhost:5173';
+            $fontSrc[] = 'http://127.0.0.1:5173';
 
             $connectSrc[] = 'http://localhost:5173';
             $connectSrc[] = 'http://127.0.0.1:5173';

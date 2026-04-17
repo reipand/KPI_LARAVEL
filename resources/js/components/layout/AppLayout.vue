@@ -4,7 +4,8 @@ import AppSidebar from './AppSidebar.vue';
 import AppTopbar from './AppTopbar.vue';
 
 const mobileMenuOpen = ref(false);
-const sidebarCollapsed = ref(false);
+// Collapse sidebar by default on tablet (< 1024px), expand on desktop
+const sidebarCollapsed = ref(typeof window !== 'undefined' && window.innerWidth < 1024);
 
 // Provide so nested components can read sidebar state if needed
 provide('sidebarCollapsed', sidebarCollapsed);
@@ -17,17 +18,17 @@ function toggleSidebar() {
 <template>
     <div class="flex min-h-screen overflow-hidden bg-muted/40 dark:bg-[#0a0f1e]">
 
-        <!-- ── Desktop sidebar ──────────────────────────────────────────── -->
+        <!-- ── Desktop sidebar (lg+: full, md: icon-rail) ─────────────── -->
         <aside
             :class="[
-                'app-sidebar-panel hidden lg:flex flex-col transition-[width] duration-300 ease-in-out',
+                'app-sidebar-panel hidden md:flex flex-col transition-[width] duration-300 ease-in-out',
                 sidebarCollapsed ? 'w-[64px]' : 'w-[240px]',
             ]"
         >
             <AppSidebar :collapsed="sidebarCollapsed" @toggle="toggleSidebar" />
         </aside>
 
-        <!-- ── Mobile sidebar drawer ────────────────────────────────────── -->
+        <!-- ── Mobile sidebar drawer (< md only) ────────────────────────── -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
             enter-from-class="opacity-0"
@@ -36,7 +37,7 @@ function toggleSidebar() {
             leave-from-class="opacity-100"
             leave-to-class="opacity-0"
         >
-            <div v-if="mobileMenuOpen" class="fixed inset-0 z-40 lg:hidden">
+            <div v-if="mobileMenuOpen" class="fixed inset-0 z-40 md:hidden">
                 <div class="sidebar-overlay" @click="mobileMenuOpen = false" />
                 <div class="absolute inset-y-0 left-0 z-50 flex w-[240px] flex-col">
                     <AppSidebar :collapsed="false" mobile @close="mobileMenuOpen = false" />
@@ -48,7 +49,7 @@ function toggleSidebar() {
         <div
             :class="[
                 'flex flex-1 flex-col overflow-hidden transition-[margin] duration-300 ease-in-out',
-                sidebarCollapsed ? 'lg:ml-[64px]' : 'lg:ml-[240px]',
+                sidebarCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
             ]"
         >
             <AppTopbar @open-sidebar="mobileMenuOpen = true" @toggle-sidebar="toggleSidebar">

@@ -6,7 +6,7 @@ const props = defineProps({
     title: { type: String, required: true },
     value: { type: [String, Number], required: true },
     description: { type: String, default: '' },
-    icon: { type: Object, required: true },
+    icon: { type: [Object, Function], required: true },
     tone: { type: String, default: 'default' },
     chip: { type: String, default: '' },
     // Optional: pass a numeric 0-100 to show a ring progress

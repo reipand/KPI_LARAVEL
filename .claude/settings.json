@@ -3,6 +3,7 @@
     "everything-claude-code@everything-claude-code": true,
     "superpowers@claude-plugins-official": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
-    "claude-mem@thedotmack": true
+    "claude-mem@thedotmack": true,
+    "andrej-karpathy-skills@karpathy-skills": true
   }
 }
