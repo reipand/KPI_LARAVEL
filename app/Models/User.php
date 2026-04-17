@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\FcmToken;
 use App\Services\KpiCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
