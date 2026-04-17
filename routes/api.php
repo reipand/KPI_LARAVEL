@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\KpiIndicatorController;
 use App\Http\Controllers\Api\KpiManagementController;
 use App\Http\Controllers\Api\KpiReportController;
 use App\Http\Controllers\Api\LogController;
+use App\Http\Controllers\Api\FcmTokenController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SlaController;
@@ -112,4 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    // FCM token registration
+    Route::post('/fcm/token', [FcmTokenController::class, 'store']);
+    Route::delete('/fcm/token', [FcmTokenController::class, 'destroy']);
 });
