@@ -7,6 +7,7 @@ use App\Http\Resources\KpiReportResource;
 use App\Models\ActivityLog;
 use App\Models\KpiComponent;
 use App\Models\KpiReport;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -83,16 +84,22 @@ class KpiReportController extends ApiController
 
         $data['score_label'] = KpiReport::resolveScoreLabel((float) ($data['persentase'] ?? 0));
 
-        if (($data['status'] ?? 'draft') === 'submitted') {
+        $isSubmitting = ($data['status'] ?? 'draft') === 'submitted';
+        if ($isSubmitting) {
             $data['submitted_by'] = $user->id;
             $data['submitted_at'] = now();
         }
 
         $report = KpiReport::create($data);
+        $report->load(['user', 'kpiComponent']);
+
+        if ($isSubmitting) {
+            $this->notifyHrOnSubmit($report);
+        }
 
         ActivityLog::record($user, 'create_kpi_report', 'KpiReport', $report->id, [], $request);
 
-        return $this->resource(new KpiReportResource($report->load(['user', 'kpiComponent'])), 'Laporan KPI berhasil disimpan', 201);
+        return $this->resource(new KpiReportResource($report), 'Laporan KPI berhasil disimpan', 201);
     }
 
     public function update(StoreKpiReportRequest $request, KpiReport $kpiReport): JsonResponse
@@ -115,16 +122,22 @@ class KpiReportController extends ApiController
 
         $data['score_label'] = KpiReport::resolveScoreLabel((float) ($data['persentase'] ?? $kpiReport->persentase ?? 0));
 
-        if (($data['status'] ?? $kpiReport->status) === 'submitted' && ! $kpiReport->submitted_at) {
+        $isSubmitting = ($data['status'] ?? $kpiReport->status) === 'submitted' && ! $kpiReport->submitted_at;
+        if ($isSubmitting) {
             $data['submitted_by'] = $user->id;
             $data['submitted_at'] = now();
         }
 
         $kpiReport->update($data);
+        $kpiReport->load(['user', 'kpiComponent']);
+
+        if ($isSubmitting) {
+            $this->notifyHrOnSubmit($kpiReport);
+        }
 
         ActivityLog::record($user, 'update_kpi_report', 'KpiReport', $kpiReport->id, [], $request);
 
-        return $this->resource(new KpiReportResource($kpiReport->load(['user', 'kpiComponent'])), 'Laporan KPI berhasil diperbarui');
+        return $this->resource(new KpiReportResource($kpiReport), 'Laporan KPI berhasil diperbarui');
     }
 
     public function destroy(Request $request, KpiReport $kpiReport): JsonResponse
@@ -214,5 +227,21 @@ class KpiReportController extends ApiController
             'file_evidence' => $path,
             'file_evidence_url' => $kpiReport->file_evidence_url,
         ], 'File evidence berhasil diunggah');
+    }
+
+    private function notifyHrOnSubmit(KpiReport $report): void
+    {
+        $submitterName = $report->user?->nama ?? 'Pegawai';
+        $component     = $report->kpiComponent?->objectives ?? 'KPI';
+
+        User::where('role', 'hr_manager')->get()->each(function (User $hr) use ($submitterName, $component, $report) {
+            $this->notificationService->sendNotification(
+                $hr,
+                'report_submitted',
+                'Laporan KPI Baru Menunggu Review',
+                "{$submitterName} telah mengajukan laporan KPI "{$component}". Silakan periksa dan berikan review.",
+                ['report_id' => $report->id],
+            );
+        });
     }
 }
