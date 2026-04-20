@@ -13,9 +13,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class KpiManagementController extends ApiController
 {
-    public function __construct(private readonly KpiService $kpiService)
-    {
-    }
+    public function __construct(
+        private readonly KpiService $kpiService,
+        private readonly \App\Services\NotificationService $notificationService,
+    ) {}
 
     public function dashboard(KpiDashboardRequest $request): JsonResponse
     {
