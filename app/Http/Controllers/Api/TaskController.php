@@ -15,9 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TaskController extends ApiController
 {
-    public function __construct(private readonly TaskAssignmentService $taskAssignmentService)
-    {
-    }
+    public function __construct(
+        private readonly TaskAssignmentService $taskAssignmentService,
+        private readonly \App\Services\NotificationService $notificationService,
+    ) {}
 
     public function index(Request $request)
     {

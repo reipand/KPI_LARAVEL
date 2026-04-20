@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Storage;
 
 class KpiReportController extends ApiController
 {
+    public function __construct(
+        private readonly \App\Services\NotificationService $notificationService,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -164,6 +168,16 @@ class KpiReportController extends ApiController
             $kpiReport->id,
             ['status' => $data['status'], 'review_note' => $data['review_note'] ?? null],
             $request
+        );
+
+        $this->notificationService->sendNotification(
+            $kpiReport->user,
+            $data['status'] === 'approved' ? 'report_approved' : 'report_rejected',
+            $data['status'] === 'approved' ? 'Laporan KPI Disetujui' : 'Laporan KPI Ditolak',
+            $data['status'] === 'approved'
+                ? 'Laporan KPI kamu telah disetujui oleh HR.'
+                : 'Laporan KPI kamu ditolak. Catatan: ' . ($data['review_note'] ?? '-'),
+            ['report_id' => $kpiReport->id],
         );
 
         return $this->resource(
