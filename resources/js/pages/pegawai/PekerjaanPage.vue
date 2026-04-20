@@ -480,7 +480,7 @@ function normalizeTime(value) {
                                     class="form-input"
                                     disabled
                                 />
-                                <input v-else v-model="form.tanggal" type="date" class="form-input" />
+                                <input v-else v-model="form.tanggal_selesai" type="date" class="form-input" />
                             </div>
                         </div>
                     </div>

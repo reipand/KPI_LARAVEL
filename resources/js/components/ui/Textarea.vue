@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 defineProps({
     modelValue: { type: String, default: '' },
     placeholder: String,
-    rows: { type: Number, default: 3 },
+    rows: { type: [Number, String], default: 3 },
     disabled: Boolean,
     class: { type: String, default: '' },
 });

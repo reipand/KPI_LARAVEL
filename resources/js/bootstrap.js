@@ -13,21 +13,31 @@ try {
     const token = localStorage.getItem('token') ?? '';
 
     if (appKey) {
-        window.Echo = new Echo({
+        const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1';
+        const reverbHost = import.meta.env.VITE_REVERB_HOST;
+
+        const echoOptions = {
             broadcaster,
             key: appKey,
-            cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-            wsHost: import.meta.env.VITE_REVERB_HOST ?? window.location.hostname,
-            wsPort: Number(import.meta.env.VITE_REVERB_PORT ?? 8080),
-            wssPort: Number(import.meta.env.VITE_REVERB_PORT ?? 443),
-            forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+            cluster,
             disableStats: true,
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
             auth: {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             },
-        });
+        };
+
+        // Only set custom wsHost/wsPort when using Reverb (self-hosted).
+        // For Pusher hosted, let the SDK resolve the host from the cluster.
+        if (reverbHost) {
+            echoOptions.wsHost = reverbHost;
+            echoOptions.wsPort = Number(import.meta.env.VITE_REVERB_PORT ?? 8080);
+            echoOptions.wssPort = Number(import.meta.env.VITE_REVERB_PORT ?? 443);
+            echoOptions.forceTLS = (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https';
+        }
+
+        window.Echo = new Echo(echoOptions);
     }
 } catch {
     // Echo is optional. Dashboard keeps running with polling when websocket is unavailable.

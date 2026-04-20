@@ -8,10 +8,29 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends ApiController
 {
+    #[OA\Post(
+        path: '/auth/login',
+        summary: 'Login pegawai',
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(
+            required: ['nip', 'nama'],
+            properties: [
+                new OA\Property(property: 'nip', type: 'string', example: '198001012010011001'),
+                new OA\Property(property: 'nama', type: 'string', example: 'Budi Santoso'),
+                new OA\Property(property: 'device_name', type: 'string', example: 'Chrome'),
+            ]
+        )),
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(response: 200, description: 'Login berhasil — token dikembalikan'),
+            new OA\Response(response: 422, description: 'NIP atau nama tidak valid'),
+            new OA\Response(response: 429, description: 'Terlalu banyak percobaan'),
+        ]
+    )]
     public function login(LoginRequest $request)
     {
         $key = 'api-login:'.$request->ip();
@@ -73,6 +92,9 @@ class AuthController extends ApiController
         ], 'Login berhasil.');
     }
 
+    #[OA\Post(path: '/auth/logout', summary: 'Logout', tags: ['Auth'], security: [['sanctum' => []]],
+        responses: [new OA\Response(response: 200, description: 'Logout berhasil')]
+    )]
     public function logout(Request $request)
     {
         $user = $request->user();
@@ -90,6 +112,9 @@ class AuthController extends ApiController
         return $this->success(null, 'Logout berhasil.');
     }
 
+    #[OA\Get(path: '/auth/me', summary: 'Data user yang sedang login', tags: ['Auth'], security: [['sanctum' => []]],
+        responses: [new OA\Response(response: 200, description: 'OK')]
+    )]
     public function me(Request $request)
     {
         return $this->resource(new UserResource($request->user()));

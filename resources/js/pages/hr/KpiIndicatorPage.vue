@@ -31,7 +31,7 @@ const emptyForm = () => ({
     weight: '',
     default_target_value: '',
     department_id: null,
-    role_id: null,
+    position_id: null,
     formula_type: 'percentage',
     formula_score: '',          // flat type
     thresholds: [               // threshold type
@@ -95,7 +95,7 @@ function openEdit(item) {
         weight: item.weight ?? '',
         default_target_value: item.default_target_value ?? '',
         department_id: item.department_id ?? null,
-        role_id: item.role_id ?? null,
+        position_id: item.position_id ?? null,
         formula_type: fType,
         formula_score: item.formula?.score ?? '',
         thresholds: item.formula?.thresholds
@@ -138,7 +138,7 @@ function validate() {
     if (form.weight === '' || Number(form.weight) < 0 || Number(form.weight) > 100) {
         errors.weight = 'Bobot harus antara 0 dan 100.'; valid = false;
     }
-    if (!form.department_id && !form.role_id) {
+    if (!form.department_id && !form.position_id) {
         errors.scope = 'Pilih departemen atau role.'; valid = false;
     }
     return valid;
@@ -156,7 +156,7 @@ async function submit() {
             weight: Number(form.weight),
             default_target_value: form.default_target_value !== '' ? Number(form.default_target_value) : null,
             department_id: form.department_id || null,
-            role_id: form.role_id || null,
+            position_id: form.position_id || null,
             formula: buildFormulaPayload(),
         };
 
@@ -374,10 +374,10 @@ function formulaBadgeClass(type) {
 
                         <div>
                             <label class="form-label">Role / Jabatan</label>
-                            <select v-model="form.role_id" class="form-input">
+                            <select v-model="form.position_id" class="form-input">
                                 <option :value="null">— Tidak ada —</option>
-                                <option v-for="role in store.meta.roles" :key="role.id" :value="role.id">
-                                    {{ role.name }}
+                                <option v-for="role in store.meta.positions" :key="role.id" :value="role.id">
+                                    {{ role.nama }}
                                 </option>
                             </select>
                         </div>

@@ -17,6 +17,7 @@ class KpiIndicator extends Model
         'default_target_value',
         'formula',
         'department_id',
+        'position_id',
     ];
 
     protected function casts(): array
@@ -31,6 +32,11 @@ class KpiIndicator extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class);
     }
 
     public function targets(): HasMany

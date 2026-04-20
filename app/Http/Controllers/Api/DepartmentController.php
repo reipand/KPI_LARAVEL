@@ -7,10 +7,16 @@ use App\Models\ActivityLog;
 use App\Models\Department;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
 class DepartmentController extends ApiController
 {
+    #[OA\Get(path: '/departments', summary: 'Daftar departemen', tags: ['Department'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'active_only', in: 'query', schema: new OA\Schema(type: 'boolean'))],
+        responses: [new OA\Response(response: 200, description: 'OK')]
+    )]
     public function index(Request $request): JsonResponse
     {
         $departments = Department::query()
@@ -21,6 +27,21 @@ class DepartmentController extends ApiController
         return $this->success($departments);
     }
 
+    #[OA\Post(path: '/departments', summary: 'Buat departemen baru', tags: ['Department'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(
+            required: ['nama', 'kode'],
+            properties: [
+                new OA\Property(property: 'nama', type: 'string', example: 'Keuangan'),
+                new OA\Property(property: 'kode', type: 'string', example: 'KEU'),
+                new OA\Property(property: 'is_active', type: 'boolean', example: true),
+            ]
+        )),
+        responses: [
+            new OA\Response(response: 201, description: 'Departemen berhasil dibuat'),
+            new OA\Response(response: 422, description: 'Validasi gagal'),
+        ]
+    )]
     public function store(StoreDepartmentRequest $request): JsonResponse
     {
         $department = Department::create($request->validated());
@@ -30,6 +51,16 @@ class DepartmentController extends ApiController
         return $this->success($department, 'Departemen berhasil dibuat', Response::HTTP_CREATED);
     }
 
+    #[OA\Put(path: '/departments/{id}', summary: 'Update departemen', tags: ['Department'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'nama', type: 'string'),
+            new OA\Property(property: 'kode', type: 'string'),
+            new OA\Property(property: 'is_active', type: 'boolean'),
+        ])),
+        responses: [new OA\Response(response: 200, description: 'OK')]
+    )]
     public function update(StoreDepartmentRequest $request, Department $department): JsonResponse
     {
         $department->update($request->validated());
@@ -39,6 +70,14 @@ class DepartmentController extends ApiController
         return $this->success($department->fresh(), 'Departemen berhasil diperbarui');
     }
 
+    #[OA\Delete(path: '/departments/{id}', summary: 'Hapus departemen', tags: ['Department'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 200, description: 'OK'),
+            new OA\Response(response: 409, description: 'Masih ada data terkait'),
+        ]
+    )]
     public function destroy(Request $request, Department $department): JsonResponse
     {
         $nama = $department->nama;

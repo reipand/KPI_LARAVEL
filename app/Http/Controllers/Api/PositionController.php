@@ -4,10 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Position;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
 class PositionController extends ApiController
 {
+    #[OA\Get(path: '/positions', summary: 'Daftar jabatan', tags: ['Position'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'active_only', in: 'query', schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'department_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'OK')]
+    )]
     public function index(Request $request)
     {
         $positions = Position::query()
@@ -20,6 +29,20 @@ class PositionController extends ApiController
         return $this->success($positions);
     }
 
+    #[OA\Post(path: '/positions', summary: 'Buat jabatan baru', tags: ['Position'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(
+            required: ['nama', 'department_id'],
+            properties: [
+                new OA\Property(property: 'nama', type: 'string', example: 'Staff Keuangan'),
+                new OA\Property(property: 'kode', type: 'string', example: 'STF-KEU'),
+                new OA\Property(property: 'department_id', type: 'integer', example: 1),
+                new OA\Property(property: 'level', type: 'string', example: 'Staff'),
+                new OA\Property(property: 'is_active', type: 'boolean', example: true),
+            ]
+        )),
+        responses: [new OA\Response(response: 201, description: 'Jabatan berhasil dibuat')]
+    )]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -45,6 +68,18 @@ class PositionController extends ApiController
         );
     }
 
+    #[OA\Put(path: '/positions/{id}', summary: 'Update jabatan', tags: ['Position'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'nama', type: 'string'),
+            new OA\Property(property: 'kode', type: 'string'),
+            new OA\Property(property: 'department_id', type: 'integer'),
+            new OA\Property(property: 'level', type: 'string'),
+            new OA\Property(property: 'is_active', type: 'boolean'),
+        ])),
+        responses: [new OA\Response(response: 200, description: 'OK')]
+    )]
     public function update(Request $request, Position $position)
     {
         $data = $request->validate([
@@ -63,9 +98,13 @@ class PositionController extends ApiController
         );
     }
 
+    #[OA\Delete(path: '/positions/{id}', summary: 'Hapus jabatan', tags: ['Position'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [new OA\Response(response: 200, description: 'OK')]
+    )]
     public function destroy(Position $position)
     {
-        // Prevent deletion if employees or KPI components are linked
         if ($position->users()->exists()) {
             return $this->error('Jabatan tidak dapat dihapus karena masih digunakan oleh pegawai.', [], Response::HTTP_UNPROCESSABLE_ENTITY);
         }

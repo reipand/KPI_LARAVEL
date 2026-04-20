@@ -7,8 +7,34 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
+#[OA\Info(
+    title: 'KPI Laravel API',
+    version: '1.0.0',
+    description: 'API untuk sistem manajemen KPI karyawan',
+    contact: new OA\Contact(email: 'admin@example.com')
+)]
+#[OA\Server(url: '/api', description: 'API Server')]
+#[OA\SecurityScheme(
+    securityScheme: 'sanctum',
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+    description: 'Masukkan token dari endpoint /auth/login'
+)]
+#[OA\Tag(name: 'Auth', description: 'Autentikasi')]
+#[OA\Tag(name: 'Department', description: 'Manajemen Departemen')]
+#[OA\Tag(name: 'Position', description: 'Manajemen Jabatan')]
+#[OA\Tag(name: 'Employee', description: 'Manajemen Pegawai')]
+#[OA\Tag(name: 'KPI Indicator', description: 'Indikator KPI')]
+#[OA\Tag(name: 'KPI Component', description: 'Komponen KPI')]
+#[OA\Tag(name: 'KPI Management', description: 'Input & Manajemen KPI')]
+#[OA\Tag(name: 'KPI Report', description: 'Laporan KPI')]
+#[OA\Tag(name: 'Task', description: 'Penugasan & Pekerjaan')]
+#[OA\Tag(name: 'Notification', description: 'Notifikasi')]
+#[OA\Tag(name: 'Analytics', description: 'Analitik & Statistik')]
 class ApiController extends Controller
 {
     protected function success(mixed $data = null, string $message = 'Berhasil', int $status = Response::HTTP_OK): JsonResponse
