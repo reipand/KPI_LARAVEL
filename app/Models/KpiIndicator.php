@@ -50,7 +50,7 @@ class KpiIndicator extends Model
     }
 
     /** Human-readable formula type label. */
-    public function getFormulaTtypeLabel(): string
+    public function getFormulaTypeLabel(): string
     {
         return match ($this->formula['type'] ?? 'percentage') {
             'conditional'  => 'Kondisional',
@@ -59,5 +59,11 @@ class KpiIndicator extends Model
             'flat'         => 'Tetap',
             default        => 'Persentase',
         };
+    }
+
+    /** @deprecated Use getFormulaTypeLabel(). */
+    public function getFormulaTtypeLabel(): string
+    {
+        return $this->getFormulaTypeLabel();
     }
 }

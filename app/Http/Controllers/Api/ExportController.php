@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\KpiDashboardRequest;
+use App\Models\Department;
 use App\Models\KpiReport;
 use App\Models\User;
 use App\Services\KpiCalculatorService;
@@ -33,7 +34,7 @@ class ExportController extends ApiController
             ->where('user_id', $user->id)
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
-            ->with('kpiComponent')
+            ->with('kpiIndicator')
             ->get();
 
         $bulanLabel = \DateTime::createFromFormat('!m', $bulan)->format('F');
@@ -90,8 +91,14 @@ class ExportController extends ApiController
     {
         $bulan = (int) $request->input('bulan', now()->month);
         $tahun = (int) $request->input('tahun', now()->year);
+        $departmentId = $request->input('department_id');
 
-        $ranking = $this->kpiCalculator->ranking($bulan, $tahun);
+        $ranking = $this->kpiCalculator
+            ->ranking($bulan, $tahun)
+            ->when($departmentId, fn ($items) => $items->filter(
+                fn ($item) => (string) $item['user']->department_id === (string) $departmentId
+            ))
+            ->values();
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -128,6 +135,144 @@ class ExportController extends ApiController
     }
 
     /**
+     * Export Analytics KPI dashboard summary to PDF.
+     */
+    public function analyticsPdf(Request $request): Response
+    {
+        $tahun = (int) $request->input('tahun', now()->year);
+        $bulan = $request->integer('bulan') ?: null;
+        $departmentId = $request->input('department_id');
+        $department = $departmentId ? Department::find($departmentId) : null;
+        $months = range(1, 12);
+
+        $monthlyReports = KpiReport::query()
+            ->whereYear('tanggal', $tahun)
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
+            ->selectRaw('MONTH(tanggal) as bulan, AVG(persentase) as avg_persentase, COUNT(*) as jumlah')
+            ->groupBy('bulan')
+            ->orderBy('bulan')
+            ->get()
+            ->keyBy('bulan');
+
+        $monthlyTrend = collect($months)->map(function (int $month) use ($monthlyReports) {
+            $row = $monthlyReports->get($month);
+
+            return [
+                'month' => date('M', mktime(0, 0, 0, $month, 1)),
+                'avg_percentage' => $row ? round((float) $row->avg_persentase, 1) : null,
+                'total_reports' => $row ? (int) $row->jumlah : 0,
+            ];
+        });
+
+        $reportStats = KpiReport::query()
+            ->whereYear('tanggal', $tahun)
+            ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
+            ->selectRaw('AVG(persentase) as avg_persen, COUNT(*) as total_reports,
+                SUM(CASE WHEN score_label = "excellent" THEN 1 ELSE 0 END) as excellent,
+                SUM(CASE WHEN score_label = "good" THEN 1 ELSE 0 END) as good,
+                SUM(CASE WHEN score_label = "average" THEN 1 ELSE 0 END) as average_count,
+                SUM(CASE WHEN score_label = "bad" THEN 1 ELSE 0 END) as bad')
+            ->first();
+
+        $reportData = KpiReport::query()
+            ->whereYear('tanggal', $tahun)
+            ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
+            ->selectRaw('user_id, AVG(persentase) as avg_persen')
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        $departments = Department::query()
+            ->where('is_active', true)
+            ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
+            ->with('users:id,nama,department_id,role')
+            ->orderBy('nama')
+            ->get();
+
+        $departmentRows = $departments->map(function (Department $department) use ($reportData, $bulan, $tahun) {
+            $pegawai = $department->users->where('role', 'pegawai');
+            $percentages = $pegawai
+                ->map(fn (User $user) => $reportData->has($user->id) ? (float) $reportData[$user->id]->avg_persen : null)
+                ->filter(fn ($score) => $score !== null);
+
+            $taskScores = $pegawai
+                ->map(fn (User $user) => $this->kpiCalculator->calculateForUser($user, $bulan, $tahun)['total'])
+                ->filter(fn ($score) => $score > 0);
+
+            return [
+                'name' => $department->nama,
+                'employee_count' => $pegawai->count(),
+                'avg_percentage' => $percentages->isNotEmpty() ? round($percentages->average(), 1) : null,
+                'avg_task_score' => $taskScores->isNotEmpty() ? round($taskScores->average(), 2) : null,
+            ];
+        });
+
+        $reportDistribution = [
+            'Excellent (>100%)' => (int) ($reportStats->excellent ?? 0),
+            'Good (80-100%)' => (int) ($reportStats->good ?? 0),
+            'Average (50-80%)' => (int) ($reportStats->average_count ?? 0),
+            'Bad (<50%)' => (int) ($reportStats->bad ?? 0),
+        ];
+
+        $taskDistribution = ['Baik Sekali' => 0, 'Baik' => 0, 'Cukup' => 0, 'Kurang' => 0, 'Buruk' => 0];
+        User::query()
+            ->where('role', 'pegawai')
+            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
+            ->get()
+            ->each(function (User $user) use (&$taskDistribution, $bulan, $tahun) {
+                $predikat = $this->kpiCalculator->calculateForUser($user, $bulan, $tahun)['predikat'];
+
+                if (isset($taskDistribution[$predikat])) {
+                    $taskDistribution[$predikat]++;
+                }
+            });
+
+        $topReports = KpiReport::query()
+            ->whereYear('tanggal', $tahun)
+            ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
+            ->with(['user.department', 'kpiIndicator'])
+            ->orderByDesc('persentase')
+            ->limit(10)
+            ->get();
+
+        $pdf = Pdf::loadView('exports.analytics_kpi_report', [
+            'company' => config('kpi.company_name'),
+            'tahun' => $tahun,
+            'bulan' => $bulan,
+            'periodLabel' => $bulan
+                ? \DateTime::createFromFormat('!m', $bulan)->format('F') . " {$tahun}"
+                : "Tahun {$tahun}",
+            'departmentLabel' => $department?->nama ?? ($departmentId ? "Departemen #{$departmentId}" : 'Semua Departemen'),
+            'generatedAt' => now(),
+            'summary' => [
+                'total_employees' => User::query()
+                    ->where('role', 'pegawai')
+                    ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
+                    ->count(),
+                'total_departments' => Department::query()
+                    ->where('is_active', true)
+                    ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
+                    ->count(),
+                'total_reports' => (int) ($reportStats->total_reports ?? 0),
+                'avg_achievement' => round((float) ($reportStats->avg_persen ?? 0), 1),
+            ],
+            'monthlyTrend' => $monthlyTrend,
+            'departmentRows' => $departmentRows,
+            'reportDistribution' => $reportDistribution,
+            'taskDistribution' => $taskDistribution,
+            'topReports' => $topReports,
+        ]);
+
+        $monthSuffix = $bulan ? '_' . str_pad((string) $bulan, 2, '0', STR_PAD_LEFT) : '';
+        $departmentSuffix = $departmentId ? "_Dept_{$departmentId}" : '';
+
+        return $pdf->download("Analytics_KPI_{$tahun}{$monthSuffix}{$departmentSuffix}.pdf");
+    }
+
+    /**
      * Export KPI reports to CSV.
      */
     public function reportsCsv(Request $request): Response
@@ -140,7 +285,7 @@ class ExportController extends ApiController
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
-            ->with(['user.department', 'kpiComponent'])
+            ->with(['user.department', 'kpiIndicator'])
             ->orderByDesc('persentase')
             ->get();
 
@@ -153,14 +298,14 @@ class ExportController extends ApiController
             $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, ['NIP', 'Nama', 'Departemen', 'Komponen KPI', 'Target', 'Aktual', 'Persentase (%)', 'Predikat', 'Tanggal', 'Status']);
+            fputcsv($handle, ['NIP', 'Nama', 'Departemen', 'Indikator KPI', 'Target', 'Aktual', 'Persentase (%)', 'Predikat', 'Tanggal', 'Status']);
 
             foreach ($reports as $r) {
                 fputcsv($handle, [
                     $r->user?->nip ?? '-',
                     $r->user?->nama ?? '-',
                     $r->user?->department?->nama ?? '-',
-                    $r->kpiComponent?->objectives ?? '-',
+                    $r->kpiIndicator?->name ?? '-',
                     $r->nilai_target ?? '-',
                     $r->nilai_aktual ?? '-',
                     $r->persentase ?? '-',

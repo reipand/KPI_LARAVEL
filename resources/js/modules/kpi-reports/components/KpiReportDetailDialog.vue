@@ -37,7 +37,7 @@ const pct = computed(() => {
                         </span>
                     </div>
                     <h3 class="mt-2 text-lg font-bold leading-snug text-slate-900">
-                        {{ report.kpi_component?.objectives || '-' }}
+                        {{ report.kpi_indicator?.name || '-' }}
                     </h3>
                     <div v-if="showEmployee" class="mt-1 text-sm font-medium text-slate-700">{{ report.user?.nama }}</div>
                     <p class="mt-1 text-xs text-slate-400">

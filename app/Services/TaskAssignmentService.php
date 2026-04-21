@@ -147,7 +147,7 @@ class TaskAssignmentService
             'jenis_pekerjaan' => $payload['jenis_pekerjaan'] ?? 'Task KPI',
             'status' => Task::statusForStorage($payload['status']),
             'deskripsi' => $payload['deskripsi'] ?? $payload['description'] ?? null,
-            'kpi_component_id' => $payload['kpi_component_id'] ?? null,
+            'kpi_indicator_id' => $payload['kpi_indicator_id'] ?? null,
             'weight' => round((float) $payload['weight'], 2),
             'target_value' => array_key_exists('target_value', $payload) ? round((float) $payload['target_value'], 2) : null,
             'actual_value' => array_key_exists('actual_value', $payload) ? round((float) $payload['actual_value'], 2) : null,

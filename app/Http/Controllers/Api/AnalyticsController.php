@@ -89,8 +89,12 @@ class AnalyticsController extends ApiController
     {
         $tahun = (int) $request->input('tahun', now()->year);
         $bulan = $request->input('bulan');
+        $departmentId = $request->input('department_id');
 
-        $departments = Department::where('is_active', true)->get();
+        $departments = Department::query()
+            ->where('is_active', true)
+            ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
+            ->get();
 
         $labels = $departments->pluck('nama')->values()->all();
 
@@ -98,6 +102,7 @@ class AnalyticsController extends ApiController
         $reportData = KpiReport::query()
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
             ->with('user:id,department_id')
             ->selectRaw('kpi_reports.user_id, AVG(persentase) as avg_persen')
             ->groupBy('kpi_reports.user_id')
@@ -112,7 +117,11 @@ class AnalyticsController extends ApiController
         })->values()->all();
 
         // Task-based KPI scores
-        $users = User::where('role', 'pegawai')->get()->groupBy('department_id');
+        $users = User::query()
+            ->where('role', 'pegawai')
+            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
+            ->get()
+            ->groupBy('department_id');
 
         $avgTaskScores = $departments->map(function ($department) use ($users, $tahun, $bulan) {
             $deptUsers = $users->get($department->id, collect());
@@ -144,6 +153,7 @@ class AnalyticsController extends ApiController
             ],
             'tahun' => $tahun,
             'bulan' => $bulan,
+            'department_id' => $departmentId,
         ], 'Data per departemen berhasil dimuat');
     }
 
@@ -207,13 +217,19 @@ class AnalyticsController extends ApiController
     public function overview(Request $request): JsonResponse
     {
         $tahun = (int) $request->input('tahun', now()->year);
-        $bulan = (int) $request->input('bulan', now()->month);
+        $bulan = $request->integer('bulan') ?: null;
 
-        $totalEmployees = User::where('role', 'pegawai')->count();
+        $departmentId = $request->input('department_id');
+
+        $totalEmployees = User::query()
+            ->where('role', 'pegawai')
+            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
+            ->count();
 
         $reportStats = KpiReport::query()
             ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bulan)
+            ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
+            ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
             ->selectRaw('AVG(persentase) as avg_persen, COUNT(*) as total_reports,
                 SUM(CASE WHEN score_label = "excellent" THEN 1 ELSE 0 END) as excellent,
                 SUM(CASE WHEN score_label = "good" THEN 1 ELSE 0 END) as good,
@@ -221,7 +237,10 @@ class AnalyticsController extends ApiController
                 SUM(CASE WHEN score_label = "bad" THEN 1 ELSE 0 END) as bad')
             ->first();
 
-        $totalDepartments = Department::where('is_active', true)->count();
+        $totalDepartments = Department::query()
+            ->where('is_active', true)
+            ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
+            ->count();
 
         return $this->success([
             'total_employees' => $totalEmployees,
@@ -234,6 +253,7 @@ class AnalyticsController extends ApiController
             'bad_count' => (int) ($reportStats->bad ?? 0),
             'bulan' => $bulan,
             'tahun' => $tahun,
+            'department_id' => $departmentId,
         ], 'Ringkasan analytics berhasil dimuat');
     }
 }

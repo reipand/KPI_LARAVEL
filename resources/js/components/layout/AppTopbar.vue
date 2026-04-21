@@ -43,7 +43,6 @@ const pageMap = {
     '/hr/analytics': 'Analytics KPI',
     '/hr/laporan-review': 'Tinjau Laporan KPI',
     '/hr/kpi-pegawai': 'Detail KPI Pegawai',
-    '/hr/logs': 'Log Aktivitas',
     '/direktur/dashboard': 'Executive Dashboard',
     '/direktur/analytics': 'Analytics',
     '/direktur/ranking': 'Ranking KPI Pegawai',

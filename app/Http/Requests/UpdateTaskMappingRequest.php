@@ -12,7 +12,7 @@ class UpdateTaskMappingRequest extends SanitizedFormRequest
     public function rules(): array
     {
         return [
-            'kpi_component_id' => ['required', 'exists:kpi_components,id'],
+            'kpi_indicator_id' => ['nullable', 'exists:kpi_indicators,id]'],
             'manual_score' => ['nullable', 'numeric', 'min:0', 'max:5'],
         ];
     }

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAnalyticsStore } from '@/stores/analytics';
 import { useAuthStore } from '@/stores/auth';
+import { useDepartmentStore } from '@/stores/department';
 import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import LineChart from '@/components/charts/LineChart.vue';
@@ -12,16 +13,64 @@ import { downloadFile } from '@/services/api';
 
 const store = useAnalyticsStore();
 const authStore = useAuthStore();
+const departmentStore = useDepartmentStore();
 
 const yearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+const monthOptions = [
+    { value: '', label: 'Semua Bulan' },
+    { value: 1, label: 'Januari' },
+    { value: 2, label: 'Februari' },
+    { value: 3, label: 'Maret' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'Mei' },
+    { value: 6, label: 'Juni' },
+    { value: 7, label: 'Juli' },
+    { value: 8, label: 'Agustus' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'Oktober' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'Desember' },
+];
 const selectedYear = ref(new Date().getFullYear());
+const selectedMonth = ref('');
+const selectedDepartmentId = ref('');
+
+const selectedMonthLabel = computed(() =>
+    monthOptions.find((month) => month.value === selectedMonth.value)?.label ?? 'Semua Bulan'
+);
+
+const selectedDepartmentName = computed(() => {
+    if (!selectedDepartmentId.value) return 'Semua Departemen';
+
+    return departmentStore.findById(Number(selectedDepartmentId.value))?.nama ?? 'Departemen Terpilih';
+});
+
+const exportParams = computed(() => ({
+    tahun: selectedYear.value,
+    bulan: selectedMonth.value || undefined,
+    department_id: selectedDepartmentId.value || undefined,
+}));
+
+const exportSuffix = computed(() => {
+    const month = selectedMonth.value ? `-${String(selectedMonth.value).padStart(2, '0')}` : '';
+    const department = selectedDepartmentId.value ? `-dept-${selectedDepartmentId.value}` : '';
+
+    return `${selectedYear.value}${month}${department}`;
+});
 
 async function applyFilter() {
     store.setFilter('tahun', selectedYear.value);
+    store.setFilter('bulan', selectedMonth.value || null);
+    store.setFilter('department_id', selectedDepartmentId.value || null);
     await store.fetchAll();
 }
 
-onMounted(() => applyFilter());
+onMounted(async () => {
+    await Promise.all([
+        departmentStore.fetchDepartments(),
+        applyFilter(),
+    ]);
+});
 const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(applyFilter, { interval: 30_000 });
 
 // ── Chart data — all computed so they react to store changes ─────────────────
@@ -127,15 +176,22 @@ onUnmounted(unbindRealtimeRefresh);
 
 async function exportKpiCsv() {
     await downloadFile('/export/reports/csv', {
-        params: { tahun: selectedYear.value },
-        fallbackFilename: `laporan-kpi-${selectedYear.value}.csv`,
+        params: exportParams.value,
+        fallbackFilename: `laporan-kpi-${exportSuffix.value}.csv`,
     });
 }
 
 async function exportRankingCsv() {
     await downloadFile('/export/ranking/csv', {
-        params: { tahun: selectedYear.value },
-        fallbackFilename: `ranking-kpi-${selectedYear.value}.csv`,
+        params: exportParams.value,
+        fallbackFilename: `ranking-kpi-${exportSuffix.value}.csv`,
+    });
+}
+
+async function exportAnalyticsPdf() {
+    await downloadFile('/export/analytics/pdf', {
+        params: exportParams.value,
+        fallbackFilename: `analytics-kpi-${exportSuffix.value}.pdf`,
     });
 }
 </script>
@@ -159,7 +215,7 @@ async function exportRankingCsv() {
                         <span v-if="lastUpdated" class="text-[11px] text-white/45">Diperbarui {{ formatTime(lastUpdated) }}</span>
                     </div>
                 </div>
-                <div class="flex shrink-0 items-center gap-2">
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
                     <button
                         class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20"
                         :class="{ 'animate-spin': isRefreshing }"
@@ -171,11 +227,28 @@ async function exportRankingCsv() {
                         </svg>
                     </button>
                     <select
-                        v-model="selectedYear"
+                        v-model.number="selectedYear"
                         class="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
                         @change="applyFilter"
                     >
                         <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+                    </select>
+                    <select
+                        v-model="selectedMonth"
+                        class="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                        @change="applyFilter"
+                    >
+                        <option v-for="month in monthOptions" :key="month.value || 'all'" :value="month.value">{{ month.label }}</option>
+                    </select>
+                    <select
+                        v-model="selectedDepartmentId"
+                        class="min-w-44 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                        @change="applyFilter"
+                    >
+                        <option value="">Semua Departemen</option>
+                        <option v-for="department in departmentStore.departments" :key="department.id" :value="department.id">
+                            {{ department.nama }}
+                        </option>
                     </select>
                 </div>
             </div>
@@ -219,7 +292,7 @@ async function exportRankingCsv() {
             <div class="dashboard-panel overflow-hidden lg:col-span-2">
                 <div class="border-b border-slate-200 px-6 py-4">
                     <p class="section-heading">Tren Bulanan</p>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Achievement Rate {{ selectedYear }}</h3>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Achievement Rate {{ selectedYear }} - {{ selectedDepartmentName }}</h3>
                 </div>
                 <div class="p-6">
                     <div v-if="store.isLoadingTrend" class="flex h-64 items-center justify-center text-sm text-slate-400">
@@ -245,7 +318,7 @@ async function exportRankingCsv() {
             <div class="dashboard-panel overflow-hidden">
                 <div class="border-b border-slate-200 px-6 py-4">
                     <p class="section-heading">Distribusi Laporan KPI</p>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Sebaran Pencapaian</h3>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Sebaran Pencapaian {{ selectedMonthLabel }}</h3>
                 </div>
                 <div class="p-6">
                     <div v-if="store.isLoadingDistribution" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
@@ -290,7 +363,7 @@ async function exportRankingCsv() {
             <div class="dashboard-panel overflow-hidden">
                 <div class="border-b border-slate-200 px-6 py-4">
                     <p class="section-heading">Distribusi Skor KPI</p>
-                    <h3 class="mt-1 text-lg font-bold text-slate-900">Predikat Pegawai</h3>
+                    <h3 class="mt-1 text-lg font-bold text-slate-900">Predikat Pegawai {{ selectedMonthLabel }}</h3>
                 </div>
                 <div class="p-6">
                     <div v-if="store.isLoadingDistribution" class="flex h-64 items-center justify-center text-sm text-slate-400">Memuat...</div>
@@ -316,6 +389,13 @@ async function exportRankingCsv() {
                 <h3 class="mt-1 text-lg font-bold text-slate-900">Unduh Laporan</h3>
             </div>
             <div class="flex flex-wrap gap-3 p-6">
+                <button class="btn-primary" @click="exportAnalyticsPdf">
+                    <svg class="mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>
+                    </svg>
+                    Export Analytics KPI (PDF)
+                </button>
                 <button class="btn-secondary" @click="exportKpiCsv">
                     <svg class="mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                         <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/>

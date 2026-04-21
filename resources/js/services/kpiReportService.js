@@ -46,8 +46,8 @@ export const kpiReportService = {
         return data.data;
     },
 
-    async listComponents() {
-        const { data } = await api.get('/kpi-components', {
+    async listIndicators() {
+        const { data } = await api.get('/kpi-indicators', {
             params: { per_page: 100 },
         });
 

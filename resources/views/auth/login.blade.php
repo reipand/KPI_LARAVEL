@@ -93,7 +93,7 @@
                     <p class="mt-1 leading-6">Jika gagal login, cek kembali kecocokan NIP dan nama pegawai pada data master HR.</p>
                 </div>
 
-                <p class="mt-6 text-center text-xs text-slate-400">Copyright 2026 PT. BASS Training Center &amp; Consultant</p>
+                <p class="mt-6 text-center text-xs text-slate-400">&copy; {{ now()->year }} BASS Training.</p>
             </div>
         </section>
     </div>

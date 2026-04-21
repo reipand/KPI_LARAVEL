@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\PositionController;
 use App\Http\Controllers\Api\ExportController;
-use App\Http\Controllers\Api\KpiComponentController;
 use App\Http\Controllers\Api\KpiController;
 use App\Http\Controllers\Api\KpiIndicatorController;
 use App\Http\Controllers\Api\KpiManagementController;
@@ -51,10 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kpi/input', [KpiManagementController::class, 'input'])->middleware('role:hr_manager,direktur');
     Route::get('/kpi/{user}', [KpiController::class, 'show'])->middleware('role:hr_manager,direktur');
 
-    Route::get('/kpi-components', [KpiComponentController::class, 'index']);
-    Route::post('/kpi-components', [KpiComponentController::class, 'store'])->middleware('role:hr_manager,direktur');
-    Route::put('/kpi-components/{kpiComponent}', [KpiComponentController::class, 'update'])->middleware('role:hr_manager,direktur');
-    Route::delete('/kpi-components/{kpiComponent}', [KpiComponentController::class, 'destroy'])->middleware('role:hr_manager,direktur');
 
     Route::get('/sla', [SlaController::class, 'index']);
     Route::post('/sla', [SlaController::class, 'store'])->middleware('role:hr_manager');
@@ -63,8 +58,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/settings', [SettingController::class, 'index']);
     Route::put('/settings', [SettingController::class, 'update'])->middleware('role:hr_manager,direktur');
-
-    Route::get('/logs', [LogController::class, 'index'])->middleware('role:hr_manager,direktur');
 
     // Reference data
     Route::get('/departments', [DepartmentController::class, 'index']);
@@ -105,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('export')->middleware('role:hr_manager,direktur')->group(function () {
         Route::get('/kpi/{user}/pdf', [ExportController::class, 'kpiPdf']);
         Route::get('/kpi', [ExportController::class, 'export']);
+        Route::get('/analytics/pdf', [ExportController::class, 'analyticsPdf']);
         Route::get('/ranking/csv', [ExportController::class, 'rankingCsv']);
         Route::get('/reports/csv', [ExportController::class, 'reportsCsv']);
     });

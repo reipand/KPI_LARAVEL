@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\StoreKpiReportRequest;
 use App\Http\Resources\KpiReportResource;
 use App\Models\ActivityLog;
-use App\Models\KpiComponent;
+use App\Models\KpiIndicator;
 use App\Models\KpiReport;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -23,10 +23,10 @@ class KpiReportController extends ApiController
         $user = $request->user();
         $search = trim((string) $request->input('search', ''));
 
-        $query = KpiReport::with(['user', 'kpiComponent'])
+        $query = KpiReport::with(['user', 'kpiIndicator'])
             ->when(! $user->canManageAllData(), fn ($q) => $q->where('user_id', $user->id))
             ->when($request->filled('user_id') && $user->canManageAllData(), fn ($q) => $q->where('user_id', $request->user_id))
-            ->when($request->filled('kpi_component_id'), fn ($q) => $q->where('kpi_component_id', $request->kpi_component_id))
+            ->when($request->filled('kpi_indicator_id'), fn ($q) => $q->where('kpi_indicator_id', $request->kpi_indicator_id))
             ->when($request->filled('bulan'), fn ($q) => $q->whereMonth('tanggal', $request->bulan))
             ->when($request->filled('tahun'), fn ($q) => $q->whereYear('tanggal', $request->tahun))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
@@ -36,7 +36,7 @@ class KpiReportController extends ApiController
                         ->where('period_label', 'like', "%{$search}%")
                         ->orWhere('catatan', 'like', "%{$search}%")
                         ->orWhere('review_note', 'like', "%{$search}%")
-                        ->orWhereHas('kpiComponent', fn ($componentQuery) => $componentQuery->where('objectives', 'like', "%{$search}%"));
+                        ->orWhereHas('kpiIndicator', fn ($indicatorQuery) => $indicatorQuery->where('name', 'like', "%{$search}%"));
 
                     if ($user->canManageAllData()) {
                         $subQuery->orWhereHas('user', function ($userQuery) use ($search) {
@@ -72,8 +72,8 @@ class KpiReportController extends ApiController
         }
 
         // Compute percentage from component target if not provided
-        $component = KpiComponent::find($data['kpi_component_id']);
-        $nilaiTarget = $data['nilai_target'] ?? ($component?->target ?? null);
+        $component = KpiIndicator::find($data["kpi_indicator_id"]);
+        $nilaiTarget = $data['nilai_target'] ?? ($component?->default_target_value ?? null);
         $data['nilai_target'] = $nilaiTarget;
 
         if ($nilaiTarget && $nilaiTarget > 0) {
@@ -91,7 +91,7 @@ class KpiReportController extends ApiController
         }
 
         $report = KpiReport::create($data);
-        $report->load(['user', 'kpiComponent']);
+        $report->load(['user', 'kpiIndicator']);
 
         if ($isSubmitting) {
             $this->notifyHrOnSubmit($report);
@@ -129,7 +129,7 @@ class KpiReportController extends ApiController
         }
 
         $kpiReport->update($data);
-        $kpiReport->load(['user', 'kpiComponent']);
+        $kpiReport->load(['user', 'kpiIndicator']);
 
         if ($isSubmitting) {
             $this->notifyHrOnSubmit($kpiReport);
@@ -194,7 +194,7 @@ class KpiReportController extends ApiController
         );
 
         return $this->resource(
-            new KpiReportResource($kpiReport->load(['user', 'kpiComponent'])),
+            new KpiReportResource($kpiReport->load(['user', 'kpiIndicator'])),
             $data['status'] === 'approved' ? 'Laporan disetujui.' : 'Laporan ditolak.'
         );
     }
@@ -232,7 +232,7 @@ class KpiReportController extends ApiController
     private function notifyHrOnSubmit(KpiReport $report): void
     {
         $submitterName = $report->user?->nama ?? 'Pegawai';
-        $component     = $report->kpiComponent?->objectives ?? 'KPI';
+        $component     = $report->kpiIndicator?->name ?? 'KPI';
 
         User::where('role', 'hr_manager')->get()->each(function (User $hr) use ($submitterName, $component, $report) {
             $this->notificationService->sendNotification(

@@ -110,7 +110,7 @@ class ExportCsvTest extends TestCase
         $response->assertHeader('content-disposition', 'attachment; filename="Laporan_KPI_4_2026.csv"');
         $content = $response->streamedContent();
 
-        $this->assertStringContainsString('NIP,Nama,Departemen,"Komponen KPI",Target,Aktual,"Persentase (%)",Predikat,Tanggal,Status', $content);
+        $this->assertStringContainsString('NIP,Nama,Departemen,"Indikator KPI",Target,Aktual,"Persentase (%)",Predikat,Tanggal,Status', $content);
         $this->assertStringContainsString('PG-002', $content);
         $this->assertStringContainsString('Good (80-100%)', $content);
     }

@@ -16,13 +16,18 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     const filters = reactive({
         tahun: new Date().getFullYear(),
         bulan: null,
+        department_id: null,
     });
 
     async function fetchTrend(params = {}) {
         isLoadingTrend.value = true;
         try {
             const { data: resp } = await api.get('/analytics/trend', {
-                params: { tahun: filters.tahun, ...params },
+                params: {
+                    tahun: filters.tahun,
+                    department_id: filters.department_id || undefined,
+                    ...params,
+                },
             });
             trend.value = resp.data;
         } finally {
@@ -34,7 +39,12 @@ export const useAnalyticsStore = defineStore('analytics', () => {
         isLoadingDepartment.value = true;
         try {
             const { data: resp } = await api.get('/analytics/per-department', {
-                params: { tahun: filters.tahun, bulan: filters.bulan || undefined, ...params },
+                params: {
+                    tahun: filters.tahun,
+                    bulan: filters.bulan || undefined,
+                    department_id: filters.department_id || undefined,
+                    ...params,
+                },
             });
             perDepartment.value = resp.data;
         } finally {
@@ -49,6 +59,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
                 params: {
                     tahun: filters.tahun,
                     bulan: filters.bulan || undefined,
+                    department_id: filters.department_id || undefined,
                     ...params,
                 },
             });
@@ -64,7 +75,8 @@ export const useAnalyticsStore = defineStore('analytics', () => {
             const { data: resp } = await api.get('/analytics/overview', {
                 params: {
                     tahun: filters.tahun,
-                    bulan: filters.bulan || new Date().getMonth() + 1,
+                    bulan: filters.bulan || undefined,
+                    department_id: filters.department_id || undefined,
                     ...params,
                 },
             });

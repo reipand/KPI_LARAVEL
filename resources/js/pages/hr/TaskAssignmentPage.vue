@@ -10,11 +10,11 @@ import { ClipboardList, CheckCircle2, Clock, Users } from 'lucide-vue-next';
 import { useToast } from '@/composables/useToast';
 import { useTaskAssignmentStore } from '@/stores/taskAssignment';
 import { useEmployeeStore } from '@/stores/employee';
-import { useKpiComponentStore } from '@/stores/kpiComponent';
+import { useKpiIndicatorStore } from '@/stores/kpiIndicator';
 
 const store = useTaskAssignmentStore();
 const empStore = useEmployeeStore();
-const kpiComponentStore = useKpiComponentStore();
+const kpiIndicatorStore = useKpiIndicatorStore();
 const toast = useToast();
 
 const showForm = ref(false);
@@ -31,7 +31,7 @@ const emptyForm = () => ({
     start_date: '',
     end_date: '',
     jenis_pekerjaan: 'Task KPI',
-    kpi_component_id: '',
+    kpi_indicator_id: '',
     weight: '',
     target_value: '',
     status: 'Pending',
@@ -41,8 +41,8 @@ const form = reactive(emptyForm());
 const errors = reactive({});
 
 const tasks = computed(() => store.assignedTasks);
-const selectedKpiComponent = computed(() =>
-    kpiComponentStore.components.find((component) => String(component.id) === String(form.kpi_component_id))
+const selectedKpiIndicator = computed(() =>
+    kpiIndicatorStore.indicators.find((ind) => String(ind.id) === String(form.kpi_indicator_id))
 );
 
 const summary = computed(() => ({
@@ -82,7 +82,7 @@ onMounted(async () => {
     await Promise.all([
         store.fetchAssignedTasks(),
         empStore.fetchEmployees ? empStore.fetchEmployees() : empStore.fetchEmployees?.(),
-        kpiComponentStore.fetchComponents({ is_active: true }),
+        kpiIndicatorStore.fetchIndicators(),
     ]);
 });
 
@@ -110,7 +110,7 @@ function openEdit(task) {
         start_date:   task.start_date ?? '',
         end_date:     task.end_date ?? '',
         jenis_pekerjaan: task.jenis_pekerjaan ?? 'Task KPI',
-        kpi_component_id: task.kpi_component_id ?? task.kpi_component?.id ?? '',
+        kpi_indicator_id: task.kpi_indicator_id ?? task.kpiIndicator?.id ?? '',
         weight:       task.weight ?? '',
         target_value: task.target_value ?? '',
         status:       task.status ?? 'Pending',
@@ -118,16 +118,17 @@ function openEdit(task) {
     showForm.value = true;
 }
 
-function applyKpiComponentDefaults() {
-    const component = selectedKpiComponent.value;
+function applyIndicatorDefaults() {
+    const indicator = selectedKpiIndicator.value;
+    if (!indicator) return;
 
-    if (!component) return;
-
-    form.jenis_pekerjaan = component.objectives || 'Task KPI';
-    form.weight = component.bobot !== null && component.bobot !== undefined
-        ? Number(component.bobot) * 100
-        : form.weight;
-    form.target_value = component.target ?? form.target_value;
+    form.jenis_pekerjaan = indicator.name || 'Task KPI';
+    if (indicator.weight !== null && indicator.weight !== undefined) {
+        form.weight = Number(indicator.weight);
+    }
+    if (indicator.default_target_value !== null && indicator.default_target_value !== undefined) {
+        form.target_value = indicator.default_target_value;
+    }
 }
 
 function validate() {
@@ -161,7 +162,7 @@ async function submit() {
             start_date:   form.start_date,
             end_date:     form.end_date,
             jenis_pekerjaan: form.jenis_pekerjaan || 'Task KPI',
-            kpi_component_id: form.kpi_component_id ? Number(form.kpi_component_id) : null,
+            kpi_indicator_id: form.kpi_indicator_id ? Number(form.kpi_indicator_id) : null,
             weight:       form.weight !== '' ? Number(form.weight) : null,
             target_value: form.target_value !== '' ? Number(form.target_value) : null,
             status:       form.status,
@@ -343,19 +344,19 @@ function isOverdue(task) {
                 </div>
 
                 <div>
-                    <label class="form-label">Komponen KPI</label>
-                    <select v-model="form.kpi_component_id" class="form-input" @change="applyKpiComponentDefaults">
-                        <option value="">Tanpa komponen KPI</option>
+                    <label class="form-label">Indikator KPI</label>
+                    <select v-model="form.kpi_indicator_id" class="form-input" @change="applyIndicatorDefaults">
+                        <option value="">— Tanpa indikator KPI —</option>
                         <option
-                            v-for="component in kpiComponentStore.components"
-                            :key="component.id"
-                            :value="component.id"
+                            v-for="indicator in kpiIndicatorStore.indicators"
+                            :key="indicator.id"
+                            :value="indicator.id"
                         >
-                            {{ component.objectives }} - {{ component.jabatan || 'Semua Jabatan' }}
+                            {{ indicator.name }} ({{ indicator.weight }}%)
                         </option>
                     </select>
                     <p class="mt-1 text-[11px] text-slate-400">
-                        Jika dipilih, bobot dan target akan mengikuti komponen KPI dan tetap bisa disesuaikan.
+                        Jika dipilih, bobot dan target default akan diisi otomatis dan tetap bisa disesuaikan.
                     </p>
                 </div>
 

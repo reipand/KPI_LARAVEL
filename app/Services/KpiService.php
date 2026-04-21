@@ -359,11 +359,11 @@ class KpiService
                     'type' => 'task',
                     'indicator_id' => null,
                     'task_id' => $task->id,
-                    'kpi_component_id' => $task->kpi_component_id,
-                    'kpi_component' => $task->kpiComponent ? [
-                        'id' => $task->kpiComponent->id,
-                        'objectives' => $task->kpiComponent->objectives,
-                        'tipe' => $task->kpiComponent->tipe,
+                    'kpi_indicator_id' => $task->kpi_indicator_id,
+                    'kpi_indicator' => $task->kpiIndicator ? [
+                        'id' => $task->kpiIndicator->id,
+                        'name' => $task->kpiIndicator->name,
+                        'tipe' => $task->kpiIndicator->tipe,
                     ] : null,
                     'name' => $task->judul,
                     'description' => $task->deskripsi,
@@ -638,7 +638,7 @@ class KpiService
     private function resolveTaskScores(User $user, string $periodType, array $period): Collection
     {
         $query = TaskScore::query()
-            ->with('task.kpiComponent')
+            ->with('task.kpiIndicator')
             ->where('user_id', $user->id);
 
         if ($periodType === 'monthly') {

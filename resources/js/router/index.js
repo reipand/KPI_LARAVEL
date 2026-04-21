@@ -13,7 +13,7 @@ const PekerjaanPage = () => import('@/pages/pegawai/PekerjaanPage.vue');
 const HRDashboard = () => import('@/pages/hr/DashboardPage.vue');
 const PegawaiPage = () => import('@/pages/hr/PegawaiPage.vue');
 const MappingPage = () => import('@/pages/hr/MappingPage.vue');
-const KpiComponentPage = () => import('@/pages/hr/KpiComponentPage.vue');
+const KpiIndicatorPage = () => import('@/pages/hr/KpiIndicatorPage.vue');
 const SlaPage = () => import('@/pages/hr/SlaPage.vue');
 const SettingsPage = () => import('@/pages/hr/SettingsPage.vue');
 
@@ -22,7 +22,6 @@ const DepartmentPage         = () => import('@/pages/hr/DepartmentPage.vue');
 const HRAnalyticsPage        = () => import('@/pages/hr/AnalyticsPage.vue');
 const KpiReportReviewPage    = () => import('@/pages/hr/KpiReportReviewPage.vue');
 const EmployeeKpiPage        = () => import('@/pages/hr/EmployeeKpiPage.vue');
-const ActivityLogsPage       = () => import('@/pages/hr/ActivityLogsPage.vue');
 const PositionPage           = () => import('@/pages/hr/PositionPage.vue');
 
 // Pegawai (new)
@@ -39,7 +38,6 @@ const KpiProgressPage = () => import('@/pages/pegawai/KpiProgressPage.vue');
 // Enterprise KPI pages
 const MyTasksPage           = () => import('@/pages/pegawai/MyTasksPage.vue');
 const TaskAssignmentPage    = () => import('@/pages/hr/TaskAssignmentPage.vue');
-const KpiIndicatorPage      = () => import('@/pages/hr/KpiIndicatorPage.vue');
 
 // Shared
 const NotificationsPage = () => import('@/pages/NotificationsPage.vue');
@@ -96,8 +94,8 @@ const routes = [
         meta: { requiresAuth: true, roles: ['hr_manager'] },
     },
     {
-        path: '/hr/kpi-components',
-        component: KpiComponentPage,
+        path: '/hr/kpi-indicators',
+        component: KpiIndicatorPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
     {
@@ -128,11 +126,6 @@ const routes = [
     {
         path: '/hr/kpi-pegawai',
         component: EmployeeKpiPage,
-        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
-    },
-    {
-        path: '/hr/logs',
-        component: ActivityLogsPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
     {

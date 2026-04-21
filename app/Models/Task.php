@@ -33,7 +33,7 @@ class Task extends Model
         'ada_error',
         'ada_komplain',
         'deskripsi',
-        'kpi_component_id',
+        'kpi_indicator_id',
         'manual_score',
         'mapped_by',
         'mapped_at',
@@ -74,9 +74,10 @@ class Task extends Model
         return $this->belongsTo(User::class, 'assigned_by');
     }
 
-    public function kpiComponent(): BelongsTo
+
+    public function kpiIndicator(): BelongsTo
     {
-        return $this->belongsTo(KpiComponent::class);
+        return $this->belongsTo(KpiIndicator::class);
     }
 
     public function mapper(): BelongsTo

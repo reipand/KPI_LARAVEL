@@ -25,7 +25,7 @@ class TaskController extends ApiController
         $user = $request->user();
 
         $tasks = Task::query()
-            ->with(['user', 'assignee', 'assigner', 'kpiComponent', 'mapper', 'taskScores'])
+            ->with(['user', 'assignee', 'assigner', 'kpiIndicator', 'mapper', 'taskScores'])
             ->when($user->isPegawai(), fn ($query) => $query->where(fn ($inner) => $inner
                 ->where('user_id', $user->id)
                 ->orWhere('assigned_to', $user->id)))
@@ -75,7 +75,7 @@ class TaskController extends ApiController
             $request
         );
 
-        return $this->resource(new TaskResource($task->load(['user', 'kpiComponent', 'mapper'])), 'Pekerjaan berhasil ditambahkan.', Response::HTTP_CREATED);
+        return $this->resource(new TaskResource($task->load(['user', 'kpiIndicator', 'mapper'])), 'Pekerjaan berhasil ditambahkan.', Response::HTTP_CREATED);
     }
 
     public function update(StoreTaskRequest $request, Task $task)
@@ -146,7 +146,7 @@ class TaskController extends ApiController
             $request
         );
 
-        return $this->resource(new TaskResource($task->load(['user', 'kpiComponent', 'mapper'])), 'Pekerjaan berhasil diperbarui.');
+        return $this->resource(new TaskResource($task->load(['user', 'kpiIndicator', 'mapper'])), 'Pekerjaan berhasil diperbarui.');
     }
 
     public function destroy(Request $request, Task $task)
@@ -195,7 +195,7 @@ class TaskController extends ApiController
         }
 
         $task->update([
-            'kpi_component_id' => $request->integer('kpi_component_id'),
+            'kpi_indicator_id' => $request->integer('kpi_indicator_id'),
             'manual_score' => $request->input('manual_score'),
             'mapped_by' => $request->user()->id,
             'mapped_at' => now(),
@@ -210,13 +210,13 @@ class TaskController extends ApiController
             $request
         );
 
-        return $this->resource(new TaskResource($task->load(['user', 'kpiComponent', 'mapper'])), 'Mapping KPI berhasil diperbarui.');
+        return $this->resource(new TaskResource($task->load(['user', 'kpiIndicator', 'mapper'])), 'Mapping KPI berhasil diperbarui.');
     }
 
     public function myTasks(Request $request)
     {
         $tasks = Task::query()
-            ->with(['assignee', 'assigner', 'kpiComponent', 'taskScores'])
+            ->with(['assignee', 'assigner', 'kpiIndicator', 'taskScores'])
             ->where('task_type', Task::TYPE_MANUAL_ASSIGNMENT)
             ->where('assigned_to', $request->user()->id)
             ->latest('end_date')

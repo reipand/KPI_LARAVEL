@@ -10,7 +10,7 @@ class KpiReport extends Model
 {
     protected $fillable = [
         'user_id',
-        'kpi_component_id',
+        'kpi_indicator_id',
         'period_type',
         'tanggal',
         'period_label',
@@ -45,9 +45,9 @@ class KpiReport extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function kpiComponent(): BelongsTo
+    public function kpiIndicator(): BelongsTo
     {
-        return $this->belongsTo(KpiComponent::class);
+        return $this->belongsTo(KpiIndicator::class);
     }
 
     public function submittedBy(): BelongsTo

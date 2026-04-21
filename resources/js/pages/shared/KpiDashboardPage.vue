@@ -432,7 +432,7 @@ const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(loadPage, { interv
         </div>
 
         <!-- ── Dashboard cards ───────────────────────────────────────────────── -->
-        <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div class="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
             <!-- KPI Trend line chart -->
             <Card class="rounded-2xl border-gray-100 bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                 <div class="space-y-4">
@@ -551,7 +551,7 @@ const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(loadPage, { interv
                         Snapshot performer terbaik dan terendah berdasarkan filter aktif.
                     </p>
                 </CardHeader>
-                <CardContent class="space-y-3 pt-4">
+                <CardContent class="max-h-[500px] space-y-3 overflow-y-auto pt-4">
                     <template v-if="dashboardStore.isLoadingDashboard">
                         <Skeleton v-for="i in 3" :key="i" class="h-24 rounded-2xl" />
                     </template>
@@ -680,7 +680,7 @@ const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(loadPage, { interv
                     </template>
                 </CardContent>
             </Card>
-            <Card class="rounded-2xl border-gray-100 bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+            <Card class="h-fit rounded-2xl border-gray-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                 <div class="space-y-4">
                     <div class="flex items-start justify-between gap-4">
                         <div>
@@ -706,26 +706,26 @@ const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(loadPage, { interv
                             Data belum tersedia
                         </div>
                     </template>
-                    <div v-else class="flex min-h-[260px] flex-col items-center justify-center">
-                        <div class="h-[180px] w-[180px]">
+                    <div v-else class="flex flex-col items-center">
+                        <div class="h-[160px] w-[160px]">
                             <DoughnutChart
                                 :key="statusDistributionKey"
                                 :labels="statusDistributionChart.labels"
                                 :data="statusDistributionChart.data"
                                 :colors="statusDistributionChart.colors"
-                                :height="180"
+                                :height="160"
                                 :show-legend="false"
                             />
                         </div>
 
-                        <div class="mt-4 grid w-full grid-cols-3 gap-4 text-sm">
+                        <div class="mt-3 flex justify-center gap-5 text-sm">
                             <div
                                 v-for="item in distributionLegend"
                                 :key="item.label"
-                                class="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-gray-50 px-3 py-2 dark:bg-slate-800/70"
+                                class="flex items-center gap-1.5"
                             >
                                 <span class="h-2 w-2 shrink-0 rounded-full" :style="{ backgroundColor: item.color }" />
-                                <span class="truncate text-gray-600 dark:text-slate-300">{{ item.label }}</span>
+                                <span class="text-gray-600 dark:text-slate-300">{{ item.label }}</span>
                                 <span class="font-semibold tabular-nums text-gray-900 dark:text-slate-100">{{ item.value }}</span>
                             </div>
                         </div>

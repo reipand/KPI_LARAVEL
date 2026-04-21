@@ -40,7 +40,7 @@ class KpiIndicatorController extends ApiController
                 'weight'               => (float) $ind->weight,
                 'default_target_value' => (float) $ind->default_target_value,
                 'formula'              => $ind->formula,
-                'formula_type_label'   => $ind->getFormulaTtypeLabel(),
+                'formula_type_label'   => $ind->getFormulaTypeLabel(),
                 'department_id'        => $ind->department_id,
                 'department'           => $ind->department ? ['id' => $ind->department->id, 'nama' => $ind->department->nama] : null,
                 'position_id'          => $ind->position_id,
