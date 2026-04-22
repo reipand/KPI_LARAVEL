@@ -9,9 +9,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 <<<<<<< HEAD
+<<<<<<< HEAD
 use Illuminate\Support\Str;
 =======
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
+=======
+use Illuminate\Support\Str;
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,6 +23,9 @@ class AuthController extends ApiController
 {
     #[OA\Post(
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
         path: '/api/auth/login',
         summary: 'Login with NIP and Nama',
         tags: ['Auth'],
@@ -37,6 +44,7 @@ class AuthController extends ApiController
             new OA\Response(response: 200, description: 'Login successful — returns bearer token and user'),
             new OA\Response(response: 422, description: 'Invalid NIP or Nama'),
             new OA\Response(response: 429, description: 'Too many attempts'),
+<<<<<<< HEAD
 =======
         path: '/auth/login',
         summary: 'Login pegawai',
@@ -54,6 +62,8 @@ class AuthController extends ApiController
             new OA\Response(response: 422, description: 'NIP atau nama tidak valid'),
             new OA\Response(response: 429, description: 'Terlalu banyak percobaan'),
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
+=======
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
         ]
     )]
     public function login(LoginRequest $request)
@@ -120,6 +130,9 @@ class AuthController extends ApiController
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
     #[OA\Post(
         path: '/api/auth/logout',
         summary: 'Logout and revoke current token',
@@ -129,10 +142,13 @@ class AuthController extends ApiController
             new OA\Response(response: 200, description: 'Logout successful'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
+<<<<<<< HEAD
 =======
     #[OA\Post(path: '/auth/logout', summary: 'Logout', tags: ['Auth'], security: [['sanctum' => []]],
         responses: [new OA\Response(response: 200, description: 'Logout berhasil')]
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
+=======
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
     )]
     public function logout(Request $request)
     {
@@ -152,6 +168,9 @@ class AuthController extends ApiController
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
     #[OA\Get(
         path: '/api/auth/me',
         summary: 'Get authenticated user profile',
@@ -161,10 +180,13 @@ class AuthController extends ApiController
             new OA\Response(response: 200, description: 'Current user data'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
+<<<<<<< HEAD
 =======
     #[OA\Get(path: '/auth/me', summary: 'Data user yang sedang login', tags: ['Auth'], security: [['sanctum' => []]],
         responses: [new OA\Response(response: 200, description: 'OK')]
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
+=======
+>>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
     )]
     public function me(Request $request)
     {
