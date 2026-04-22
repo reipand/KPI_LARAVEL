@@ -5,10 +5,7 @@ import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
 import Textarea from '@/components/ui/Textarea.vue';
 import Alert from '@/components/ui/Alert.vue';
-import PageHeader from '@/components/shared/PageHeader.vue';
-import FilterPanel from '@/components/shared/FilterPanel.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
-import LoadingRows from '@/components/shared/LoadingRows.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import { useToast } from '@/composables/useToast';
 import { useKpiIndicatorStore } from '@/stores/kpiIndicator';
 
@@ -34,7 +31,7 @@ const emptyForm = () => ({
     weight: '',
     default_target_value: '',
     department_id: null,
-    position_id: null,
+    role_id: null,
     formula_type: 'percentage',
     formula_score: '',          // flat type
     thresholds: [               // threshold type
@@ -98,7 +95,7 @@ function openEdit(item) {
         weight: item.weight ?? '',
         default_target_value: item.default_target_value ?? '',
         department_id: item.department_id ?? null,
-        position_id: item.position_id ?? null,
+        role_id: item.role_id ?? null,
         formula_type: fType,
         formula_score: item.formula?.score ?? '',
         thresholds: item.formula?.thresholds
@@ -141,7 +138,7 @@ function validate() {
     if (form.weight === '' || Number(form.weight) < 0 || Number(form.weight) > 100) {
         errors.weight = 'Bobot harus antara 0 dan 100.'; valid = false;
     }
-    if (!form.department_id && !form.position_id) {
+    if (!form.department_id && !form.role_id) {
         errors.scope = 'Pilih departemen atau role.'; valid = false;
     }
     return valid;
@@ -159,7 +156,7 @@ async function submit() {
             weight: Number(form.weight),
             default_target_value: form.default_target_value !== '' ? Number(form.default_target_value) : null,
             department_id: form.department_id || null,
-            position_id: form.position_id || null,
+            role_id: form.role_id || null,
             formula: buildFormulaPayload(),
         };
 
@@ -221,27 +218,24 @@ function formulaBadgeClass(type) {
             </button>
         </template>
 
-        <PageHeader
-            eyebrow="HR Panel - Manajemen KPI"
-            title="Indikator KPI"
-            description="Kelola indikator KPI per departemen, bobot prioritas, target default, dan formula penilaian."
-        >
-            <template #actions>
-                <button class="btn-primary" @click="openCreate">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Tambah Indikator
-                </button>
-            </template>
-        </PageHeader>
+        <!-- Hero -->
+        <section class="page-hero">
+            <div>
+                <div class="page-hero-meta">HR Panel · Manajemen KPI</div>
+                <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Indikator KPI</h2>
+                <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
+                    Kelola indikator KPI per departemen beserta formula penilaian yang digunakan.
+                </p>
+            </div>
+        </section>
 
-        <FilterPanel
-            title="Filter indikator"
-            description="Pilih departemen untuk melihat indikator yang relevan dengan struktur KPI."
-            :result-text="`${filteredIndicators.length} indikator tampil`"
-        >
-                <div class="space-y-2">
+        <!-- Filter -->
+        <section class="dashboard-panel overflow-hidden">
+            <div class="border-b border-slate-200 px-6 py-4">
+                <p class="section-heading">Filter</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 p-6">
+                <div class="w-full sm:w-72">
                     <label class="form-label">Departemen</label>
                     <select v-model="filterDeptId" class="form-input">
                         <option value="">— Semua Departemen —</option>
@@ -254,7 +248,8 @@ function formulaBadgeClass(type) {
                         </option>
                     </select>
                 </div>
-        </FilterPanel>
+            </div>
+        </section>
 
         <!-- List -->
         <section class="dashboard-panel overflow-hidden">
@@ -267,7 +262,9 @@ function formulaBadgeClass(type) {
 
             <div class="p-6">
                 <template v-if="store.isLoading">
-                    <LoadingRows :rows="5" />
+                    <div class="space-y-3">
+                        <Skeleton v-for="i in 5" :key="i" class="h-16 rounded-2xl" />
+                    </div>
                 </template>
 
                 <template v-else-if="filteredIndicators.length">
@@ -312,13 +309,12 @@ function formulaBadgeClass(type) {
                     </div>
                 </template>
 
-                <EmptyState
-                    v-else
-                    title="Belum ada indikator KPI"
-                    description="Tambahkan indikator agar tugas, laporan, dan review bisa dihitung dengan formula yang konsisten."
-                    action-label="Tambah Indikator"
-                    @action="openCreate"
-                />
+                <div v-else class="py-14 text-center">
+                    <svg class="mx-auto mb-3 h-10 w-10 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="9"/><path d="M9 9h.01M15 9h.01M9 15h6"/>
+                    </svg>
+                    <p class="text-sm text-slate-400">Belum ada indikator KPI.</p>
+                </div>
             </div>
         </section>
 
@@ -378,10 +374,10 @@ function formulaBadgeClass(type) {
 
                         <div>
                             <label class="form-label">Role / Jabatan</label>
-                            <select v-model="form.position_id" class="form-input">
+                            <select v-model="form.role_id" class="form-input">
                                 <option :value="null">— Tidak ada —</option>
-                                <option v-for="role in store.meta.positions" :key="role.id" :value="role.id">
-                                    {{ role.nama }}
+                                <option v-for="role in store.meta.roles" :key="role.id" :value="role.id">
+                                    {{ role.name }}
                                 </option>
                             </select>
                         </div>

@@ -2,16 +2,23 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { defaultRouteForRole } from '@/router';
 
 const router = useRouter();
 const auth   = useAuthStore();
 
 const homeRoute = computed(() => {
-    const role = auth.user?.role;
-    if (role === 'hr_manager') return '/hr/dashboard';
-    if (role === 'direktur')   return '/direktur/dashboard';
-    return '/dashboard';
+    return defaultRouteForRole(auth.user?.role);
 });
+
+function goBack() {
+    if (window.history.length > 1) {
+        router.back();
+        return;
+    }
+
+    router.push(homeRoute.value);
+}
 </script>
 
 <template>
@@ -67,7 +74,7 @@ const homeRoute = computed(() => {
             <div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
                 <button
                     class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-700 hover:text-white"
-                    @click="router.back()"
+                    @click="goBack"
                 >
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 5l-7 7 7 7"/>

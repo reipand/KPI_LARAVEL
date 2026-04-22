@@ -4,10 +4,7 @@ import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
 import Alert from '@/components/ui/Alert.vue';
-import PageHeader from '@/components/shared/PageHeader.vue';
-import FilterPanel from '@/components/shared/FilterPanel.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
-import LoadingRows from '@/components/shared/LoadingRows.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import { useToast } from '@/composables/useToast';
 import { usePositionStore } from '@/stores/position';
 import { useDepartmentStore } from '@/stores/department';
@@ -141,33 +138,25 @@ async function confirmDelete() {
             <button class="btn-primary" @click="openCreate">+ Tambah Jabatan</button>
         </template>
 
-        <PageHeader
-            eyebrow="HR Panel"
-            title="Manajemen Jabatan"
-            description="Kelola daftar jabatan berdasarkan departemen, level, status aktif, dan struktur organisasi."
-        >
-            <template #actions>
-                <button class="btn-primary" @click="openCreate">+ Tambah Jabatan</button>
-            </template>
-        </PageHeader>
-
-        <FilterPanel
-            title="Filter jabatan"
-            description="Cari jabatan berdasarkan nama, kode, atau departemen."
-            :result-text="`${filteredPositions.length} jabatan tampil`"
-        >
-            <div class="space-y-2">
-                <label class="form-label">Pencarian</label>
-                <input v-model="search" type="search" placeholder="Cari jabatan..." class="form-input" />
+        <section class="page-hero">
+            <div>
+                <div class="page-hero-meta">HR Panel</div>
+                <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Manajemen Jabatan</h2>
+                <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
+                    Kelola daftar jabatan berdasarkan departemen.
+                </p>
             </div>
-            <div class="space-y-2">
-                <label class="form-label">Departemen</label>
-                <select v-model="filterDept" class="form-input">
+        </section>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap items-center gap-3">
+            <input v-model="search" type="search" placeholder="Cari jabatan..." class="form-input !w-auto min-w-[180px]" />
+            <select v-model="filterDept" class="form-input !w-auto min-w-[160px]">
                 <option value="">Semua Departemen</option>
                 <option v-for="d in deptStore.departments" :key="d.id" :value="d.id">{{ d.nama }}</option>
             </select>
-            </div>
-        </FilterPanel>
+            <div class="ml-auto text-xs text-slate-400">{{ filteredPositions.length }} jabatan</div>
+        </div>
 
         <!-- Table -->
         <section class="dashboard-panel overflow-hidden">
@@ -178,7 +167,9 @@ async function confirmDelete() {
 
             <div class="p-6">
                 <template v-if="posStore.isLoading">
-                    <LoadingRows :rows="6" height="h-14" />
+                    <div class="space-y-3">
+                        <Skeleton v-for="i in 6" :key="i" class="h-14 rounded-2xl" />
+                    </div>
                 </template>
 
                 <template v-else-if="filteredPositions.length">
@@ -203,13 +194,9 @@ async function confirmDelete() {
                     </div>
                 </template>
 
-                <EmptyState
-                    v-else
-                    title="Belum ada jabatan"
-                    description="Tambahkan jabatan agar pegawai, KPI, dan SLA bisa ditautkan ke struktur organisasi."
-                    action-label="Tambah Jabatan"
-                    @action="openCreate"
-                />
+                <div v-else class="py-14 text-center text-sm text-slate-400">
+                    Belum ada jabatan.
+                </div>
             </div>
         </section>
 

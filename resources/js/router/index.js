@@ -13,7 +13,7 @@ const PekerjaanPage = () => import('@/pages/pegawai/PekerjaanPage.vue');
 const HRDashboard = () => import('@/pages/hr/DashboardPage.vue');
 const PegawaiPage = () => import('@/pages/hr/PegawaiPage.vue');
 const MappingPage = () => import('@/pages/hr/MappingPage.vue');
-const KpiIndicatorPage = () => import('@/pages/hr/KpiIndicatorPage.vue');
+const KpiComponentPage = () => import('@/pages/hr/KpiComponentPage.vue');
 const SlaPage = () => import('@/pages/hr/SlaPage.vue');
 const SettingsPage = () => import('@/pages/hr/SettingsPage.vue');
 
@@ -22,6 +22,7 @@ const DepartmentPage         = () => import('@/pages/hr/DepartmentPage.vue');
 const HRAnalyticsPage        = () => import('@/pages/hr/AnalyticsPage.vue');
 const KpiReportReviewPage    = () => import('@/pages/hr/KpiReportReviewPage.vue');
 const EmployeeKpiPage        = () => import('@/pages/hr/EmployeeKpiPage.vue');
+const ActivityLogsPage       = () => import('@/pages/hr/ActivityLogsPage.vue');
 const PositionPage           = () => import('@/pages/hr/PositionPage.vue');
 
 // Pegawai (new)
@@ -38,14 +39,29 @@ const KpiProgressPage = () => import('@/pages/pegawai/KpiProgressPage.vue');
 // Enterprise KPI pages
 const MyTasksPage           = () => import('@/pages/pegawai/MyTasksPage.vue');
 const TaskAssignmentPage    = () => import('@/pages/hr/TaskAssignmentPage.vue');
+const KpiIndicatorPage      = () => import('@/pages/hr/KpiIndicatorPage.vue');
 
 // Shared
 const NotificationsPage = () => import('@/pages/NotificationsPage.vue');
 
+// ─── Admin Layout ────────────────────────────────────────────────────────
+const AdminLayout        = () => import('@/layouts/AdminLayout.vue');
+
+// ─── Multi-Tenant Admin Pages (v2) ───────────────────────────────────────
+const TenantsPage        = () => import('@/pages/admin/TenantsPage.vue');
+const KpiTemplatesPage   = () => import('@/pages/admin/KpiTemplatesPage.vue');
+const KpiAssignmentsPage = () => import('@/pages/admin/KpiAssignmentsPage.vue');
+const KpiSubmissionPage    = () => import('@/pages/admin/KpiSubmissionPage.vue');
+const AdminDashboardPage   = () => import('@/pages/admin/DashboardPage.vue');
+const UsersPage            = () => import('@/pages/admin/UsersPage.vue');
+const TenantDetailPage     = () => import('@/pages/admin/TenantDetailPage.vue');
+const AuditLogsPage      = () => import('@/pages/admin/AuditLogsPage.vue');
+const ReportsPage        = () => import('@/pages/admin/ReportsPage.vue');
+
 // ─── Route definitions ─────────────────────────────────────────────────────
 const routes = [
     // Root redirect
-    { path: '/', redirect: '/login' },
+    { path: '/', redirect: () => defaultRouteForRole(readStoredUser()?.role) },
 
     // Guest only
     { path: '/login', component: LoginPage, meta: { guest: true } },
@@ -94,8 +110,8 @@ const routes = [
         meta: { requiresAuth: true, roles: ['hr_manager'] },
     },
     {
-        path: '/hr/kpi-indicators',
-        component: KpiIndicatorPage,
+        path: '/hr/kpi-components',
+        component: KpiComponentPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
     {
@@ -126,6 +142,11 @@ const routes = [
     {
         path: '/hr/kpi-pegawai',
         component: EmployeeKpiPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
+        path: '/hr/logs',
+        component: ActivityLogsPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
     {
@@ -171,6 +192,67 @@ const routes = [
     // Halaman khusus
     { path: '/403', component: ForbiddenPage },
 
+    // ─── Multi-Tenant v2 Routes (Admin Layout) ─────────────────────────
+    {
+        path: '/admin',
+        component: AdminLayout,
+        meta: { requiresAuth: true },
+        children: [
+            {
+                path: 'tenants',
+                component: TenantsPage,
+                meta: { requiresAuth: true, roles: ['super_admin'] },
+            },
+            {
+                path: '',
+                component: AdminDashboardPage,
+                meta: { requiresAuth: true, roles: ['super_admin', 'tenant_admin', 'hr_manager', 'direktur'] },
+            },
+            {
+                path: 'dashboard',
+                component: AdminDashboardPage,
+                meta: { requiresAuth: true, roles: ['super_admin', 'tenant_admin', 'hr_manager', 'direktur'] },
+            },
+            {
+                path: 'tenants/:id',
+                component: TenantDetailPage,
+                meta: { requiresAuth: true, roles: ['super_admin'] },
+            },
+            {
+                path: 'users',
+                component: UsersPage,
+                meta: { requiresAuth: true, roles: ['super_admin', 'tenant_admin', 'hr_manager'] },
+            },
+            {
+                path: 'kpi/templates',
+                component: KpiTemplatesPage,
+                meta: { requiresAuth: true, roles: ['hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
+            },
+            {
+                path: 'kpi/assignments',
+                component: KpiAssignmentsPage,
+                meta: { requiresAuth: true, roles: ['hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
+            },
+            {
+                path: 'reports',
+                component: ReportsPage,
+                meta: { requiresAuth: true, roles: ['hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
+            },
+            {
+                path: 'audit-logs',
+                component: AuditLogsPage,
+                meta: { requiresAuth: true, roles: ['hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
+            },
+        ],
+    },
+
+    // Employee: submit own KPI
+    {
+        path: '/kpi/submit',
+        component: KpiSubmissionPage,
+        meta: { requiresAuth: true, roles: ['pegawai', 'hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
+    },
+
     // Catch-all → login
     { path: '/:pathMatch(.*)*', redirect: '/login' },
 ];
@@ -182,6 +264,15 @@ const router = createRouter({
 });
 
 // ─── Navigation guards ─────────────────────────────────────────────────────
+export function defaultRouteForRole(role) {
+    if (role === 'super_admin') return '/admin/tenants';
+    if (role === 'tenant_admin') return '/admin/kpi/templates';
+    if (role === 'hr_manager') return '/hr/dashboard';
+    if (role === 'direktur') return '/direktur/dashboard';
+
+    return '/dashboard';
+}
+
 router.beforeEach((to, _from, next) => {
     const token = localStorage.getItem('token');
     const user = readStoredUser();
@@ -194,10 +285,7 @@ router.beforeEach((to, _from, next) => {
     // Halaman guest-only (login): arahkan ke dashboard sesuai role jika sudah login
     if (to.meta.guest) {
         if (token && user) {
-            const role = user.role;
-            if (role === 'hr_manager') return next('/hr/dashboard');
-            if (role === 'direktur') return next('/direktur/dashboard');
-            return next('/dashboard');
+            return next(defaultRouteForRole(user.role));
         }
         return next();
     }

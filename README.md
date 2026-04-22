@@ -98,6 +98,8 @@ php artisan migrate
   php artisan serve
 
   npm run dev
+
+  php artisan l5-swagger:generate
 ```
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.

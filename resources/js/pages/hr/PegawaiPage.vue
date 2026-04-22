@@ -4,10 +4,8 @@ import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
 import Alert from '@/components/ui/Alert.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import Avatar from '@/components/ui/Avatar.vue';
-import PageHeader from '@/components/shared/PageHeader.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
-import LoadingRows from '@/components/shared/LoadingRows.vue';
 import { useEmployeeStore } from '@/stores/employee';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
@@ -171,15 +169,15 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
             <button class="btn-primary" @click="openCreate">+ Tambah Pegawai</button>
         </template>
 
-        <PageHeader
-            eyebrow="HR Panel"
-            title="Manajemen Pegawai"
-            description="Kelola data karyawan, jabatan, departemen, status kerja, dan hak akses aplikasi."
-        >
-            <template #actions>
-                <button class="btn-primary" @click="openCreate">+ Tambah Pegawai</button>
-            </template>
-        </PageHeader>
+        <section class="page-hero">
+            <div>
+                <div class="page-hero-meta">HR Panel</div>
+                <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Manajemen Pegawai</h2>
+                <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
+                    Kelola data karyawan, jabatan, dan hak akses aplikasi.
+                </p>
+            </div>
+        </section>
 
         <!-- Table -->
         <section class="dashboard-panel overflow-hidden">
@@ -190,7 +188,9 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
 
             <div class="p-6">
                 <template v-if="store.isLoading">
-                    <LoadingRows :rows="6" height="h-14" />
+                    <div class="space-y-3">
+                        <Skeleton v-for="i in 6" :key="i" class="h-14 rounded-2xl" />
+                    </div>
                 </template>
 
                 <template v-else-if="employees.length">
@@ -230,13 +230,9 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                     </div>
                 </template>
 
-                <EmptyState
-                    v-else
-                    title="Belum ada data pegawai"
-                    description="Tambahkan pegawai agar data KPI, mapping, dan review bisa ditautkan ke struktur organisasi."
-                    action-label="Tambah Pegawai"
-                    @action="openCreate"
-                />
+                <div v-else class="py-14 text-center text-sm text-slate-400">
+                    Belum ada data pegawai.
+                </div>
             </div>
         </section>
 

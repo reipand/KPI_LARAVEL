@@ -17,7 +17,7 @@ const defaultFilters = () => ({
 export const useKpiReportStore = defineStore('kpiReport', () => {
     const reports = ref([]);
     const employees = ref([]);
-    const indicators = ref([]);
+    const components = ref([]);
     const isSaving = ref(false);
     const isDeleting = ref(false);
     const isReviewing = ref(false);
@@ -32,9 +32,9 @@ export const useKpiReportStore = defineStore('kpiReport', () => {
         label: employee.nama,
     })));
 
-    const indicatorOptions = computed(() => indicators.value.map((indicator) => ({
-        value: String(indicator.id),
-        label: indicator.name,
+    const componentOptions = computed(() => components.value.map((component) => ({
+        value: String(component.id),
+        label: component.objectives,
     })));
 
     async function fetchReports(overrides = {}) {
@@ -51,15 +51,15 @@ export const useKpiReportStore = defineStore('kpiReport', () => {
     }
 
     async function bootstrapReferenceData(loadEmployees = false) {
-        const requests = [kpiReportService.listIndicators()];
+        const requests = [kpiReportService.listComponents()];
 
         if (loadEmployees) {
             requests.push(kpiReportService.listEmployees());
         }
 
-        const [indicatorData, employeeData] = await Promise.all(requests);
+        const [componentData, employeeData] = await Promise.all(requests);
 
-        indicators.value = indicatorData ?? [];
+        components.value = componentData ?? [];
 
         if (loadEmployees) {
             employees.value = employeeData ?? [];
@@ -179,11 +179,11 @@ export const useKpiReportStore = defineStore('kpiReport', () => {
     return {
         reports,
         employees,
-        indicators,
+        components,
         filters,
         pagination: pagination.state,
         employeeOptions,
-        indicatorOptions,
+        componentOptions,
         isLoading: listHandler.isLoading,
         isSaving,
         isDeleting,

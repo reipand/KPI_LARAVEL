@@ -25,9 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $middleware->alias([
-            'hr' => \App\Http\Middleware\HrMiddleware::class,
-            'auth.session' => \App\Http\Middleware\SessionAuthMiddleware::class,
-            'role' => \App\Http\Middleware\CheckRole::class,
+            'hr'             => \App\Http\Middleware\HrMiddleware::class,
+            'auth.session'   => \App\Http\Middleware\SessionAuthMiddleware::class,
+            'role'           => \App\Http\Middleware\CheckRole::class,
+            'tenant'         => \App\Http\Middleware\SetTenantContext::class,
+            'tenant.owns'    => \App\Http\Middleware\EnsureTenantOwnership::class,
         ]);
 
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);

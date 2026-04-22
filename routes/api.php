@@ -6,12 +6,12 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\PositionController;
 use App\Http\Controllers\Api\ExportController;
+use App\Http\Controllers\Api\KpiComponentController;
 use App\Http\Controllers\Api\KpiController;
 use App\Http\Controllers\Api\KpiIndicatorController;
 use App\Http\Controllers\Api\KpiManagementController;
 use App\Http\Controllers\Api\KpiReportController;
 use App\Http\Controllers\Api\LogController;
-use App\Http\Controllers\Api\FcmTokenController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SlaController;
@@ -50,6 +50,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kpi/input', [KpiManagementController::class, 'input'])->middleware('role:hr_manager,direktur');
     Route::get('/kpi/{user}', [KpiController::class, 'show'])->middleware('role:hr_manager,direktur');
 
+    Route::get('/kpi-components', [KpiComponentController::class, 'index']);
+    Route::post('/kpi-components', [KpiComponentController::class, 'store'])->middleware('role:hr_manager,direktur');
+    Route::put('/kpi-components/{kpiComponent}', [KpiComponentController::class, 'update'])->middleware('role:hr_manager,direktur');
+    Route::delete('/kpi-components/{kpiComponent}', [KpiComponentController::class, 'destroy'])->middleware('role:hr_manager,direktur');
 
     Route::get('/sla', [SlaController::class, 'index']);
     Route::post('/sla', [SlaController::class, 'store'])->middleware('role:hr_manager');
@@ -58,6 +62,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/settings', [SettingController::class, 'index']);
     Route::put('/settings', [SettingController::class, 'update'])->middleware('role:hr_manager,direktur');
+
+    Route::get('/logs', [LogController::class, 'index'])->middleware('role:hr_manager,direktur');
 
     // Reference data
     Route::get('/departments', [DepartmentController::class, 'index']);
@@ -98,7 +104,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('export')->middleware('role:hr_manager,direktur')->group(function () {
         Route::get('/kpi/{user}/pdf', [ExportController::class, 'kpiPdf']);
         Route::get('/kpi', [ExportController::class, 'export']);
-        Route::get('/analytics/pdf', [ExportController::class, 'analyticsPdf']);
         Route::get('/ranking/csv', [ExportController::class, 'rankingCsv']);
         Route::get('/reports/csv', [ExportController::class, 'reportsCsv']);
     });
@@ -107,9 +112,109 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
+});
 
-    // FCM token registration
-    Route::post('/fcm/token', [FcmTokenController::class, 'store']);
-    Route::delete('/fcm/token', [FcmTokenController::class, 'destroy']);
+// =============================================================
+// MULTI-TENANT API — v2
+// All routes below use SetTenantContext middleware to resolve
+// the authenticated user's tenant and enforce isolation.
+// =============================================================
+
+use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\Api\UserManagementController;
+use App\Http\Controllers\Api\KpiTemplateController;
+use App\Http\Controllers\Api\EmployeeKpiAssignmentController;
+use App\Http\Controllers\Api\TaskManagementController;
+use App\Http\Controllers\Api\ReportManagementController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Models\KpiTemplateIndicator;
+
+// --- Super Admin: Tenant Management ---
+Route::middleware(['auth:sanctum', \App\Http\Middleware\SetTenantContext::class])
+    ->prefix('v2')
+    ->group(function () {
+
+    // Tenant CRUD — Super Admin only
+    Route::prefix('tenants')->middleware('role:super_admin')->group(function () {
+        Route::get('/', [TenantController::class, 'index']);
+        Route::post('/', [TenantController::class, 'store']);
+        Route::get('/{tenant}', [TenantController::class, 'show']);
+        Route::put('/{tenant}', [TenantController::class, 'update']);
+        Route::patch('/{tenant}/activate', [TenantController::class, 'activate']);
+        Route::patch('/{tenant}/deactivate', [TenantController::class, 'deactivate']);
+    });
+
+    // --- User Management (Tenant Admin + HR Manager) ---
+    Route::prefix('users')->middleware('role:super_admin,tenant_admin,hr_manager')->group(function () {
+        Route::get('/', [UserManagementController::class, 'index']);
+        Route::post('/', [UserManagementController::class, 'store']);
+        Route::get('/roles', [UserManagementController::class, 'roles']);
+        Route::get('/{user}', [UserManagementController::class, 'show']);
+        Route::put('/{user}', [UserManagementController::class, 'update']);
+        Route::delete('/{user}', [UserManagementController::class, 'destroy']);
+    });
+
+    // --- KPI Templates (HR Manager) ---
+    Route::prefix('kpi/templates')->group(function () {
+        Route::get('/', [KpiTemplateController::class, 'index']);
+        Route::post('/', [KpiTemplateController::class, 'store'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager');
+        Route::get('/{kpiTemplate}', [KpiTemplateController::class, 'show']);
+        Route::put('/{kpiTemplate}', [KpiTemplateController::class, 'update'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager');
+        Route::delete('/{kpiTemplate}', [KpiTemplateController::class, 'destroy'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager');
+
+        // Indicator sub-resources
+        Route::post('/{kpiTemplate}/indicators', [KpiTemplateController::class, 'storeIndicator'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager');
+    });
+
+    Route::prefix('kpi/indicators')->middleware('role:super_admin,tenant_admin,hr_manager')->group(function () {
+        Route::put('/{indicator}', [KpiTemplateController::class, 'updateIndicator']);
+        Route::delete('/{indicator}', [KpiTemplateController::class, 'destroyIndicator']);
+    });
+
+    // --- KPI Assignments ---
+    Route::prefix('kpi/assignments')->group(function () {
+        Route::get('/', [EmployeeKpiAssignmentController::class, 'index']);
+        Route::get('/my', [EmployeeKpiAssignmentController::class, 'myAssignments']);
+        Route::post('/', [EmployeeKpiAssignmentController::class, 'store'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager,dept_head,supervisor');
+        Route::get('/{assignment}', [EmployeeKpiAssignmentController::class, 'show']);
+
+        // Workflow actions
+        Route::post('/{assignment}/submit', [EmployeeKpiAssignmentController::class, 'submit']);
+        Route::post('/{assignment}/approve', [EmployeeKpiAssignmentController::class, 'approve'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager,dept_head,supervisor');
+        Route::post('/{assignment}/reject', [EmployeeKpiAssignmentController::class, 'reject'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager,dept_head,supervisor');
+    });
+
+    // --- Tasks ---
+    Route::prefix('tasks/v2')->group(function () {
+        Route::get('/', [TaskManagementController::class, 'index']);
+        Route::get('/my', [TaskManagementController::class, 'myTasks']);
+        Route::post('/', [TaskManagementController::class, 'store'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager,dept_head,supervisor');
+        Route::get('/{task}', [TaskManagementController::class, 'show']);
+        Route::put('/{task}', [TaskManagementController::class, 'update']);
+        Route::delete('/{task}', [TaskManagementController::class, 'destroy'])
+            ->middleware('role:super_admin,tenant_admin,hr_manager');
+    });
+
+    // --- Reports ---
+    Route::prefix('reports')
+        ->middleware('role:super_admin,tenant_admin,hr_manager,dept_head')
+        ->group(function () {
+            Route::get('/kpi-summary', [ReportManagementController::class, 'kpiSummary']);
+            Route::get('/employee-performance', [ReportManagementController::class, 'employeePerformance']);
+            Route::get('/department-performance', [ReportManagementController::class, 'departmentPerformance']);
+            Route::get('/export/employee-pdf', [ReportManagementController::class, 'exportEmployeePdf']);
+            Route::get('/export/summary-pdf', [ReportManagementController::class, 'exportSummaryPdf']);
+        });
+
+    // --- Audit Logs ---
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->middleware('role:super_admin,tenant_admin,hr_manager');
 });

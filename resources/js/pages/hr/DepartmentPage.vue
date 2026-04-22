@@ -5,9 +5,7 @@ import { useToast } from '@/composables/useToast';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
-import PageHeader from '@/components/shared/PageHeader.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
-import LoadingRows from '@/components/shared/LoadingRows.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 
 const store = useDepartmentStore();
 const toast = useToast();
@@ -92,15 +90,18 @@ async function doDelete() {
 
 <template>
     <AppLayout>
-        <PageHeader
-            eyebrow="Master Data"
-            title="Manajemen Departemen"
-            description="Kelola departemen organisasi sebagai referensi jabatan, pegawai, KPI, dan laporan performa."
-        >
-            <template #actions>
+        <section class="page-hero">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <div class="page-hero-meta">Master Data</div>
+                    <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Manajemen Departemen</h2>
+                    <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
+                        Kelola departemen organisasi. Departemen digunakan sebagai referensi jabatan dan pengelompokan karyawan.
+                    </p>
+                </div>
                 <button class="btn-primary shrink-0" @click="openCreate">+ Tambah Departemen</button>
-            </template>
-        </PageHeader>
+            </div>
+        </section>
 
         <section class="dashboard-panel overflow-hidden">
             <div class="border-b border-slate-200 px-6 py-4">
@@ -108,15 +109,13 @@ async function doDelete() {
                 <h3 class="mt-1 text-lg font-bold text-slate-900">{{ departments.length }} departemen terdaftar</h3>
             </div>
 
-            <LoadingRows v-if="store.isLoading" class="p-6" :rows="6" height="h-14" />
+            <div v-if="store.isLoading" class="space-y-3 p-6">
+                <Skeleton v-for="i in 6" :key="i" class="h-14 rounded-xl" />
+            </div>
 
-            <EmptyState
-                v-else-if="!departments.length"
-                title="Belum ada departemen"
-                description="Tambahkan departemen untuk mengelompokkan pegawai, jabatan, dan indikator KPI."
-                action-label="Tambah Departemen"
-                @action="openCreate"
-            />
+            <div v-else-if="!departments.length" class="py-16 text-center text-sm text-slate-400">
+                Belum ada departemen. Klik <strong>+ Tambah Departemen</strong> untuk memulai.
+            </div>
 
             <div v-else class="divide-y divide-slate-100">
                 <div

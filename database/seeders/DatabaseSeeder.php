@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
         $this->call(DepartmentSeeder::class);
         $this->call(PositionSeeder::class);
         $this->call(RoleSeeder::class);
+        $this->call(MultiTenantRoleSeeder::class);
+        $this->call(SuperAdminSeeder::class);
         $this->call(KpiIndicatorSeeder::class);
 
 
@@ -209,5 +211,8 @@ class DatabaseSeeder extends Seeder
         ] as $key => $value) {
             Setting::setValue($key, $value);
         }
+
+        // Multi-tenant: KPI templates and tenant user links
+        $this->call(KpiTemplateDemoSeeder::class);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\KpiIndicator;
+use App\Models\KpiComponent;
 use App\Models\KpiReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,18 +23,20 @@ class KpiReportApiTest extends TestCase
             'role' => 'hr_manager',
         ]);
 
-        $indicator = KpiIndicator::query()->create([
-            'name' => 'Capai target bulanan',
-            'description' => 'Monitoring harian',
-            'weight' => 1,
-            'default_target_value' => 100,
-            'formula' => ['type' => 'percentage'],
+        $component = KpiComponent::query()->create([
+            'jabatan' => $pegawai->jabatan,
+            'objectives' => 'Capai target bulanan',
+            'strategy' => 'Monitoring harian',
+            'bobot' => 1,
+            'target' => 100,
+            'tipe' => 'achievement',
+            'is_active' => true,
         ]);
 
         Sanctum::actingAs($pegawai);
 
         $response = $this->postJson('/api/kpi-reports', [
-            'kpi_indicator_id' => $indicator->id,
+            'kpi_component_id' => $component->id,
             'period_type' => 'monthly',
             'tanggal' => '2026-03-15',
             'period_label' => 'Maret 2026',
@@ -49,7 +51,7 @@ class KpiReportApiTest extends TestCase
 
         $this->assertDatabaseHas('kpi_reports', [
             'user_id' => $pegawai->id,
-            'kpi_indicator_id' => $indicator->id,
+            'kpi_component_id' => $component->id,
             'status' => 'submitted',
         ]);
 
@@ -74,17 +76,19 @@ class KpiReportApiTest extends TestCase
             'role' => 'pegawai',
         ]);
 
-        $indicator = KpiIndicator::query()->create([
-            'name' => 'Capai target mingguan',
-            'description' => 'Koordinasi rutin',
-            'weight' => 1,
-            'default_target_value' => 50,
-            'formula' => ['type' => 'percentage'],
+        $component = KpiComponent::query()->create([
+            'jabatan' => $pegawai->jabatan,
+            'objectives' => 'Capai target mingguan',
+            'strategy' => 'Koordinasi rutin',
+            'bobot' => 1,
+            'target' => 50,
+            'tipe' => 'achievement',
+            'is_active' => true,
         ]);
 
         $report = KpiReport::query()->create([
             'user_id' => $pegawai->id,
-            'kpi_indicator_id' => $indicator->id,
+            'kpi_component_id' => $component->id,
             'period_type' => 'weekly',
             'tanggal' => '2026-04-10',
             'period_label' => 'Minggu 2 April 2026',
@@ -99,7 +103,7 @@ class KpiReportApiTest extends TestCase
         Sanctum::actingAs($pegawai);
 
         $response = $this->putJson("/api/kpi-reports/{$report->id}", [
-            'kpi_indicator_id' => $indicator->id,
+            'kpi_component_id' => $component->id,
             'period_type' => 'weekly',
             'tanggal' => '2026-04-10',
             'period_label' => 'Minggu 2 April 2026',

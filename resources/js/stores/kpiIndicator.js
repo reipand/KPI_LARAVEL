@@ -4,7 +4,7 @@ import api from '@/services/api';
 
 export const useKpiIndicatorStore = defineStore('kpi-indicator', () => {
     const indicators = ref([]);
-    const meta = reactive({ departments: [], positions: [], formula_types: [] });
+    const meta = reactive({ departments: [], roles: [], formula_types: [] });
     const isLoading = ref(false);
     const isMetaLoading = ref(false);
 
@@ -23,7 +23,7 @@ export const useKpiIndicatorStore = defineStore('kpi-indicator', () => {
         try {
             const { data: resp } = await api.get('/kpi-indicators/meta');
             meta.departments = resp.data?.departments || [];
-            meta.positions = resp.data?.positions || [];
+            meta.roles = resp.data?.roles || [];
             meta.formula_types = resp.data?.formula_types || [];
         } finally {
             isMetaLoading.value = false;

@@ -2,26 +2,81 @@
     "openapi": "3.0.0",
     "info": {
         "title": "KPI Laravel API",
-        "description": "API untuk sistem manajemen KPI karyawan",
+        "description": "Multi-tenant HR KPI platform. Covers v1 (existing) and v2 (multi-tenant) endpoints.",
         "contact": {
-            "email": "admin@example.com"
+            "email": "admin@system.local"
         },
-        "version": "1.0.0"
+        "version": "2.0.0"
     },
     "servers": [
         {
-            "url": "/api",
-            "description": "API Server"
+            "url": "http://my-default-host.com",
+            "description": "Local / Development"
         }
     ],
     "paths": {
-        "/auth/login": {
+        "/api/v2/audit-logs": {
+            "get": {
+                "tags": [
+                    "Audit Logs"
+                ],
+                "summary": "List audit logs with filters",
+                "operationId": "272fea277c166836936172c41a74c7a5",
+                "parameters": [
+                    {
+                        "name": "module_name",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "action_name",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated audit log list"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/auth/login": {
             "post": {
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Login pegawai",
-                "operationId": "99d66635c4992aeaa6aa44ff653d0563",
+                "summary": "Login with NIP and Nama",
+                "operationId": "dd51a484b7fa0f97c7680fdbde14cf5f",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -34,7 +89,7 @@
                                 "properties": {
                                     "nip": {
                                         "type": "string",
-                                        "example": "198001012010011001"
+                                        "example": "EMP-001"
                                     },
                                     "nama": {
                                         "type": "string",
@@ -42,7 +97,7 @@
                                     },
                                     "device_name": {
                                         "type": "string",
-                                        "example": "Chrome"
+                                        "example": "Chrome/Windows"
                                     }
                                 },
                                 "type": "object"
@@ -52,109 +107,641 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Login berhasil — token dikembalikan"
+                        "description": "Login successful — returns bearer token and user"
                     },
                     "422": {
-                        "description": "NIP atau nama tidak valid"
+                        "description": "Invalid NIP or Nama"
                     },
                     "429": {
-                        "description": "Terlalu banyak percobaan"
+                        "description": "Too many attempts"
                     }
                 }
             }
         },
-        "/auth/logout": {
+        "/api/auth/logout": {
             "post": {
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Logout",
-                "operationId": "6abf3b64a4bc7838d56346f05a5153af",
+                "summary": "Logout and revoke current token",
+                "operationId": "df9bdc6c7a6d9f20b983526b2ec0f698",
                 "responses": {
                     "200": {
-                        "description": "Logout berhasil"
+                        "description": "Logout successful"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             }
         },
-        "/auth/me": {
+        "/api/auth/me": {
             "get": {
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Data user yang sedang login",
-                "operationId": "7edae2cdbaafc10dff8c9c4198b320a2",
+                "summary": "Get authenticated user profile",
+                "operationId": "b5de204f5e452ef51327c691aa99e77c",
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Current user data"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             }
         },
-        "/departments": {
+        "/api/v2/kpi/assignments": {
             "get": {
                 "tags": [
-                    "Department"
+                    "KPI Assignments"
                 ],
-                "summary": "Daftar departemen",
-                "operationId": "ed301ff184301a8a43e12f111f178491",
-                "parameters": [
-                    {
-                        "name": "active_only",
-                        "in": "query",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    }
-                ],
+                "summary": "List assignments",
+                "operationId": "7903cb387ea7493f122f3b2e8d0c13dc",
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Success"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             },
             "post": {
                 "tags": [
-                    "Department"
+                    "KPI Assignments"
                 ],
-                "summary": "Buat departemen baru",
-                "operationId": "aba3da4ceba085b4372b051408640129",
+                "summary": "Create assignment",
+                "operationId": "697bb12fb92b78f045bd541967f58120",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/assignments/{id}": {
+            "get": {
+                "tags": [
+                    "KPI Assignments"
+                ],
+                "summary": "Get assignment details",
+                "operationId": "e59a183e8fccbd9a6e8e852728d016fc",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/assignments/{id}/submit": {
+            "post": {
+                "tags": [
+                    "KPI Assignments"
+                ],
+                "summary": "Employee submits results",
+                "description": "Employee submits their KPI values.",
+                "operationId": "7a74e21f7a6d325c9503bbf548872ed3",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/assignments/{id}/approve": {
+            "post": {
+                "tags": [
+                    "KPI Assignments"
+                ],
+                "summary": "HR/Manager approves",
+                "description": "Reviewer approves the KPI submission.",
+                "operationId": "d3853d967d0389e0870073f55ffc0a8a",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/assignments/{id}/reject": {
+            "post": {
+                "tags": [
+                    "KPI Assignments"
+                ],
+                "summary": "HR/Manager rejects",
+                "description": "Reviewer rejects the KPI submission.",
+                "operationId": "410d74981cd477d590b07d926fed8ea7",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/assignments/mine": {
+            "get": {
+                "tags": [
+                    "KPI Assignments"
+                ],
+                "summary": "Get my own assignments",
+                "description": "My assignments — for currently authenticated employee.",
+                "operationId": "fa7ec662fe6b75818d7cb7608b111b8f",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/templates": {
+            "get": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "List KPI templates",
+                "operationId": "9a94a9cebcd88c04b239eaa5efe3c149",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Create KPI template",
+                "operationId": "079a27dfc90ea78e755f80c71700ffdb",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/templates/{id}": {
+            "get": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Get template with indicators",
+                "operationId": "e225ec9fb1d05b8f404fae059b3cc7a2",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Update KPI template",
+                "operationId": "7cbd55a122308a3b03b31739eb21dd3b",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Soft-delete KPI template",
+                "operationId": "fa5e8ae9e0b1edb1e971d77b81ec07e4",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/templates/{id}/indicators": {
+            "post": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Add indicator to template",
+                "operationId": "699670601d5cc73533fa54e2bebe9462",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/kpi/templates/{templateId}/indicators/{id}": {
+            "put": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Update indicator",
+                "operationId": "f17eb88d67443bf8e1c81d6859a0c165",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "KPI Templates"
+                ],
+                "summary": "Remove indicator",
+                "operationId": "adfda8583aea53e78f3ddc04dca2c634",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/reports/kpi-summary": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "KPI summary aggregated by period",
+                "operationId": "1a5c56ec43c2654729b708581dfc3986",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/reports/employee-performance": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Employee performance list",
+                "operationId": "0415581a8b5479c94e8932a811091f83",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/reports/department-performance": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Department performance summary",
+                "operationId": "1b26fb096c512be363b5b074a0746875",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/reports/export/employee-pdf": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Export employee KPI as PDF",
+                "operationId": "99749cc7b773a06c5d30af51008a7403",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/reports/export/summary-pdf": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Export KPI summary as PDF",
+                "operationId": "55ab975a7ffe92c9452486af44ee2caa",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/tasks/v2": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "List tasks",
+                "operationId": "bbb60afd56305d742176f1c0ad6b666d",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create task",
+                "operationId": "a87717531539b37beb1e4012ca87d9e3",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/tasks/v2/{id}": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Get task",
+                "operationId": "1867c950f4feb6402273bdaed068d567",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Update task",
+                "operationId": "ef1893e73f32eeb2448ccd6a07db73d0",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Delete task",
+                "operationId": "bd034f49fd9752d64630c4bf58309f41",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/tasks/v2/mine": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Get my tasks",
+                "operationId": "09122c0971e6291eec64e6a3f595d60d",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/tenants": {
+            "get": {
+                "tags": [
+                    "Tenants"
+                ],
+                "summary": "List all tenants (paginated)",
+                "operationId": "671572354240e95ced976177b8636c54",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "active",
+                                "inactive",
+                                "suspended"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated tenant list"
+                    },
+                    "403": {
+                        "description": "Forbidden — super_admin only"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tenants"
+                ],
+                "summary": "Create a new tenant",
+                "operationId": "f546e35f79b5090a5c125a950235dbb7",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "nama",
-                                    "kode"
+                                    "tenant_code",
+                                    "tenant_name"
                                 ],
                                 "properties": {
-                                    "nama": {
+                                    "tenant_code": {
                                         "type": "string",
-                                        "example": "Keuangan"
+                                        "example": "COMP-001"
                                     },
-                                    "kode": {
+                                    "tenant_name": {
                                         "type": "string",
-                                        "example": "KEU"
+                                        "example": "PT Example"
                                     },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "example": true
+                                    "domain": {
+                                        "type": "string",
+                                        "example": "app.example.com"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "inactive",
+                                            "suspended"
+                                        ]
+                                    },
+                                    "contact_email": {
+                                        "type": "string",
+                                        "example": "admin@example.com"
+                                    },
+                                    "contact_phone": {
+                                        "type": "string",
+                                        "example": "+628123456789"
+                                    },
+                                    "address": {
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -164,117 +751,31 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Departemen berhasil dibuat"
+                        "description": "Tenant created"
                     },
                     "422": {
-                        "description": "Validasi gagal"
+                        "description": "Validation error"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             }
         },
-        "/departments/{id}": {
-            "put": {
-                "tags": [
-                    "Department"
-                ],
-                "summary": "Update departemen",
-                "operationId": "7bed210c31f95f387c16fa4193171dba",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "nama": {
-                                        "type": "string"
-                                    },
-                                    "kode": {
-                                        "type": "string"
-                                    },
-                                    "is_active": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            },
-            "delete": {
-                "tags": [
-                    "Department"
-                ],
-                "summary": "Hapus departemen",
-                "operationId": "2b560600ee506df27168d372230feca2",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "409": {
-                        "description": "Masih ada data terkait"
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
-        "/positions": {
+        "/api/v2/tenants/{id}": {
             "get": {
                 "tags": [
-                    "Position"
+                    "Tenants"
                 ],
-                "summary": "Daftar jabatan",
-                "operationId": "6f79c0e8130875799b286018643418b0",
+                "summary": "Get a single tenant with counts",
+                "operationId": "44a0a98f22695be71879b8dbfd782057",
                 "parameters": [
                     {
-                        "name": "active_only",
-                        "in": "query",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    },
-                    {
-                        "name": "department_id",
-                        "in": "query",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
                         "schema": {
                             "type": "integer"
                         }
@@ -282,50 +783,58 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Tenant detail"
+                    },
+                    "404": {
+                        "description": "Not found"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             },
-            "post": {
+            "put": {
                 "tags": [
-                    "Position"
+                    "Tenants"
                 ],
-                "summary": "Buat jabatan baru",
-                "operationId": "8fdc6aa26904343e6835a0593cc47432",
+                "summary": "Update a tenant",
+                "operationId": "d02cbca7264081b1cf0524e4f904f0aa",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "nama",
-                                    "department_id"
-                                ],
                                 "properties": {
-                                    "nama": {
+                                    "tenant_name": {
+                                        "type": "string"
+                                    },
+                                    "domain": {
+                                        "type": "string"
+                                    },
+                                    "status": {
                                         "type": "string",
-                                        "example": "Staff Keuangan"
+                                        "enum": [
+                                            "active",
+                                            "inactive",
+                                            "suspended"
+                                        ]
                                     },
-                                    "kode": {
-                                        "type": "string",
-                                        "example": "STF-KEU"
+                                    "contact_email": {
+                                        "type": "string"
                                     },
-                                    "department_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    },
-                                    "level": {
-                                        "type": "string",
-                                        "example": "Staff"
-                                    },
-                                    "is_active": {
-                                        "type": "boolean",
-                                        "example": true
+                                    "address": {
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -334,24 +843,27 @@
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Jabatan berhasil dibuat"
+                    "200": {
+                        "description": "Tenant updated"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             }
         },
-        "/positions/{id}": {
-            "put": {
+        "/api/v2/tenants/{id}/activate": {
+            "patch": {
                 "tags": [
-                    "Position"
+                    "Tenants"
                 ],
-                "summary": "Update jabatan",
-                "operationId": "454a2fd8afd4bcf6c6957991911a7b9a",
+                "summary": "Activate a tenant",
+                "operationId": "5837fb8ca44c9dfb43542e2d4f48373f",
                 "parameters": [
                     {
                         "name": "id",
@@ -362,50 +874,25 @@
                         }
                     }
                 ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "nama": {
-                                        "type": "string"
-                                    },
-                                    "kode": {
-                                        "type": "string"
-                                    },
-                                    "department_id": {
-                                        "type": "integer"
-                                    },
-                                    "level": {
-                                        "type": "string"
-                                    },
-                                    "is_active": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Tenant activated"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
-            },
-            "delete": {
+            }
+        },
+        "/api/v2/tenants/{id}/deactivate": {
+            "patch": {
                 "tags": [
-                    "Position"
+                    "Tenants"
                 ],
-                "summary": "Hapus jabatan",
-                "operationId": "caa5db42ec92dadd0228d3cc24d4d9b5",
+                "summary": "Deactivate a tenant",
+                "operationId": "d4dfc262a69713acce693f2df018e636",
                 "parameters": [
                     {
                         "name": "id",
@@ -418,12 +905,12 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Tenant deactivated"
                     }
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearerAuth": []
                     }
                 ]
             }
@@ -431,9 +918,9 @@
     },
     "components": {
         "securitySchemes": {
-            "sanctum": {
+            "bearerAuth": {
                 "type": "http",
-                "description": "Masukkan token dari endpoint /auth/login",
+                "description": "Include: Bearer {token}",
                 "bearerFormat": "JWT",
                 "scheme": "bearer"
             }
@@ -442,15 +929,31 @@
     "tags": [
         {
             "name": "Auth",
-            "description": "Autentikasi"
+            "description": "Login and user session"
         },
         {
-            "name": "Department",
-            "description": "Manajemen Departemen"
+            "name": "Tenants",
+            "description": "Super Admin: tenant lifecycle management"
         },
         {
-            "name": "Position",
-            "description": "Manajemen Jabatan"
+            "name": "KPI Templates",
+            "description": "Reusable KPI template + indicator CRUD"
+        },
+        {
+            "name": "KPI Assignments",
+            "description": "Assign templates to employees, submit and review"
+        },
+        {
+            "name": "Tasks",
+            "description": "Task management v1 and v2"
+        },
+        {
+            "name": "Reports",
+            "description": "KPI summary and performance reports + PDF export"
+        },
+        {
+            "name": "Audit Logs",
+            "description": "Immutable activity log viewer"
         }
     ]
 }

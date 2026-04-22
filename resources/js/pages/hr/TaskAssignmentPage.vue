@@ -5,19 +5,16 @@ import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
 import Textarea from '@/components/ui/Textarea.vue';
 import Alert from '@/components/ui/Alert.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import { ClipboardList, CheckCircle2, Clock, Users } from 'lucide-vue-next';
-import PageHeader from '@/components/shared/PageHeader.vue';
-import MetricCard from '@/components/shared/MetricCard.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
-import LoadingRows from '@/components/shared/LoadingRows.vue';
 import { useToast } from '@/composables/useToast';
 import { useTaskAssignmentStore } from '@/stores/taskAssignment';
 import { useEmployeeStore } from '@/stores/employee';
-import { useKpiIndicatorStore } from '@/stores/kpiIndicator';
+import { useKpiComponentStore } from '@/stores/kpiComponent';
 
 const store = useTaskAssignmentStore();
 const empStore = useEmployeeStore();
-const kpiIndicatorStore = useKpiIndicatorStore();
+const kpiComponentStore = useKpiComponentStore();
 const toast = useToast();
 
 const showForm = ref(false);
@@ -34,7 +31,7 @@ const emptyForm = () => ({
     start_date: '',
     end_date: '',
     jenis_pekerjaan: 'Task KPI',
-    kpi_indicator_id: '',
+    kpi_component_id: '',
     weight: '',
     target_value: '',
     status: 'Pending',
@@ -44,8 +41,8 @@ const form = reactive(emptyForm());
 const errors = reactive({});
 
 const tasks = computed(() => store.assignedTasks);
-const selectedKpiIndicator = computed(() =>
-    kpiIndicatorStore.indicators.find((ind) => String(ind.id) === String(form.kpi_indicator_id))
+const selectedKpiComponent = computed(() =>
+    kpiComponentStore.components.find((component) => String(component.id) === String(form.kpi_component_id))
 );
 
 const summary = computed(() => ({
@@ -56,11 +53,18 @@ const summary = computed(() => ({
 }));
 
 const summaryCards = [
-    { key: 'total',      label: 'Total Tugas',   icon: ClipboardList, tone: 'neutral', hint: 'Seluruh assignment aktif' },
-    { key: 'done',       label: 'Selesai',        icon: CheckCircle2,  tone: 'excellent', hint: 'Tugas sudah tuntas' },
-    { key: 'inProgress', label: 'Dalam Proses',   icon: Clock,         tone: 'average', hint: 'Sedang dikerjakan' },
-    { key: 'pending',    label: 'Pending',         icon: Users,         tone: 'bad', hint: 'Butuh follow-up HR' },
+    { key: 'total',      label: 'Total Tugas',   icon: ClipboardList, color: 'blue' },
+    { key: 'done',       label: 'Selesai',        icon: CheckCircle2,  color: 'emerald' },
+    { key: 'inProgress', label: 'Dalam Proses',   icon: Clock,         color: 'amber' },
+    { key: 'pending',    label: 'Pending',         icon: Users,         color: 'violet' },
 ];
+
+const colorSchemes = {
+    blue:    { border: 'border-blue-200',    icon: 'text-blue-500 bg-blue-50',    value: 'text-blue-700' },
+    emerald: { border: 'border-emerald-200', icon: 'text-emerald-500 bg-emerald-50', value: 'text-emerald-700' },
+    amber:   { border: 'border-amber-200',   icon: 'text-amber-500 bg-amber-50',  value: 'text-amber-700' },
+    violet:  { border: 'border-violet-200',  icon: 'text-violet-500 bg-violet-50', value: 'text-violet-700' },
+};
 
 const statusOptions = [
     { value: 'Pending',       label: 'Pending' },
@@ -78,7 +82,7 @@ onMounted(async () => {
     await Promise.all([
         store.fetchAssignedTasks(),
         empStore.fetchEmployees ? empStore.fetchEmployees() : empStore.fetchEmployees?.(),
-        kpiIndicatorStore.fetchIndicators(),
+        kpiComponentStore.fetchComponents({ is_active: true }),
     ]);
 });
 
@@ -106,7 +110,7 @@ function openEdit(task) {
         start_date:   task.start_date ?? '',
         end_date:     task.end_date ?? '',
         jenis_pekerjaan: task.jenis_pekerjaan ?? 'Task KPI',
-        kpi_indicator_id: task.kpi_indicator_id ?? task.kpiIndicator?.id ?? '',
+        kpi_component_id: task.kpi_component_id ?? task.kpi_component?.id ?? '',
         weight:       task.weight ?? '',
         target_value: task.target_value ?? '',
         status:       task.status ?? 'Pending',
@@ -114,17 +118,16 @@ function openEdit(task) {
     showForm.value = true;
 }
 
-function applyIndicatorDefaults() {
-    const indicator = selectedKpiIndicator.value;
-    if (!indicator) return;
+function applyKpiComponentDefaults() {
+    const component = selectedKpiComponent.value;
 
-    form.jenis_pekerjaan = indicator.name || 'Task KPI';
-    if (indicator.weight !== null && indicator.weight !== undefined) {
-        form.weight = Number(indicator.weight);
-    }
-    if (indicator.default_target_value !== null && indicator.default_target_value !== undefined) {
-        form.target_value = indicator.default_target_value;
-    }
+    if (!component) return;
+
+    form.jenis_pekerjaan = component.objectives || 'Task KPI';
+    form.weight = component.bobot !== null && component.bobot !== undefined
+        ? Number(component.bobot) * 100
+        : form.weight;
+    form.target_value = component.target ?? form.target_value;
 }
 
 function validate() {
@@ -158,7 +161,7 @@ async function submit() {
             start_date:   form.start_date,
             end_date:     form.end_date,
             jenis_pekerjaan: form.jenis_pekerjaan || 'Task KPI',
-            kpi_indicator_id: form.kpi_indicator_id ? Number(form.kpi_indicator_id) : null,
+            kpi_component_id: form.kpi_component_id ? Number(form.kpi_component_id) : null,
             weight:       form.weight !== '' ? Number(form.weight) : null,
             target_value: form.target_value !== '' ? Number(form.target_value) : null,
             status:       form.status,
@@ -214,35 +217,36 @@ function isOverdue(task) {
             </button>
         </template>
 
-        <PageHeader
-            eyebrow="HR Panel - Manajemen Tugas"
-            title="Penugasan Tugas"
-            description="Tetapkan tugas khusus kepada pegawai dengan deadline, bobot KPI, status, dan target yang jelas."
-        >
-            <template #actions>
-                <button class="btn-primary" @click="openCreate">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Tetapkan Tugas
-                </button>
-            </template>
-        </PageHeader>
+        <!-- Hero -->
+        <section class="page-hero">
+            <div>
+                <div class="page-hero-meta">HR Panel · Manajemen Tugas</div>
+                <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Penugasan Tugas</h2>
+                <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
+                    Tetapkan tugas khusus kepada pegawai dengan rentang waktu dan bobot KPI tersendiri.
+                </p>
+            </div>
+        </section>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
+        <div class="grid grid-cols-2 gap-6 lg:grid-cols-4">
+            <div
                 v-for="card in summaryCards"
                 :key="card.key"
-                :label="card.label"
-                :value="summary[card.key]"
-                :hint="card.hint"
-                :tone="card.tone"
+                :class="['group relative overflow-hidden rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md', colorSchemes[card.color].border]"
             >
-                <template #icon>
-                    <component :is="card.icon" class="h-5 w-5" />
-                </template>
-            </MetricCard>
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">{{ card.label }}</p>
+                        <p :class="['mt-2 tabular-nums tracking-tight text-3xl font-bold', colorSchemes[card.color].value]">
+                            {{ summary[card.key] }}
+                        </p>
+                    </div>
+                    <div :class="['flex h-10 w-10 items-center justify-center rounded-xl', colorSchemes[card.color].icon]">
+                        <component :is="card.icon" class="h-5 w-5" />
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Task List -->
@@ -254,7 +258,9 @@ function isOverdue(task) {
 
             <div class="p-6">
                 <template v-if="store.isLoading">
-                    <LoadingRows :rows="6" />
+                    <div class="space-y-3">
+                        <Skeleton v-for="i in 6" :key="i" class="h-16 rounded-2xl" />
+                    </div>
                 </template>
 
                 <template v-else-if="tasks.length">
@@ -301,13 +307,12 @@ function isOverdue(task) {
                     </div>
                 </template>
 
-                <EmptyState
-                    v-else
-                    title="Belum ada tugas yang ditetapkan"
-                    description="Tambahkan assignment KPI agar pekerjaan pegawai dapat dipantau dengan deadline dan status yang jelas."
-                    action-label="Tetapkan Tugas"
-                    @action="openCreate"
-                />
+                <div v-else class="py-14 text-center">
+                    <svg class="mx-auto mb-3 h-10 w-10 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>
+                    </svg>
+                    <p class="text-sm text-slate-400">Belum ada tugas yang ditetapkan.</p>
+                </div>
             </div>
         </section>
 
@@ -338,19 +343,19 @@ function isOverdue(task) {
                 </div>
 
                 <div>
-                    <label class="form-label">Indikator KPI</label>
-                    <select v-model="form.kpi_indicator_id" class="form-input" @change="applyIndicatorDefaults">
-                        <option value="">— Tanpa indikator KPI —</option>
+                    <label class="form-label">Komponen KPI</label>
+                    <select v-model="form.kpi_component_id" class="form-input" @change="applyKpiComponentDefaults">
+                        <option value="">Tanpa komponen KPI</option>
                         <option
-                            v-for="indicator in kpiIndicatorStore.indicators"
-                            :key="indicator.id"
-                            :value="indicator.id"
+                            v-for="component in kpiComponentStore.components"
+                            :key="component.id"
+                            :value="component.id"
                         >
-                            {{ indicator.name }} ({{ indicator.weight }}%)
+                            {{ component.objectives }} - {{ component.jabatan || 'Semua Jabatan' }}
                         </option>
                     </select>
                     <p class="mt-1 text-[11px] text-slate-400">
-                        Jika dipilih, bobot dan target default akan diisi otomatis dan tetap bisa disesuaikan.
+                        Jika dipilih, bobot dan target akan mengikuti komponen KPI dan tetap bisa disesuaikan.
                     </p>
                 </div>
 

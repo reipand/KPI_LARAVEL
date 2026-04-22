@@ -33,15 +33,6 @@ export const useNotificationStore = defineStore('notification', () => {
         notifications.value.forEach((n) => (n.is_read = true));
     }
 
-    function addRealtime(notif) {
-        notifications.value.unshift(notif);
-    }
-
-    async function deleteNotification(id) {
-        await api.delete(`/notifications/${id}`);
-        notifications.value = notifications.value.filter((n) => n.id !== id);
-    }
-
     return {
         notifications,
         isLoading,
@@ -50,7 +41,5 @@ export const useNotificationStore = defineStore('notification', () => {
         fetchNotifications,
         markRead,
         markAllRead,
-        addRealtime,
-        deleteNotification,
     };
 });

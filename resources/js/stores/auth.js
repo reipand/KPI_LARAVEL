@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/services/api';
-import router from '@/router';
+import router, { defaultRouteForRole } from '@/router';
 import { readStoredUser } from '@/lib/authStorage';
-import { useNotification } from '@/composables/useNotification';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(readStoredUser());
@@ -31,18 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.setItem('token', rawToken);
             localStorage.setItem('user', JSON.stringify(rawUser));
 
-            // Update Echo auth header so private channels work after login
-            if (window.Echo) {
-                window.Echo.options.auth.headers.Authorization = `Bearer ${rawToken}`;
-            }
-
-            useNotification().init(rawUser.id);
-
-            // Arahkan berdasarkan role
-            const role = rawUser.role;
-            if (role === 'hr_manager') router.push('/hr/dashboard');
-            else if (role === 'direktur') router.push('/direktur/dashboard');
-            else router.push('/dashboard');
+            router.push(defaultRouteForRole(rawUser.role));
 
             return resp;
         } finally {
@@ -75,12 +63,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function clearState() {
-        useNotification().cleanup();
         user.value = null;
         token.value = null;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
     }
 
-    return { user, token, isLoading, isLoggedIn, isPegawai, isHR, isDirektur, login, logout, fetchMe };
+    const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
+
+    return { user, token, isLoading, isLoggedIn, isPegawai, isHR, isDirektur, isSuperAdmin, login, logout, fetchMe };
 });

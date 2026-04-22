@@ -4,7 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
+<<<<<<< HEAD
+    "content-hash": "8f429bc4ff662c4bd1c637e8de1afec7",
+=======
     "content-hash": "d3bc56ee51ebd579c90f9ff90a13f6bc",
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -415,6 +419,8 @@
             "time": "2024-02-09T16:56:22+00:00"
         },
         {
+<<<<<<< HEAD
+=======
             "name": "cuyz/valinor",
             "version": "2.4.0",
             "source": {
@@ -492,6 +498,7 @@
             "time": "2026-03-23T17:38:05+00:00"
         },
         {
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
             "name": "darkaonline/l5-swagger",
             "version": "11.0.1",
             "source": {
@@ -572,6 +579,8 @@
             "time": "2026-04-08T13:14:00+00:00"
         },
         {
+<<<<<<< HEAD
+=======
             "name": "dedoc/scramble",
             "version": "v0.13.20",
             "source": {
@@ -652,6 +661,7 @@
             "time": "2026-04-16T14:13:35+00:00"
         },
         {
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
             "name": "dflydev/dot-access-data",
             "version": "v3.0.3",
             "source": {
@@ -5199,6 +5209,8 @@
             "time": "2026-03-22T23:03:24+00:00"
         },
         {
+<<<<<<< HEAD
+=======
             "name": "pusher/pusher-php-server",
             "version": "7.2.7",
             "source": {
@@ -5260,6 +5272,7 @@
             "time": "2025-01-06T10:56:20+00:00"
         },
         {
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
             "name": "radebatz/type-info-extras",
             "version": "1.0.7",
             "source": {
@@ -5873,6 +5886,8 @@
             "time": "2026-04-15T09:05:22+00:00"
         },
         {
+<<<<<<< HEAD
+=======
             "name": "symfony/cache",
             "version": "v7.4.8",
             "source": {
@@ -6053,6 +6068,7 @@
             "time": "2025-03-13T15:25:07+00:00"
         },
         {
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
             "name": "symfony/clock",
             "version": "v8.0.8",
             "source": {
@@ -8509,6 +8525,8 @@
             "time": "2026-03-31T07:15:36+00:00"
         },
         {
+<<<<<<< HEAD
+=======
             "name": "symfony/var-exporter",
             "version": "v8.0.8",
             "source": {
@@ -8589,6 +8607,7 @@
             "time": "2026-03-30T15:14:47+00:00"
         },
         {
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
             "name": "symfony/yaml",
             "version": "v8.0.8",
             "source": {
@@ -9017,7 +9036,11 @@
                     "type": "tidelift"
                 }
             ],
+<<<<<<< HEAD
+            "time": "2024-11-21T01:49:47+00:00"
+=======
             "time": "2026-04-16T23:10:39+00:00"
+>>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
         },
         {
             "name": "zircote/swagger-php",

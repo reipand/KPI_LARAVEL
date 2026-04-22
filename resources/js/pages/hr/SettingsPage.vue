@@ -3,9 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Alert from '@/components/ui/Alert.vue';
 import Input from '@/components/ui/Input.vue';
-import PageHeader from '@/components/shared/PageHeader.vue';
-import EmptyState from '@/components/shared/EmptyState.vue';
-import LoadingRows from '@/components/shared/LoadingRows.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import { useSettingStore } from '@/stores/setting';
 import { useToast } from '@/composables/useToast';
 
@@ -46,22 +44,18 @@ async function submit() {
 
 <template>
     <AppLayout>
-        <PageHeader
-            eyebrow="HR Panel"
-            title="Pengaturan Aplikasi"
-            description="Perbarui parameter umum aplikasi KPI tanpa mengubah file konfigurasi manual."
-        />
-
         <section class="dashboard-panel overflow-hidden">
             <div class="border-b border-slate-200 px-6 py-5">
                 <p class="section-heading">HR Panel</p>
-                <h2 class="mt-2 text-xl font-bold text-slate-900">Parameter Sistem</h2>
-                <p class="mt-1 text-sm text-slate-500">Semua perubahan disimpan sebagai setting aplikasi.</p>
+                <h2 class="mt-2 text-xl font-bold text-slate-900">Pengaturan Aplikasi</h2>
+                <p class="mt-1 text-sm text-slate-500">Perbarui parameter umum aplikasi KPI tanpa mengubah file konfigurasi manual.</p>
             </div>
 
             <div class="p-6">
                 <template v-if="store.isLoading">
-                    <LoadingRows :rows="5" />
+                    <div class="space-y-4">
+                        <Skeleton v-for="i in 5" :key="i" class="h-16 rounded-2xl" />
+                    </div>
                 </template>
 
                 <template v-else-if="settingList.length">
@@ -81,11 +75,9 @@ async function submit() {
                     </div>
                 </template>
 
-                <EmptyState
-                    v-else
-                    title="Belum ada data pengaturan"
-                    description="Data setting belum tersedia dari API."
-                />
+                <div v-else class="py-12 text-center text-sm text-slate-400">
+                    Belum ada data pengaturan.
+                </div>
             </div>
         </section>
     </AppLayout>

@@ -112,6 +112,31 @@ function navigate(to) {
 }
 
 const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUpperCase());
+
+navMap.super_admin = [
+    {
+        section: 'Super Admin',
+        items: [
+            { label: 'Tenant', to: '/admin/tenants', icon: `<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M12 10h.01M15 10h.01"/>` },
+            { label: 'Template KPI', to: '/admin/kpi/templates', icon: `<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>` },
+            { label: 'Assignment KPI', to: '/admin/kpi/assignments', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/>` },
+            { label: 'Laporan', to: '/admin/reports', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
+            { label: 'Audit Logs', to: '/admin/audit-logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
+        ],
+    },
+];
+
+navMap.tenant_admin = [
+    {
+        section: 'Tenant Admin',
+        items: [
+            { label: 'Template KPI', to: '/admin/kpi/templates', icon: `<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>` },
+            { label: 'Assignment KPI', to: '/admin/kpi/assignments', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/>` },
+            { label: 'Laporan', to: '/admin/reports', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
+            { label: 'Audit Logs', to: '/admin/audit-logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
+        ],
+    },
+];
 </script>
 
 <template>

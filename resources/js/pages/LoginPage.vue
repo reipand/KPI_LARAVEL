@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
@@ -10,7 +10,6 @@ const auth = useAuthStore();
 const form = reactive({ nip: '', nama: '' });
 const errors = reactive({ nip: '', nama: '' });
 const apiError = ref('');
-const currentYear = computed(() => new Date().getFullYear());
 
 function validate() {
     let valid = true;
@@ -136,8 +135,6 @@ async function handleLogin() {
                         <div class="font-semibold text-slate-700">Akses bantuan</div>
                         <p class="mt-1 leading-6">Jika gagal login, cek kembali kecocokan NIP dan nama pegawai pada data master.</p>
                     </div>
-
-                    <p class="mt-6 text-center text-xs text-slate-400">© {{ currentYear }} BASS Training.</p>
                 </div>
             </section>
         </div>
