@@ -5,14 +5,10 @@
         "This file is @generated automatically"
     ],
 <<<<<<< HEAD
-<<<<<<< HEAD
     "content-hash": "8f429bc4ff662c4bd1c637e8de1afec7",
 =======
     "content-hash": "d3bc56ee51ebd579c90f9ff90a13f6bc",
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
-    "content-hash": "8f429bc4ff662c4bd1c637e8de1afec7",
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -424,7 +420,6 @@
         },
         {
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
             "name": "cuyz/valinor",
             "version": "2.4.0",
@@ -504,8 +499,6 @@
         },
         {
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
             "name": "darkaonline/l5-swagger",
             "version": "11.0.1",
             "source": {
@@ -586,7 +579,6 @@
             "time": "2026-04-08T13:14:00+00:00"
         },
         {
-<<<<<<< HEAD
 <<<<<<< HEAD
 =======
             "name": "dedoc/scramble",
@@ -670,8 +662,6 @@
         },
         {
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
             "name": "dflydev/dot-access-data",
             "version": "v3.0.3",
             "source": {
@@ -5220,7 +5210,6 @@
         },
         {
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
             "name": "pusher/pusher-php-server",
             "version": "7.2.7",
@@ -5284,8 +5273,6 @@
         },
         {
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
             "name": "radebatz/type-info-extras",
             "version": "1.0.7",
             "source": {
@@ -5900,7 +5887,6 @@
         },
         {
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
             "name": "symfony/cache",
             "version": "v7.4.8",
@@ -6083,8 +6069,6 @@
         },
         {
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
             "name": "symfony/clock",
             "version": "v8.0.8",
             "source": {
@@ -8542,7 +8526,6 @@
         },
         {
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
             "name": "symfony/var-exporter",
             "version": "v8.0.8",
@@ -8625,8 +8608,6 @@
         },
         {
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
             "name": "symfony/yaml",
             "version": "v8.0.8",
             "source": {
@@ -9057,12 +9038,9 @@
             ],
 <<<<<<< HEAD
             "time": "2024-11-21T01:49:47+00:00"
-<<<<<<< HEAD
 =======
             "time": "2026-04-16T23:10:39+00:00"
 >>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
-=======
->>>>>>> 3a4a71c (feat: add employee KPI and summary PDF reports)
         },
         {
             "name": "zircote/swagger-php",

@@ -61,7 +61,7 @@
                             type="text"
                             name="nip"
                             class="form-input"
-                            placeholder="Contoh: BASS-HR-01-2026"
+                            placeholder="Contoh: BASS-XXXX-XXX-XXXX"
                             required
                             autofocus
                         >
