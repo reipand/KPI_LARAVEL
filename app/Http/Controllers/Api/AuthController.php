@@ -8,17 +8,13 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-<<<<<<< HEAD
 use Illuminate\Support\Str;
-=======
->>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends ApiController
 {
     #[OA\Post(
-<<<<<<< HEAD
         path: '/api/auth/login',
         summary: 'Login with NIP and Nama',
         tags: ['Auth'],
@@ -37,23 +33,6 @@ class AuthController extends ApiController
             new OA\Response(response: 200, description: 'Login successful — returns bearer token and user'),
             new OA\Response(response: 422, description: 'Invalid NIP or Nama'),
             new OA\Response(response: 429, description: 'Too many attempts'),
-=======
-        path: '/auth/login',
-        summary: 'Login pegawai',
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(
-            required: ['nip', 'nama'],
-            properties: [
-                new OA\Property(property: 'nip', type: 'string', example: '198001012010011001'),
-                new OA\Property(property: 'nama', type: 'string', example: 'Budi Santoso'),
-                new OA\Property(property: 'device_name', type: 'string', example: 'Chrome'),
-            ]
-        )),
-        tags: ['Auth'],
-        responses: [
-            new OA\Response(response: 200, description: 'Login berhasil — token dikembalikan'),
-            new OA\Response(response: 422, description: 'NIP atau nama tidak valid'),
-            new OA\Response(response: 429, description: 'Terlalu banyak percobaan'),
->>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
         ]
     )]
     public function login(LoginRequest $request)
@@ -119,7 +98,6 @@ class AuthController extends ApiController
         ], 'Login berhasil.');
     }
 
-<<<<<<< HEAD
     #[OA\Post(
         path: '/api/auth/logout',
         summary: 'Logout and revoke current token',
@@ -129,10 +107,6 @@ class AuthController extends ApiController
             new OA\Response(response: 200, description: 'Logout successful'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
-=======
-    #[OA\Post(path: '/auth/logout', summary: 'Logout', tags: ['Auth'], security: [['sanctum' => []]],
-        responses: [new OA\Response(response: 200, description: 'Logout berhasil')]
->>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
     )]
     public function logout(Request $request)
     {
@@ -151,7 +125,6 @@ class AuthController extends ApiController
         return $this->success(null, 'Logout berhasil.');
     }
 
-<<<<<<< HEAD
     #[OA\Get(
         path: '/api/auth/me',
         summary: 'Get authenticated user profile',
@@ -161,10 +134,6 @@ class AuthController extends ApiController
             new OA\Response(response: 200, description: 'Current user data'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
-=======
-    #[OA\Get(path: '/auth/me', summary: 'Data user yang sedang login', tags: ['Auth'], security: [['sanctum' => []]],
-        responses: [new OA\Response(response: 200, description: 'OK')]
->>>>>>> 3de153c416c7b43a6b38779657b4c198503ef3cc
     )]
     public function me(Request $request)
     {

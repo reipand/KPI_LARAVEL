@@ -15,37 +15,53 @@ return new class extends Migration
     {
         // ── Safety: drop any residual division_id columns on existing databases ─
         if (Schema::hasColumn('users', 'division_id')) {
+            // Drop FK first (MySQL won't drop idx_users_org_role while FK exists)
+            Schema::table('users', function (Blueprint $table) {
+                try { $table->dropForeign('users_division_id_foreign'); } catch (\Throwable) {}
+            });
             Schema::table('users', function (Blueprint $table) {
                 try { $table->dropIndex('idx_users_org_role'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('division_id');
+                $table->dropColumn('division_id');
             });
         }
 
         if (Schema::hasColumn('departments', 'division_id')) {
             Schema::table('departments', function (Blueprint $table) {
+                try { $table->dropForeign('departments_division_id_foreign'); } catch (\Throwable) {}
+            });
+            Schema::table('departments', function (Blueprint $table) {
                 try { $table->dropIndex('idx_dept_division_active'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('division_id');
+                $table->dropColumn('division_id');
             });
         }
 
         if (Schema::hasColumn('kpi_components', 'division_id')) {
             Schema::table('kpi_components', function (Blueprint $table) {
+                try { $table->dropForeign('kpi_components_division_id_foreign'); } catch (\Throwable) {}
+            });
+            Schema::table('kpi_components', function (Blueprint $table) {
                 try { $table->dropIndex('idx_kpi_comp_div_active'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('division_id');
+                $table->dropColumn('division_id');
             });
         }
 
         if (Schema::hasColumn('kpis', 'division_id')) {
             Schema::table('kpis', function (Blueprint $table) {
+                try { $table->dropForeign('kpis_division_id_foreign'); } catch (\Throwable) {}
+            });
+            Schema::table('kpis', function (Blueprint $table) {
                 try { $table->dropIndex('idx_kpis_div_active'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('division_id');
+                $table->dropColumn('division_id');
             });
         }
 
         if (Schema::hasTable('leaderboard') && Schema::hasColumn('leaderboard', 'division_id')) {
             Schema::table('leaderboard', function (Blueprint $table) {
+                try { $table->dropForeign('leaderboard_division_id_foreign'); } catch (\Throwable) {}
+            });
+            Schema::table('leaderboard', function (Blueprint $table) {
                 try { $table->dropIndex('idx_leader_period_div'); } catch (\Throwable) {}
-                $table->dropConstrainedForeignId('division_id');
+                $table->dropColumn('division_id');
                 if (Schema::hasColumn('leaderboard', 'rank_in_division')) {
                     $table->dropColumn('rank_in_division');
                 }

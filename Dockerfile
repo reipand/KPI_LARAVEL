@@ -3,7 +3,7 @@ FROM php:8.4-apache
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     libzip-dev zip unzip curl git \
-    && docker-php-ext-install pdo pdo_mysql zip \
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable mod_rewrite
