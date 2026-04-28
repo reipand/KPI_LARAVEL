@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
@@ -199,8 +199,8 @@ async function confirmDelete() {
         <Dialog v-model:open="showForm" :title="editMode ? 'Edit SLA' : 'Tambah SLA'" class="max-w-2xl">
             <Alert v-if="formError" variant="danger" class="mb-4">{{ formError }}</Alert>
 
-            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div class="md:col-span-2">
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
                     <label class="form-label">Nama Pekerjaan <span class="text-red-500">*</span></label>
                     <Input v-model="form.nama_pekerjaan" placeholder="Contoh: Pembuatan Invoice" />
                     <p v-if="errors.nama_pekerjaan" class="mt-1 text-xs text-red-500">{{ errors.nama_pekerjaan }}</p>
@@ -230,7 +230,7 @@ async function confirmDelete() {
                     <p v-if="errors.durasi_jam" class="mt-1 text-xs text-red-500">{{ errors.durasi_jam }}</p>
                 </div>
 
-                <div class="md:col-span-2">
+                <div class="sm:col-span-2">
                     <label class="form-label">Keterangan</label>
                     <Textarea v-model="form.keterangan" rows="3" placeholder="Keterangan atau syarat SLA..." />
                 </div>

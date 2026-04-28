@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
@@ -341,7 +341,7 @@ const statusBadgeMap = {
             </div>
         </section>
 
-        <section class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <section class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <div class="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                 <div class="flex items-start justify-between gap-2">
                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Total Pekerjaan</p>
@@ -515,11 +515,9 @@ const statusBadgeMap = {
             :title="editMode ? 'Edit Pekerjaan' : 'Input Pekerjaan Baru'"
             class="w-full max-w-lg sm:max-w-2xl"
         >
-            <!-- Scrollable body -->
-            <div class="max-h-[70vh] overflow-y-auto pr-1">
-                <div v-if="formError" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {{ formError }}
-                </div>
+            <div v-if="formError" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {{ formError }}
+            </div>
 
                 <p v-if="isAssignedTaskEdit" class="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                     Task dari HR — hanya status, waktu, indikator masalah, dan deskripsi yang bisa diubah.
@@ -657,7 +655,6 @@ const statusBadgeMap = {
                         </label>
                     </div>
                 </div>
-            </div>
 
             <!-- Footer buttons -->
             <div class="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">

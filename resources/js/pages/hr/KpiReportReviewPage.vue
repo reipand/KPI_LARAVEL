@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, reactive, watch } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Button from '@/components/ui/Button.vue';
@@ -171,7 +171,7 @@ function handlePageChange(page) {
                 </div>
             </div>
 
-            <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))]">
+            <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))]">
                 <div class="space-y-2">
                     <label class="form-label">Cari laporan</label>
                     <Input v-model="ui.search" placeholder="Cari nama pegawai, komponen KPI, atau catatan..." />

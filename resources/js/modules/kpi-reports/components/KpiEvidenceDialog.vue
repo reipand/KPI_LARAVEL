@@ -32,8 +32,8 @@ const isPdfEvidence = computed(() => evidenceExtension.value === 'pdf');
 </script>
 
 <template>
-    <Dialog :open="open" title="Evidence Laporan KPI" class="max-w-4xl rounded-[28px] p-0" @update:open="$emit('update:open', $event)">
-        <div class="p-6 space-y-4">
+    <Dialog :open="open" title="Evidence Laporan KPI" class="w-full max-w-lg sm:max-w-3xl" @update:open="$emit('update:open', $event)">
+        <div class="space-y-4">
 
             <!-- Evidence context -->
             <div v-if="report?.kpi_indicator?.name" class="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/40">

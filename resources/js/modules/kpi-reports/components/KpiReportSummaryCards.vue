@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { FileText, Clock, Paperclip, TrendingUp } from 'lucide-vue-next';
 
 defineProps({
@@ -35,7 +35,7 @@ const colorSchemes = [
 </script>
 
 <template>
-    <section class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <section class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <article
             v-for="(item, index) in items"
             :key="item.label"

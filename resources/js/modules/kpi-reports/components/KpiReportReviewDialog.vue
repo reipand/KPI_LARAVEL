@@ -55,13 +55,13 @@ function handleSubmit() {
 <template>
     <Dialog
         :open="open"
-        class="max-w-lg !p-0 overflow-hidden"
+        class="w-full max-w-lg sm:max-w-2xl"
         @update:open="$emit('update:open', $event)"
     >
         <!-- ── Coloured header banner ────────────────────────────────────── -->
         <div
             :class="[
-                'flex items-center gap-4 px-6 py-5',
+                '-mx-5 -mt-4 flex items-center gap-4 px-5 py-4 sm:-mx-5 sm:-mt-4 sm:px-6 sm:py-5',
                 isApprove
                     ? 'bg-emerald-50 border-b border-emerald-100'
                     : 'bg-rose-50 border-b border-rose-100',
@@ -137,7 +137,7 @@ function handleSubmit() {
         </div>
 
         <!-- ── Body ──────────────────────────────────────────────────────── -->
-        <div class="space-y-5 p-6">
+        <div class="space-y-5 pt-5">
 
             <!-- Report context card -->
             <div v-if="report" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -225,10 +225,10 @@ function handleSubmit() {
         </div>
 
         <!-- ── Footer actions ────────────────────────────────────────────── -->
-        <div class="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+        <div class="-mx-5 -mb-4 mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-6">
             <button
                 type="button"
-                class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+                class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 sm:w-auto"
                 :disabled="isSubmitting"
                 @click="$emit('update:open', false)"
             >
@@ -240,7 +240,7 @@ function handleSubmit() {
                 v-if="isApprove"
                 type="button"
                 :disabled="isSubmitting"
-                class="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60"
+                class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 sm:w-auto"
                 @click="handleSubmit"
             >
                 <svg v-if="!isSubmitting" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -257,7 +257,7 @@ function handleSubmit() {
                 v-else
                 type="button"
                 :disabled="isSubmitting"
-                class="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 active:scale-[0.98] disabled:opacity-60"
+                class="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 active:scale-[0.98] disabled:opacity-60 sm:w-auto"
                 @click="handleSubmit"
             >
                 <svg v-if="!isSubmitting" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

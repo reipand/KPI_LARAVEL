@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
@@ -237,10 +237,10 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
         </section>
 
         <!-- ── Form Dialog ─────────────────────────────────────────────── -->
-        <Dialog v-model:open="showForm" :title="editMode ? 'Edit Pegawai' : 'Tambah Pegawai'" class="max-w-3xl">
+        <Dialog v-model:open="showForm" :title="editMode ? 'Edit Pegawai' : 'Tambah Pegawai'" class="w-full max-w-lg sm:max-w-2xl">
             <Alert v-if="formError" variant="danger" class="mb-4">{{ formError }}</Alert>
 
-            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                 <!-- NIP -->
                 <div>
@@ -309,7 +309,7 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                 </div>
 
                 <!-- Role -->
-                <div class="md:col-span-2">
+                <div class="sm:col-span-2">
                     <label class="form-label">Role <span class="text-red-500">*</span></label>
                     <select v-model="form.role" class="form-input">
                         <option value="pegawai">Pegawai</option>
@@ -326,22 +326,22 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                 Akan disimpan sebagai: <strong>{{ form.jabatan || '–' }}</strong> · <strong>{{ form.departemen || '–' }}</strong>
             </p>
 
-            <div class="mt-5 flex justify-end gap-3">
-                <button class="btn-secondary" :disabled="submitting" @click="showForm = false">Batal</button>
-                <button class="btn-primary" :disabled="submitting" @click="submit">
+            <div class="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                <button class="btn-secondary w-full sm:w-auto" :disabled="submitting" @click="showForm = false">Batal</button>
+                <button class="btn-primary w-full sm:w-auto" :disabled="submitting" @click="submit">
                     {{ submitting ? 'Menyimpan...' : editMode ? 'Perbarui Pegawai' : 'Simpan Pegawai' }}
                 </button>
             </div>
         </Dialog>
 
         <!-- ── Delete Dialog ───────────────────────────────────────────── -->
-        <Dialog v-model:open="deleteState.open" title="Hapus Pegawai" class="max-w-lg">
+        <Dialog v-model:open="deleteState.open" title="Hapus Pegawai" class="w-full">
             <p class="mt-3 text-sm text-slate-600">
                 Hapus <strong>{{ deleteState.name }}</strong> dari sistem? Tindakan ini tidak dapat dibatalkan.
             </p>
-            <div class="mt-5 flex justify-end gap-3">
-                <button class="btn-secondary" :disabled="deleting" @click="deleteState.open = false">Batal</button>
-                <button class="btn-danger" :disabled="deleting" @click="confirmDelete">
+            <div class="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                <button class="btn-secondary w-full sm:w-auto" :disabled="deleting" @click="deleteState.open = false">Batal</button>
+                <button class="btn-danger w-full sm:w-auto" :disabled="deleting" @click="confirmDelete">
                     {{ deleting ? 'Menghapus...' : 'Ya, Hapus' }}
                 </button>
             </div>

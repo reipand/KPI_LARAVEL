@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Alert from '@/components/ui/Alert.vue';
@@ -61,7 +61,7 @@ async function submit() {
                 <template v-else-if="settingList.length">
                     <Alert v-if="errorMessage" variant="danger" class="mb-4">{{ errorMessage }}</Alert>
 
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div v-for="item in settingList" :key="item.key">
                             <label class="form-label">{{ item.key }}</label>
                             <Input v-model="form[item.key]" class="!rounded-xl !border-slate-200 !px-4 !py-3" />

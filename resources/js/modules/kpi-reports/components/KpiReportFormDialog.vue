@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, reactive, watch } from 'vue';
 import Alert from '@/components/ui/Alert.vue';
 import Button from '@/components/ui/Button.vue';
@@ -155,10 +155,10 @@ function handleSubmit(status = 'draft') {
     <Dialog
         :open="open"
         :title="report ? 'Perbarui Laporan KPI' : 'Buat Laporan KPI'"
-        class="max-w-2xl rounded-[28px] p-0"
+        class="w-full max-w-lg sm:max-w-2xl"
         @update:open="$emit('update:open', $event)"
     >
-        <div class="p-6 space-y-6">
+        <div class="space-y-5">
 
             <!-- Section: Komponen & Periode -->
             <div class="space-y-4">
@@ -166,8 +166,8 @@ function handleSubmit(status = 'draft') {
                     <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-600">1</div>
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Komponen & Periode</p>
                 </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div class="md:col-span-2">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
                         <label class="form-label">Indikator KPI</label>
                         <Select
                             v-model="form.kpi_indicator_id"
@@ -198,7 +198,7 @@ function handleSubmit(status = 'draft') {
                     <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-600">2</div>
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Nilai Realisasi</p>
                 </div>
-                <div class="grid gap-4 md:grid-cols-2">
+                <div class="grid gap-4 sm:grid-cols-2">
                     <div>
                         <label class="form-label">Nilai Target</label>
                         <Input v-model="form.nilai_target" type="number" placeholder="Otomatis dari komponen" />
@@ -278,12 +278,12 @@ function handleSubmit(status = 'draft') {
 
             <Alert v-if="errorMessage" variant="danger">{{ errorMessage }}</Alert>
 
-            <div class="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
-                <Button variant="outline" @click="$emit('update:open', false)">Batal</Button>
-                <Button variant="outline" :disabled="isSaving || isUploadingEvidence" @click="handleSubmit('draft')">
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 dark:border-slate-800 sm:flex-row sm:justify-end sm:gap-3">
+                <Button variant="outline" class="w-full sm:w-auto" @click="$emit('update:open', false)">Batal</Button>
+                <Button variant="outline" class="w-full sm:w-auto" :disabled="isSaving || isUploadingEvidence" @click="handleSubmit('draft')">
                     {{ isSaving ? 'Menyimpan...' : isUploadingEvidence ? 'Mengunggah...' : 'Simpan draft' }}
                 </Button>
-                <Button :disabled="isSaving || isUploadingEvidence" @click="handleSubmit('submitted')">
+                <Button class="w-full sm:w-auto" :disabled="isSaving || isUploadingEvidence" @click="handleSubmit('submitted')">
                     {{ isSaving ? 'Menyimpan...' : isUploadingEvidence ? 'Mengunggah...' : report ? 'Submit perubahan' : 'Submit ke HR' }}
                 </Button>
             </div>

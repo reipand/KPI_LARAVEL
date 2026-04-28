@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import Avatar from '@/components/ui/Avatar.vue';
 import Button from '@/components/ui/Button.vue';
 import Dialog from '@/components/ui/Dialog.vue';
@@ -17,8 +17,8 @@ defineEmits(['update:open', 'evidence']);
 </script>
 
 <template>
-    <Dialog :open="open" title="Detail laporan KPI" class="max-w-4xl rounded-[28px] p-0" @update:open="$emit('update:open', $event)">
-        <div v-if="report" class="space-y-6 p-6">
+    <Dialog :open="open" title="Detail laporan KPI" class="w-full max-w-lg sm:max-w-2xl" @update:open="$emit('update:open', $event)">
+        <div v-if="report" class="space-y-6">
             <div class="flex items-start gap-4 rounded-3xl bg-slate-50 p-4">
                 <Avatar v-if="showEmployee" :name="report.user?.nama || '?'" size="sm" />
                 <div class="min-w-0 flex-1">
@@ -41,7 +41,7 @@ defineEmits(['update:open', 'evidence']);
                 </div>
             </div>
 
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-3xl border border-slate-200 p-4">
                     <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Nilai target</p>
                     <p class="mt-2 text-xl font-semibold text-slate-950">{{ report.nilai_target ?? '-' }}</p>
@@ -60,7 +60,7 @@ defineEmits(['update:open', 'evidence']);
                 </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2">
                 <div class="rounded-3xl border border-slate-200 p-4">
                     <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Catatan pegawai</p>
                     <p class="mt-3 text-sm leading-6 text-slate-600">{{ report.catatan || 'Belum ada catatan tambahan.' }}</p>
@@ -71,7 +71,7 @@ defineEmits(['update:open', 'evidence']);
                 </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2">
                 <div class="rounded-3xl border border-slate-200 p-4 text-sm text-slate-600">
                     <p><span class="font-semibold text-slate-900">Dibuat:</span> {{ formatDateTime(report.created_at) }}</p>
                     <p class="mt-2"><span class="font-semibold text-slate-900">Diajukan:</span> {{ formatDateTime(report.submitted_at) }}</p>

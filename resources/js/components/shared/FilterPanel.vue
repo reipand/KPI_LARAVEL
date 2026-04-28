@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 defineProps({
     eyebrow: { type: String, default: 'Filter' },
     title: { type: String, default: '' },
@@ -21,7 +21,7 @@ defineProps({
                 <slot name="summary">{{ resultText }}</slot>
             </div>
         </div>
-        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <slot />
         </div>
     </section>
