@@ -122,6 +122,7 @@ function openCreate() {
     Object.assign(form, emptyForm());
     Object.assign(formErrors, {});
     formError.value = '';
+    evidenceFileName.value = '';
     showForm.value = true;
 }
 
@@ -228,6 +229,7 @@ function cancelForm() {
     showForm.value = false;
     formError.value = '';
     editTaskType.value = null;
+    evidenceFileName.value = '';
 }
 
 function openDeleteDialog(task) {
@@ -415,6 +417,17 @@ const statusBadgeMap = {
                                     <p class="text-sm leading-6 text-muted-foreground">
                                         {{ task.deskripsi || 'Belum ada deskripsi tambahan untuk task ini.' }}
                                     </p>
+                                    <!-- KPI Indicator chip -->
+                                    <div v-if="task.kpi_indicator" class="flex items-center gap-1.5 text-xs text-blue-700">
+                                        <svg class="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+                                        <span class="font-medium">{{ task.kpi_indicator.name }}</span>
+                                        <span v-if="task.kpi_indicator.position" class="text-blue-400">({{ task.kpi_indicator.position.nama }})</span>
+                                    </div>
+                                    <!-- Evidence chip -->
+                                    <div v-if="task.file_evidence_url" class="flex items-center gap-1.5 text-xs text-emerald-700">
+                                        <svg class="h-3.5 w-3.5 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        <a :href="task.file_evidence_url" target="_blank" rel="noreferrer" class="underline hover:no-underline">Lihat evidence</a>
+                                    </div>
                                 </div>
                             </div>
 
