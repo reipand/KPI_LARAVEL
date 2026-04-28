@@ -33,12 +33,23 @@ export const useTaskStore = defineStore('task', () => {
     }
 
     async function createTask(payload) {
-        // Kirim field sesuai nama yang diterima API (Bahasa Indonesia)
-        const { data: resp } = await api.post('/tasks', payload);
+        const isFormData = payload instanceof FormData;
+        const { data: resp } = await api.post('/tasks', payload, isFormData ? {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        } : {});
         return resp.data;
     }
 
     async function updateTask(id, payload) {
+        const isFormData = payload instanceof FormData;
+        if (isFormData) {
+            // Laravel tidak support PUT dengan multipart; gunakan POST + _method
+            payload.append('_method', 'PUT');
+            const { data: resp } = await api.post(`/tasks/${id}`, payload, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return resp.data;
+        }
         const { data: resp } = await api.put(`/tasks/${id}`, payload);
         return resp.data;
     }

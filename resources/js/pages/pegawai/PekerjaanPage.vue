@@ -7,8 +7,12 @@ import { BarChart2, CheckCircle2, Loader2, AlertTriangle } from 'lucide-vue-next
 import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import { useToast } from '@/composables/useToast';
 import { useTaskStore } from '@/stores/task';
+import { useKpiIndicatorStore } from '@/stores/kpiIndicator';
+import { useAuthStore } from '@/stores/auth';
 
 const taskStore = useTaskStore();
+const kpiIndicatorStore = useKpiIndicatorStore();
+const auth = useAuthStore();
 const toast = useToast();
 
 const showForm = ref(false);
@@ -32,7 +36,17 @@ const emptyForm = () => ({
     ada_error: false,
     ada_komplain: false,
     deskripsi: '',
+    kpi_indicator_id: '',
+    evidence: null,
 });
+
+const evidenceFileName = ref('');
+const indicatorOptions = computed(() =>
+    kpiIndicatorStore.indicators.map(i => ({
+        value: String(i.id),
+        label: i.position ? `${i.name} (${i.position.nama})` : i.name,
+    }))
+);
 
 const form = reactive(emptyForm());
 const formErrors = reactive({});
@@ -61,7 +75,12 @@ const { refresh: refreshTasks, lastUpdated, isRefreshing } = useAutoRefresh(
     { interval: 60_000 },
 );
 
-onMounted(() => taskStore.fetchTasks());
+onMounted(() => {
+    taskStore.fetchTasks();
+    const params = { per_page: 200 };
+    if (auth.user?.department_id) params.department_id = auth.user.department_id;
+    kpiIndicatorStore.fetchIndicators(params);
+});
 
 function validate() {
     Object.assign(formErrors, { judul: '', tanggal: '', jenis_pekerjaan: '', status: '', waktu_selesai: '' });
@@ -121,10 +140,19 @@ function openEdit(task) {
         ada_error: Boolean(task.ada_error),
         ada_komplain: Boolean(task.ada_komplain),
         deskripsi: task.deskripsi || '',
+        kpi_indicator_id: task.kpi_indicator_id ? String(task.kpi_indicator_id) : '',
+        evidence: null,
     });
+    evidenceFileName.value = task.file_evidence ? task.file_evidence.split('/').pop() : '';
     Object.assign(formErrors, {});
     formError.value = '';
     showForm.value = true;
+}
+
+function onEvidenceChange(event) {
+    const file = event.target.files?.[0] ?? null;
+    form.evidence = file;
+    evidenceFileName.value = file?.name ?? '';
 }
 
 async function submitForm() {
@@ -134,23 +162,56 @@ async function submitForm() {
     formError.value = '';
 
     try {
+        const buildPayload = (base) => {
+            const fd = new FormData();
+            Object.entries(base).forEach(([k, v]) => {
+                if (v !== null && v !== undefined && v !== '') fd.append(k, v);
+            });
+            if (form.evidence) fd.append('file_evidence', form.evidence);
+            return fd;
+        };
+
         if (editMode.value && editId.value) {
-            const payload = isAssignedTaskEdit.value
+            const base = isAssignedTaskEdit.value
                 ? {
                     status: form.status,
                     waktu_mulai: form.waktu_mulai,
                     waktu_selesai: form.waktu_selesai,
-                    ada_delay: form.ada_delay,
-                    ada_error: form.ada_error,
-                    ada_komplain: form.ada_komplain,
+                    ada_delay: form.ada_delay ? 1 : 0,
+                    ada_error: form.ada_error ? 1 : 0,
+                    ada_komplain: form.ada_komplain ? 1 : 0,
                     deskripsi: form.deskripsi,
                 }
-                : { ...form };
-
-            await taskStore.updateTask(editId.value, payload);
+                : {
+                    judul: form.judul,
+                    tanggal: form.tanggal,
+                    jenis_pekerjaan: form.jenis_pekerjaan,
+                    status: form.status,
+                    waktu_mulai: form.waktu_mulai,
+                    waktu_selesai: form.waktu_selesai,
+                    ada_delay: form.ada_delay ? 1 : 0,
+                    ada_error: form.ada_error ? 1 : 0,
+                    ada_komplain: form.ada_komplain ? 1 : 0,
+                    deskripsi: form.deskripsi,
+                    kpi_indicator_id: form.kpi_indicator_id || '',
+                };
+            await taskStore.updateTask(editId.value, buildPayload(base));
             toast.success('Pekerjaan berhasil diperbarui.');
         } else {
-            await taskStore.createTask({ ...form });
+            const base = {
+                judul: form.judul,
+                tanggal: form.tanggal,
+                jenis_pekerjaan: form.jenis_pekerjaan,
+                status: form.status,
+                waktu_mulai: form.waktu_mulai,
+                waktu_selesai: form.waktu_selesai,
+                ada_delay: form.ada_delay ? 1 : 0,
+                ada_error: form.ada_error ? 1 : 0,
+                ada_komplain: form.ada_komplain ? 1 : 0,
+                deskripsi: form.deskripsi,
+                kpi_indicator_id: form.kpi_indicator_id || '',
+            };
+            await taskStore.createTask(buildPayload(base));
             toast.success('Pekerjaan berhasil disimpan.');
         }
 
@@ -482,6 +543,15 @@ const statusBadgeMap = {
                     </div>
 
                     <div>
+                        <label class="form-label">Indikator KPI</label>
+                        <select v-model="form.kpi_indicator_id" class="form-input" :disabled="isAssignedTaskEdit">
+                            <option value="">— Tanpa indikator KPI —</option>
+                            <option v-for="opt in indicatorOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-400">Hubungkan pekerjaan ini ke indikator KPI divisi Anda.</p>
+                    </div>
+
+                    <div>
                         <label class="form-label">Status Pekerjaan</label>
                         <select v-model="form.status" class="form-input">
                             <option value="">Pilih status...</option>
@@ -535,6 +605,35 @@ const statusBadgeMap = {
                             placeholder="Keterangan tambahan..."
                             rows="4"
                         />
+                    </div>
+
+                    <div class="md:col-span-2 border-t pt-6">
+                        <label class="form-label">Upload Evidence</label>
+                        <label
+                            class="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-6 py-6 transition hover:border-blue-300 hover:bg-blue-50/50"
+                            :class="isAssignedTaskEdit ? 'opacity-50 pointer-events-none' : ''"
+                        >
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm transition group-hover:bg-blue-50">
+                                <svg class="h-5 w-5 text-slate-400 transition group-hover:text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                </svg>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-slate-700">
+                                    {{ evidenceFileName || 'Klik untuk upload evidence' }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-slate-400">PDF, PNG, JPG, DOC, XLSX — max 10 MB</p>
+                            </div>
+                            <input
+                                type="file"
+                                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xlsx"
+                                class="sr-only"
+                                :disabled="isAssignedTaskEdit"
+                                @change="onEvidenceChange"
+                            >
+                        </label>
                     </div>
                 </div>
             </div>

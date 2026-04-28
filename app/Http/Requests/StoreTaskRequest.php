@@ -46,12 +46,13 @@ class StoreTaskRequest extends SanitizedFormRequest
                 'assigned_to' => ['required', 'exists:users,id'],
                 'start_date' => ['required', 'date'],
                 'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-                'weight' => ['required', 'numeric', 'min:0', 'max:100'],
+                'weight' => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'target_value' => ['nullable', 'numeric', 'min:0'],
                 'actual_value' => ['nullable', 'numeric', 'min:0'],
                 'kpi_indicator_id' => ['nullable', 'exists:kpi_indicators,id'],
                 'jenis_pekerjaan' => ['nullable', 'string', 'max:255'],
                 'status' => ['required', Rule::in(['pending', 'on_progress', 'done', 'Pending', 'Dalam Proses', 'Selesai'])],
+                'file_evidence' => ['nullable', 'file', 'max:10240', 'mimes:pdf,png,jpg,jpeg,doc,docx,xlsx'],
             ];
         }
 
@@ -66,6 +67,7 @@ class StoreTaskRequest extends SanitizedFormRequest
             'ada_error' => ['nullable', 'boolean'],
             'ada_komplain' => ['nullable', 'boolean'],
             'deskripsi' => ['nullable', 'string'],
+            'file_evidence' => ['nullable', 'file', 'max:10240', 'mimes:pdf,png,jpg,jpeg,doc,docx,xlsx'],
         ];
     }
 

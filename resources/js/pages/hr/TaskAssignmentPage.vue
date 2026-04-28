@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
@@ -82,8 +82,19 @@ onMounted(async () => {
     await Promise.all([
         store.fetchAssignedTasks(),
         empStore.fetchEmployees ? empStore.fetchEmployees() : empStore.fetchEmployees?.(),
-        kpiIndicatorStore.fetchIndicators({ per_page: 200 }),
     ]);
+});
+
+// Saat pegawai dipilih, reload indikator sesuai department-nya
+watch(() => form.assigned_to, (userId) => {
+    if (!userId) {
+        kpiIndicatorStore.fetchIndicators({ per_page: 200 });
+        return;
+    }
+    const emp = empStore.employees.find(e => String(e.id) === String(userId));
+    const params = { per_page: 200 };
+    if (emp?.department_id) params.department_id = emp.department_id;
+    kpiIndicatorStore.fetchIndicators(params);
 });
 
 function resetForm() {

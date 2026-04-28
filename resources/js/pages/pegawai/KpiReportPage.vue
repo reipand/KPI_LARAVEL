@@ -18,9 +18,11 @@ import KpiReportPagination from '@/modules/kpi-reports/components/KpiReportPagin
 import KpiReportSkeletonList from '@/modules/kpi-reports/components/KpiReportSkeletonList.vue';
 import KpiReportSummaryCards from '@/modules/kpi-reports/components/KpiReportSummaryCards.vue';
 import { useKpiReportStore } from '@/stores/kpiReport';
+import { useAuthStore } from '@/stores/auth';
 
 const toast = useToast();
 const store = useKpiReportStore();
+const auth = useAuthStore();
 
 const ui = reactive({
     search: '',
@@ -85,7 +87,7 @@ async function loadReports(overrides = {}) {
 const { refresh, lastUpdated, isRefreshing } = useAutoRefresh(() => loadReports(), { interval: 30_000 });
 
 onMounted(async () => {
-    await store.bootstrapReferenceData(false);
+    await store.bootstrapReferenceData(false, auth.user?.department_id);
     await loadReports({ page: 1 });
 });
 

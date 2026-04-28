@@ -36,10 +36,12 @@ const years = computed(() => {
 const kpiIndicators    = ref([]);
 const loadingIndicators = ref(false);
 
-async function loadKpiIndicators() {
+async function loadKpiIndicators(departmentId = null) {
     loadingIndicators.value = true;
     try {
-        const { data: resp } = await api.get('/kpi-indicators', { params: { per_page: 200 } });
+        const params = { per_page: 200 };
+        if (departmentId) params.department_id = departmentId;
+        const { data: resp } = await api.get('/kpi-indicators', { params });
         kpiIndicators.value = resp.data?.items ?? [];
     } finally {
         loadingIndicators.value = false;
@@ -57,7 +59,7 @@ function loadTasks() {
 
 onMounted(() => {
     loadTasks();
-    loadKpiIndicators();
+    loadKpiIndicators();  // load semua; akan di-filter saat buka dialog
 });
 
 watch([filterBulan, filterTahun], loadTasks);
@@ -97,6 +99,9 @@ function openMapping(task) {
     mappingDialog.manualScore    = task.manual_score ?? '';
     mappingDialog.error          = '';
     mappingDialog.open           = true;
+    // Reload indikator filtered by the task owner's department
+    const deptId = task.user?.department_id ?? null;
+    loadKpiIndicators(deptId);
 }
 
 async function submitMapping() {

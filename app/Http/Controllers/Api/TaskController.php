@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Services\TaskAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class TaskController extends ApiController
@@ -64,7 +65,13 @@ class TaskController extends ApiController
             return $this->resource(new TaskResource($task), 'Task KPI berhasil di-assign.', Response::HTTP_CREATED);
         }
 
-        $task = $request->user()->tasks()->create($request->validated());
+        $data = collect($request->validated())->except('file_evidence')->toArray();
+
+        if ($request->hasFile('file_evidence')) {
+            $data['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
+        }
+
+        $task = $request->user()->tasks()->create($data);
 
         ActivityLog::record(
             $request->user(),
@@ -135,7 +142,16 @@ class TaskController extends ApiController
 
         $this->authorize('delete', $task);
 
-        $task->update($request->validated());
+        $data = collect($request->validated())->except('file_evidence')->toArray();
+
+        if ($request->hasFile('file_evidence')) {
+            if ($task->file_evidence) {
+                Storage::disk('public')->delete($task->file_evidence);
+            }
+            $data['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
+        }
+
+        $task->update($data);
 
         ActivityLog::record(
             $request->user(),

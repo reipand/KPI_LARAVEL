@@ -52,8 +52,9 @@ export const useKpiReportStore = defineStore('kpiReport', () => {
         return reports.value;
     }
 
-    async function bootstrapReferenceData(loadEmployees = false) {
-        const requests = [kpiReportService.listIndicators()];
+    async function bootstrapReferenceData(loadEmployees = false, departmentId = null) {
+        const indicatorParams = departmentId ? { department_id: departmentId } : {};
+        const requests = [kpiReportService.listIndicators(indicatorParams)];
 
         if (loadEmployees) {
             requests.push(kpiReportService.listEmployees());

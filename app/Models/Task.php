@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Task extends Model
 {
@@ -33,6 +34,7 @@ class Task extends Model
         'ada_error',
         'ada_komplain',
         'deskripsi',
+        'file_evidence',
         'kpi_indicator_id',
         'manual_score',
         'mapped_by',
@@ -176,5 +178,14 @@ class Task extends Model
     public static function statusForStorage(?string $status): string
     {
         return self::statusLabel($status);
+    }
+
+    public function getFileEvidenceUrlAttribute(): ?string
+    {
+        if (! $this->file_evidence) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->file_evidence);
     }
 }
