@@ -152,10 +152,10 @@ async function doDelete() {
         <Dialog
             v-model:open="showForm"
             :title="editMode ? 'Edit Departemen' : 'Tambah Departemen Baru'"
-            class="max-w-lg"
+            class="w-full max-w-sm sm:max-w-lg"
         >
             <div class="mt-4 space-y-4">
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                         <label class="form-label">Nama Departemen <span class="text-red-500">*</span></label>
                         <Input v-model="form.nama" placeholder="Contoh: Information Technology" />
@@ -183,9 +183,9 @@ async function doDelete() {
 
                 <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ formError }}</p>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button class="btn-secondary" @click="showForm = false">Batal</button>
-                    <button class="btn-primary" :disabled="saving" @click="save">
+                <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                    <button class="btn-secondary w-full sm:w-auto" @click="showForm = false">Batal</button>
+                    <button class="btn-primary w-full sm:w-auto" :disabled="saving" @click="save">
                         {{ saving ? 'Menyimpan...' : editMode ? 'Simpan Perubahan' : 'Tambah Departemen' }}
                     </button>
                 </div>
@@ -198,9 +198,9 @@ async function doDelete() {
                 Yakin ingin menghapus departemen <strong>{{ deleteDialog.nama }}</strong>?
                 Jabatan dan karyawan yang terhubung akan kehilangan referensi departemen ini.
             </p>
-            <div class="mt-5 flex justify-end gap-2">
-                <button class="btn-secondary" @click="deleteDialog.open = false">Batal</button>
-                <button class="btn-danger" @click="doDelete">Hapus</button>
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                <button class="btn-secondary w-full sm:w-auto" @click="deleteDialog.open = false">Batal</button>
+                <button class="btn-danger w-full sm:w-auto" @click="doDelete">Hapus</button>
             </div>
         </Dialog>
     </AppLayout>

@@ -288,7 +288,7 @@ function statusClass(status) {
         </section>
 
         <!-- Mapping Dialog -->
-        <Dialog v-model:open="mappingDialog.open" title="Mapping Pekerjaan ke KPI" class="max-w-lg">
+        <Dialog v-model:open="mappingDialog.open" title="Mapping Pekerjaan ke KPI" class="w-full max-w-sm sm:max-w-lg">
             <template v-if="mappingDialog.task">
                 <!-- Task info box -->
                 <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -327,11 +327,11 @@ function statusClass(status) {
                     </div>
                 </div>
 
-                <div class="mt-5 flex justify-end gap-3">
-                    <button class="btn-secondary" :disabled="mappingDialog.loading" @click="mappingDialog.open = false">
+                <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                    <button class="btn-secondary w-full sm:w-auto" :disabled="mappingDialog.loading" @click="mappingDialog.open = false">
                         Batal
                     </button>
-                    <button class="btn-primary" :disabled="mappingDialog.loading" @click="submitMapping">
+                    <button class="btn-primary w-full sm:w-auto" :disabled="mappingDialog.loading" @click="submitMapping">
                         {{ mappingDialog.loading ? 'Menyimpan...' : 'Simpan Mapping' }}
                     </button>
                 </div>

@@ -230,7 +230,7 @@ async function submitStatus() {
         </section>
 
         <!-- Status Update Dialog -->
-        <Dialog v-model:open="statusDialog.open" title="Perbarui Status Tugas" class="max-w-md">
+        <Dialog v-model:open="statusDialog.open" title="Perbarui Status Tugas" class="w-full max-w-sm sm:max-w-md">
             <Alert v-if="statusError" variant="danger" class="mb-4">{{ statusError }}</Alert>
 
             <div v-if="statusDialog.task" class="mt-2 mb-4 rounded-xl bg-slate-50 p-3">
@@ -257,9 +257,9 @@ async function submitStatus() {
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
-                <button class="btn-secondary" :disabled="statusSubmitting" @click="statusDialog.open = false">Batal</button>
-                <button class="btn-primary" :disabled="statusSubmitting" @click="submitStatus">
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                <button class="btn-secondary w-full sm:w-auto" :disabled="statusSubmitting" @click="statusDialog.open = false">Batal</button>
+                <button class="btn-primary w-full sm:w-auto" :disabled="statusSubmitting" @click="submitStatus">
                     {{ statusSubmitting ? 'Menyimpan...' : 'Simpan' }}
                 </button>
             </div>

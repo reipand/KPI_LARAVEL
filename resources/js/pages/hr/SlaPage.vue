@@ -196,7 +196,7 @@ async function confirmDelete() {
             </div>
         </section>
 
-        <Dialog v-model:open="showForm" :title="editMode ? 'Edit SLA' : 'Tambah SLA'" class="max-w-2xl">
+        <Dialog v-model:open="showForm" :title="editMode ? 'Edit SLA' : 'Tambah SLA'" class="w-full max-w-lg sm:max-w-2xl">
             <Alert v-if="formError" variant="danger" class="mb-4">{{ formError }}</Alert>
 
             <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -236,19 +236,19 @@ async function confirmDelete() {
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button class="btn-secondary" :disabled="submitting" @click="showForm = false">Batal</button>
-                <button class="btn-primary" :disabled="submitting" @click="submit">
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                <button class="btn-secondary w-full sm:w-auto" :disabled="submitting" @click="showForm = false">Batal</button>
+                <button class="btn-primary w-full sm:w-auto" :disabled="submitting" @click="submit">
                     {{ submitting ? 'Menyimpan...' : editMode ? 'Perbarui SLA' : 'Simpan SLA' }}
                 </button>
             </div>
         </Dialog>
 
-        <Dialog v-model:open="deleteState.open" title="Hapus SLA" class="max-w-lg">
+        <Dialog v-model:open="deleteState.open" title="Hapus SLA" class="w-full max-w-sm sm:max-w-lg">
             <p class="mt-3 text-sm text-slate-600">Hapus <strong>{{ deleteState.name }}</strong> dari daftar SLA?</p>
-            <div class="mt-6 flex justify-end gap-3">
-                <button class="btn-secondary" @click="deleteState.open = false">Batal</button>
-                <button class="btn-danger" @click="confirmDelete">Ya, Hapus</button>
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                <button class="btn-secondary w-full sm:w-auto" @click="deleteState.open = false">Batal</button>
+                <button class="btn-danger w-full sm:w-auto" @click="confirmDelete">Ya, Hapus</button>
             </div>
         </Dialog>
     </AppLayout>
