@@ -192,5 +192,5 @@ $DEPLOY_PATH/
 <br>
 
 <p align="center">
-  Built by <strong>Reisan Adrefa</strong> — Internship <strong>PT BASS</strong> 2026
+  Built by <strong>Reisan Adrefa</strong> — Internship(SMK Bina Informatika) <strong>PT BASS</strong> 2026
 </p>
