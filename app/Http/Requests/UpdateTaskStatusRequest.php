@@ -17,6 +17,7 @@ class UpdateTaskStatusRequest extends SanitizedFormRequest
             'status' => ['required', Rule::in(['pending', 'on_progress', 'done', 'Pending', 'Dalam Proses', 'Selesai'])],
             'actual_value' => ['nullable', 'numeric', 'min:0'],
             'end_date' => ['nullable', 'date'],
+            'file_evidence' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,doc,docx,xlsx', 'max:10240'],
         ];
     }
 }

@@ -13,9 +13,10 @@ const store = useTaskAssignmentStore();
 const toast = useToast();
 
 const statusDialog = ref({ open: false, task: null });
-const statusForm = reactive({ status: '', actual_value: '' });
+const statusForm = reactive({ status: '', actual_value: '', evidence: null });
 const statusError = ref('');
 const statusSubmitting = ref(false);
+const evidenceFileName = ref('');
 
 const tasks = computed(() => store.myTasks);
 
@@ -75,17 +76,26 @@ function openStatusUpdate(task) {
     statusDialog.value = { open: true, task };
     statusForm.status = task.status ?? 'Pending';
     statusForm.actual_value = task.actual_value ?? '';
+    statusForm.evidence = null;
+    evidenceFileName.value = '';
     statusError.value = '';
+}
+
+function onEvidenceChange(event) {
+    const file = event.target.files?.[0] ?? null;
+    statusForm.evidence = file;
+    evidenceFileName.value = file?.name ?? '';
 }
 
 async function submitStatus() {
     statusSubmitting.value = true;
     statusError.value = '';
     try {
-        await store.updateTaskStatus(statusDialog.value.task.id, {
-            status: statusForm.status,
-            actual_value: statusForm.actual_value !== '' ? Number(statusForm.actual_value) : null,
-        });
+        const fd = new FormData();
+        fd.append('status', statusForm.status);
+        if (statusForm.actual_value !== '') fd.append('actual_value', Number(statusForm.actual_value));
+        if (statusForm.evidence) fd.append('file_evidence', statusForm.evidence);
+        await store.updateTaskStatus(statusDialog.value.task.id, fd);
         toast.success('Status tugas berhasil diperbarui.');
         statusDialog.value.open = false;
         await store.fetchMyTasks();
@@ -191,6 +201,19 @@ async function submitStatus() {
                                         <span v-if="task.actual_value !== null && task.actual_value !== undefined" class="text-emerald-600 font-medium">
                                             Nilai aktual: {{ task.actual_value }}
                                         </span>
+                                        <a
+                                            v-if="task.file_evidence_url"
+                                            :href="task.file_evidence_url"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            class="flex items-center gap-1 text-blue-600 hover:underline"
+                                        >
+                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14 2 14 8 20 8"/>
+                                            </svg>
+                                            Lihat evidence
+                                        </a>
                                     </div>
                                 </div>
 
@@ -254,6 +277,44 @@ async function submitStatus() {
                     <p class="mt-1 text-[11px] text-slate-400">
                         Nilai ini akan digunakan untuk penghitungan skor KPI.
                     </p>
+                </div>
+
+                <div>
+                    <label class="form-label mb-2 block">Upload Evidence</label>
+                    <label class="group flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 transition hover:border-blue-300 hover:bg-blue-50/50">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm transition group-hover:bg-blue-50">
+                            <svg class="h-4 w-4 text-slate-400 transition group-hover:text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-medium text-slate-700">
+                                {{ evidenceFileName || 'Klik untuk upload evidence' }}
+                            </p>
+                            <p class="mt-0.5 text-xs text-slate-400">PDF, PNG, JPG, DOC, XLSX — maks 10 MB</p>
+                        </div>
+                        <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xlsx"
+                            class="sr-only"
+                            @change="onEvidenceChange"
+                        >
+                    </label>
+                    <a
+                        v-if="statusDialog.task?.file_evidence_url && !evidenceFileName"
+                        :href="statusDialog.task.file_evidence_url"
+                        target="_blank"
+                        rel="noreferrer"
+                        class="mt-1.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Evidence saat ini tersimpan — klik untuk melihat
+                    </a>
                 </div>
             </div>
 

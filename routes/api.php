@@ -39,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
     Route::get('/my-tasks', [TaskController::class, 'myTasks']);
-    Route::put('/tasks/{task}/update-status', [TaskController::class, 'updateStatus']);
+    Route::match(['put', 'post'], '/tasks/{task}/update-status', [TaskController::class, 'updateStatus']);
     Route::put('/tasks/{task}/mapping', [TaskController::class, 'mapping'])->middleware('role:hr_manager,direktur');
 
     Route::get('/kpi/me', [KpiController::class, 'me']);

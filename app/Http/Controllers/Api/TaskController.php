@@ -251,7 +251,16 @@ class TaskController extends ApiController
             return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
         }
 
-        $task = $this->taskAssignmentService->updateStatus($task, $request->validated());
+        $payload = collect($request->validated())->except('file_evidence')->toArray();
+
+        if ($request->hasFile('file_evidence')) {
+            if ($task->file_evidence) {
+                Storage::disk('public')->delete($task->file_evidence);
+            }
+            $payload['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
+        }
+
+        $task = $this->taskAssignmentService->updateStatus($task, $payload);
 
         ActivityLog::record(
             $request->user(),

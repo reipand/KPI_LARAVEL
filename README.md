@@ -1,121 +1,196 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<h1 align="center">KPI Laravel</h1>
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  Sistem manajemen KPI berbasis web untuk monitoring kinerja pegawai secara real-time.
 </p>
 
-## GitHub CI/CD
+<p align="center">
+  <img src="https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel&logoColor=white" alt="Laravel">
+  <img src="https://img.shields.io/badge/Vue.js-3-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue 3">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/PHP-8.3-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Pinia-2-FFD859?style=flat-square&logo=pinia&logoColor=black" alt="Pinia">
+</p>
 
-Project ini sudah disiapkan untuk GitHub Actions:
+<p align="center">
+  <a href="#tentang-proyek">Tentang</a> •
+  <a href="#fitur">Fitur</a> •
+  <a href="#peran-pengguna">Peran</a> •
+  <a href="#instalasi">Instalasi</a> •
+  <a href="#cicd">CI/CD</a>
+</p>
 
-- `CI` di [`.github/workflows/ci.yml`](.github/workflows/ci.yml) akan jalan saat `push` dan `pull_request`.
-- `Deploy Production` di [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) akan jalan saat `push` ke branch `main` atau dijalankan manual lewat `workflow_dispatch`.
+---
 
-### Yang Dicek di CI
+## Tentang Proyek
 
-- install dependency PHP dan Node.js
-- generate Laravel app key
-- jalankan `composer test`
-- build asset Vite dengan `npm run build`
+**KPI Laravel** adalah aplikasi manajemen Key Performance Indicator (KPI) yang dibangun dengan Laravel 13 dan Vue.js 3. Sistem ini dirancang untuk membantu organisasi memantau, melaporkan, dan mengevaluasi kinerja pegawai secara terstruktur dalam satu platform terpadu — mulai dari input pekerjaan harian, pelaporan KPI, hingga review dan analitik oleh manajemen.
 
-### Secrets GitHub Yang Wajib Untuk Deploy
+---
 
-Tambahkan secrets berikut di GitHub repository:
+## Fitur
 
-- `DEPLOY_HOST`: host server production
-- `DEPLOY_PORT`: port SSH, biasanya `22`
-- `DEPLOY_USERNAME`: user SSH untuk deploy
-- `DEPLOY_SSH_KEY`: private key SSH untuk GitHub Actions
-- `DEPLOY_PATH`: root folder app di server, contoh `/var/www/kpi_laravel`
-- `DEPLOY_RELOAD_COMMAND`: opsional, misalnya `sudo systemctl reload php8.3-fpm && sudo systemctl reload nginx`
+### Manajemen KPI
+- Buat dan kelola indikator KPI per jabatan
+- Mapping KPI ke pegawai berdasarkan departemen
+- Perhitungan skor KPI otomatis berdasarkan nilai aktual vs target
+- Laporan KPI dengan upload evidence (PDF, gambar, dokumen)
 
-### Struktur Folder Di Server
+### Manajemen Tugas
+- Penugasan tugas manual dari HR ke pegawai
+- Pembaruan status tugas oleh pegawai (Pending → Dalam Proses → Selesai)
+- Upload evidence per tugas
+- Pencatatan nilai aktual untuk perhitungan skor
 
-Workflow deploy memakai struktur release berikut:
+### Dashboard & Analitik
+- Dashboard ringkasan per peran (Pegawai, HR, Direktur)
+- Grafik progres KPI, tren kinerja, dan leaderboard
+- Filter berdasarkan periode, departemen, dan jabatan
+- Export laporan
 
-- `$DEPLOY_PATH/current`
-- `$DEPLOY_PATH/releases/<commit-sha>`
-- `$DEPLOY_PATH/shared/.env`
-- `$DEPLOY_PATH/shared/storage`
+### Lainnya
+- Multi-tenant — satu instalasi untuk banyak organisasi
+- Notifikasi real-time (FCM)
+- Audit log setiap aktivitas
+- Autentikasi berbasis peran (RBAC)
+- Responsive & mobile-friendly
 
-Pastikan file environment production sudah ada di:
+---
+
+## Peran Pengguna
+
+| Peran | Akses |
+|-------|-------|
+| **Admin** | Kelola tenant, user, template KPI, dan assignment |
+| **HR** | Kelola pegawai, tugas, SLA, review laporan KPI |
+| **Direktur** | Lihat dashboard analitik, ranking, dan laporan seluruh pegawai |
+| **Pegawai** | Input pekerjaan, laporan KPI, update status tugas |
+
+---
+
+## Tech Stack
+
+| Layer | Teknologi |
+|-------|-----------|
+| Backend | Laravel 13, PHP 8.3 |
+| Frontend | Vue.js 3, Vite 8, Pinia 2 |
+| Styling | Tailwind CSS 4, Lucide Icons |
+| Database | MySQL / MariaDB |
+| Storage | Laravel Storage (public disk) |
+| Notifikasi | Firebase Cloud Messaging (FCM) |
+
+---
+
+## Instalasi
+
+### Prasyarat
+
+- PHP >= 8.3
+- Composer
+- Node.js >= 18
+- MySQL / MariaDB
+
+### Langkah Setup
 
 ```bash
-$DEPLOY_PATH/shared/.env
-```
+# 1. Clone repository
+git clone <repo-url>
+cd kpi-laravel
 
-### Catatan Deploy
+# 2. Install dependency PHP
+composer install
 
-- server target diasumsikan Linux dan sudah terpasang `php`, `composer`, dan service web yang dibutuhkan
-- workflow GitHub Actions memakai PHP `8.4` karena `composer.lock` saat ini mengunci paket Symfony yang membutuhkan PHP `>=8.4`
-- workflow deploy akan menjalankan `composer install --no-dev`, `php artisan migrate --force`, dan cache ulang konfigurasi Laravel
-- workflow menyimpan 5 release terakhir agar rollback/manual switch tetap mudah
+# 3. Install dependency Node.js
+npm install
 
-## About Laravel
+# 4. Salin file environment dan isi konfigurasi
+cp .env.example .env
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+# 5. Generate app key
+php artisan key:generate
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+# 6. Jalankan migrasi & seeder
 php artisan migrate
- php artisan optimize:clear
-  composer dump-autoload
-  php artisan migrate
-  npm install
-  npm run build
+php artisan db:seed
 
-   php artisan cache:clear
-  php artisan config:clear
-  php artisan route:clear
-  php artisan view:clear
-  php artisan serve
+# 7. Buat symlink storage
+php artisan storage:link
 
-  npm run dev
+# 8. Build aset frontend
+npm run build
 
-  php artisan l5-swagger:generate
+# 9. Jalankan server
+php artisan serve
+npm run dev
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## CI/CD
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Proyek ini sudah disiapkan dengan GitHub Actions untuk CI dan deployment otomatis.
 
-## Code of Conduct
+### Pipeline CI
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Berjalan otomatis saat `push` dan `pull_request`:
 
-## Security Vulnerabilities
+- Install dependency PHP dan Node.js
+- Generate Laravel app key
+- Jalankan `composer test`
+- Build aset Vite dengan `npm run build`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Pipeline Deploy
 
-## License
+Berjalan saat `push` ke branch `main` atau dijalankan manual via `workflow_dispatch`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+#### GitHub Secrets yang Diperlukan
+
+| Secret | Keterangan |
+|--------|------------|
+| `DEPLOY_HOST` | Host server production |
+| `DEPLOY_PORT` | Port SSH (biasanya `22`) |
+| `DEPLOY_USERNAME` | User SSH untuk deploy |
+| `DEPLOY_SSH_KEY` | Private key SSH |
+| `DEPLOY_PATH` | Root folder app di server, contoh `/var/www/kpi_laravel` |
+| `DEPLOY_RELOAD_COMMAND` | Opsional, contoh: `sudo systemctl reload php8.3-fpm` |
+
+#### Struktur Folder di Server
+
+```
+$DEPLOY_PATH/
+├── current/              ← symlink ke release aktif
+├── releases/
+│   └── <commit-sha>/     ← tiap deploy buat folder baru
+└── shared/
+    ├── .env              ← environment production
+    └── storage/          ← storage persisten
+```
+
+> Workflow menyimpan 5 release terakhir untuk kemudahan rollback.
+
+---
+
+## Struktur Proyek
+
+```
+├── app/
+│   ├── Http/Controllers/Api/   ← API controllers
+│   ├── Models/                 ← Eloquent models
+│   └── Services/               ← Business logic
+├── resources/js/
+│   ├── pages/                  ← Vue pages (per role)
+│   ├── stores/                 ← Pinia stores
+│   ├── components/             ← Shared UI components
+│   └── modules/                ← Feature modules (kpi-reports, dll)
+└── routes/
+    └── api.php                 ← API routes
+```
+
+---
+
+<br>
+
+<p align="center">
+  Built by <strong>Reisan Adrefa</strong> — Internship <strong>PT BASS</strong> 2026
+</p>

@@ -83,6 +83,7 @@ class TaskAssignmentService
                 'status' => Task::statusForStorage($payload['status']),
                 'actual_value' => array_key_exists('actual_value', $payload) ? $payload['actual_value'] : $task->actual_value,
                 'end_date' => $payload['end_date'] ?? $task->end_date,
+                'file_evidence' => $payload['file_evidence'] ?? $task->file_evidence,
             ]);
 
             $this->syncTaskScore($task, $previousPeriod, $task->assigned_to_user_id);

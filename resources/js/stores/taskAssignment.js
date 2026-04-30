@@ -70,6 +70,14 @@ export const useTaskAssignmentStore = defineStore('task-assignment', () => {
     }
 
     async function updateTaskStatus(id, payload) {
+        const isFormData = payload instanceof FormData;
+        if (isFormData) {
+            payload.append('_method', 'PUT');
+            const { data: resp } = await api.post(`/tasks/${id}/update-status`, payload, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return resp.data;
+        }
         const { data: resp } = await api.put(`/tasks/${id}/update-status`, payload);
         return resp.data;
     }
