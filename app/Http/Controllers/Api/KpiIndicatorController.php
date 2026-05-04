@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Department;
 use App\Models\KpiIndicator;
 use App\Models\Position;
+use App\Models\User;
 use App\Repositories\Contracts\KpiIndicatorRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,9 +28,18 @@ class KpiIndicatorController extends ApiController
      */
     public function index(Request $request): JsonResponse
     {
+        $departmentId = $request->filled('department_id')
+            ? $request->integer('department_id')
+            : $this->resolveDepartmentScope($request);
+
         $indicators = KpiIndicator::query()
             ->with(['department', 'position'])
-            ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->integer('department_id')))
+            ->when($departmentId, function ($query) use ($departmentId) {
+                $query->where(function ($scoped) use ($departmentId) {
+                    $scoped->where('department_id', $departmentId)
+                        ->orWhereHas('position', fn ($position) => $position->where('department_id', $departmentId));
+                });
+            })
             ->orderBy('department_id')
             ->orderBy('id')
             ->get()
@@ -48,6 +58,25 @@ class KpiIndicatorController extends ApiController
             ]);
 
         return $this->success(['items' => $indicators]);
+    }
+
+    private function resolveDepartmentScope(Request $request): ?int
+    {
+        if ($request->filled('user_id')) {
+            return User::query()->whereKey($request->integer('user_id'))->value('department_id');
+        }
+
+        if ($request->filled('assigned_to')) {
+            return User::query()->whereKey($request->integer('assigned_to'))->value('department_id');
+        }
+
+        $user = $request->user();
+
+        if ($user && ! $user->canManageAllData()) {
+            return $user->department_id ? (int) $user->department_id : -1;
+        }
+
+        return null;
     }
 
     /**

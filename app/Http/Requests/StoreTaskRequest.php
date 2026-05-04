@@ -34,6 +34,7 @@ class StoreTaskRequest extends SanitizedFormRequest
                 'ada_error' => ['nullable', 'boolean'],
                 'ada_komplain' => ['nullable', 'boolean'],
                 'deskripsi' => ['nullable', 'string'],
+                'file_evidence' => $this->evidenceRules($this->requiresAssigneeManualTaskEvidence()),
             ];
         }
 
@@ -77,5 +78,37 @@ class StoreTaskRequest extends SanitizedFormRequest
     {
         return $this->route('task')?->task_type === Task::TYPE_MANUAL_ASSIGNMENT
             || $this->hasAny(['assigned_to', 'start_date', 'weight', 'actual_value', 'title']);
+    }
+
+    public function messages(): array
+    {
+        return [
+            'file_evidence.required' => 'Evidence wajib diunggah saat task HR ditandai selesai.',
+        ];
+    }
+
+    private function evidenceRules(bool $required = false): array
+    {
+        return [
+            $required ? 'required' : 'nullable',
+            'file',
+            'max:10240',
+            'mimes:pdf,png,jpg,jpeg,doc,docx,xlsx',
+        ];
+    }
+
+    private function requiresAssigneeManualTaskEvidence(): bool
+    {
+        $task = $this->route('task');
+
+        if (! $task instanceof Task) {
+            return false;
+        }
+
+        return $task->isManualAssignment()
+            && ! $this->user()?->canManageAllData()
+            && Task::normalizeStatus((string) $this->input('status')) === Task::STATUS_DONE
+            && ! $task->file_evidence
+            && ! $this->hasFile('file_evidence');
     }
 }

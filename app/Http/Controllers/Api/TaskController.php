@@ -7,11 +7,14 @@ use App\Http\Requests\UpdateTaskStatusRequest;
 use App\Http\Requests\UpdateTaskMappingRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\ActivityLog;
+use App\Models\KpiIndicator;
 use App\Models\Task;
+use App\Models\User;
 use App\Services\TaskAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class TaskController extends ApiController
@@ -66,6 +69,7 @@ class TaskController extends ApiController
         }
 
         $data = collect($request->validated())->except('file_evidence')->toArray();
+        $this->ensureIndicatorMatchesUserDepartment($data['kpi_indicator_id'] ?? null, $request->user());
 
         if ($request->hasFile('file_evidence')) {
             $data['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
@@ -107,14 +111,23 @@ class TaskController extends ApiController
                 return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
             }
 
-            $task = $this->taskAssignmentService->updateAssigneeProgress($task, $request->validated());
+            $payload = collect($request->validated())->except('file_evidence')->toArray();
+
+            if ($request->hasFile('file_evidence')) {
+                if ($task->file_evidence) {
+                    Storage::disk('public')->delete($task->file_evidence);
+                }
+                $payload['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
+            }
+
+            $task = $this->taskAssignmentService->updateAssigneeProgress($task, $payload);
 
             ActivityLog::record(
                 $request->user(),
                 'task.assignment_progress_updated',
                 Task::class,
                 $task->id,
-                $request->validated(),
+                $payload,
                 $request
             );
 
@@ -143,6 +156,7 @@ class TaskController extends ApiController
         $this->authorize('delete', $task);
 
         $data = collect($request->validated())->except('file_evidence')->toArray();
+        $this->ensureIndicatorMatchesUserDepartment($data['kpi_indicator_id'] ?? $task->kpi_indicator_id, $request->user());
 
         if ($request->hasFile('file_evidence')) {
             if ($task->file_evidence) {
@@ -210,6 +224,9 @@ class TaskController extends ApiController
             return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
         }
 
+        $taskOwner = $task->assignee ?: $task->user;
+        $this->ensureIndicatorMatchesUserDepartment($request->integer('kpi_indicator_id'), $taskOwner);
+
         $task->update([
             'kpi_indicator_id' => $request->integer('kpi_indicator_id'),
             'manual_score' => $request->input('manual_score'),
@@ -272,5 +289,28 @@ class TaskController extends ApiController
         );
 
         return $this->resource(new TaskResource($task), 'Status task berhasil diperbarui.');
+    }
+
+    private function ensureIndicatorMatchesUserDepartment(?int $indicatorId, ?User $user): void
+    {
+        if (! $indicatorId || ! $user) {
+            return;
+        }
+
+        $indicator = KpiIndicator::query()
+            ->with('position:id,department_id')
+            ->find($indicatorId);
+
+        if (! $indicator) {
+            return;
+        }
+
+        $indicatorDepartmentId = $indicator->department_id ?: $indicator->position?->department_id;
+
+        if (! $user->department_id || ! $indicatorDepartmentId || (int) $user->department_id !== (int) $indicatorDepartmentId) {
+            throw ValidationException::withMessages([
+                'kpi_indicator_id' => 'Indikator KPI harus sesuai dengan divisi pegawai terkait.',
+            ]);
+        }
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\TaskAssigned;
+use App\Models\KpiIndicator;
 use App\Models\KpiNotification;
 use App\Models\Task;
 use App\Models\TaskScore;
@@ -10,6 +11,7 @@ use App\Models\User;
 use App\Notifications\TaskAssignedNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TaskAssignmentService
 {
@@ -19,6 +21,8 @@ class TaskAssignmentService
 
     public function create(array $payload, User $actor): Task
     {
+        $this->ensureIndicatorMatchesAssigneeDepartment($payload);
+
         $task = DB::transaction(function () use ($payload, $actor) {
             $task = Task::query()->create($this->buildPayload($payload, $actor));
 
@@ -62,6 +66,8 @@ class TaskAssignmentService
 
     public function update(Task $task, array $payload, User $actor): Task
     {
+        $this->ensureIndicatorMatchesAssigneeDepartment($payload, $task);
+
         $previousPeriod = $task->task_period;
         $previousAssigneeId = $task->assigned_to_user_id;
 
@@ -105,6 +111,7 @@ class TaskAssignmentService
                 'ada_error' => $payload['ada_error'] ?? false,
                 'ada_komplain' => $payload['ada_komplain'] ?? false,
                 'deskripsi' => $payload['deskripsi'] ?? $task->deskripsi,
+                'file_evidence' => $payload['file_evidence'] ?? $task->file_evidence,
             ]);
 
             $this->syncTaskScore($task, $previousPeriod, $task->assigned_to_user_id);
@@ -185,6 +192,28 @@ class TaskAssignmentService
                     CarbonImmutable::createFromFormat('Y-m', $previousPeriod)->startOfMonth()->toDateString()
                 );
             }
+        }
+    }
+
+    private function ensureIndicatorMatchesAssigneeDepartment(array $payload, ?Task $task = null): void
+    {
+        $indicatorId = $payload['kpi_indicator_id'] ?? $task?->kpi_indicator_id;
+
+        if (! $indicatorId) {
+            return;
+        }
+
+        $assigneeId = (int) ($payload['assigned_to'] ?? $task?->assigned_to_user_id);
+        $assigneeDepartmentId = User::query()->whereKey($assigneeId)->value('department_id');
+        $indicator = KpiIndicator::query()
+            ->with('position:id,department_id')
+            ->find($indicatorId);
+        $indicatorDepartmentId = $indicator?->department_id ?: $indicator?->position?->department_id;
+
+        if (! $assigneeDepartmentId || ! $indicatorDepartmentId || (int) $assigneeDepartmentId !== (int) $indicatorDepartmentId) {
+            throw ValidationException::withMessages([
+                'kpi_indicator_id' => 'Indikator KPI harus sesuai dengan divisi pegawai yang dipilih.',
+            ]);
         }
     }
 }

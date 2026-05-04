@@ -17,6 +17,7 @@ const statusForm = reactive({ status: '', actual_value: '', evidence: null });
 const statusError = ref('');
 const statusSubmitting = ref(false);
 const evidenceFileName = ref('');
+const evidenceValidationError = ref('');
 
 const tasks = computed(() => store.myTasks);
 
@@ -78,6 +79,7 @@ function openStatusUpdate(task) {
     statusForm.actual_value = task.actual_value ?? '';
     statusForm.evidence = null;
     evidenceFileName.value = '';
+    evidenceValidationError.value = '';
     statusError.value = '';
 }
 
@@ -85,11 +87,24 @@ function onEvidenceChange(event) {
     const file = event.target.files?.[0] ?? null;
     statusForm.evidence = file;
     evidenceFileName.value = file?.name ?? '';
+    evidenceValidationError.value = '';
+}
+
+function requiresEvidence() {
+    return statusForm.status === 'Selesai'
+        && !statusForm.evidence
+        && !statusDialog.value.task?.file_evidence_url;
 }
 
 async function submitStatus() {
+    if (requiresEvidence()) {
+        evidenceValidationError.value = 'Evidence wajib diunggah saat task ditandai selesai.';
+        return;
+    }
+
     statusSubmitting.value = true;
     statusError.value = '';
+    evidenceValidationError.value = '';
     try {
         const fd = new FormData();
         fd.append('status', statusForm.status);
@@ -302,6 +317,10 @@ async function submitStatus() {
                             @change="onEvidenceChange"
                         >
                     </label>
+                    <p v-if="statusForm.status === 'Selesai'" class="mt-1.5 text-[11px] text-amber-600">
+                        Evidence wajib diunggah saat task ditandai selesai.
+                    </p>
+                    <p v-if="evidenceValidationError" class="mt-1.5 text-xs text-red-500">{{ evidenceValidationError }}</p>
                     <a
                         v-if="statusDialog.task?.file_evidence_url && !evidenceFileName"
                         :href="statusDialog.task.file_evidence_url"

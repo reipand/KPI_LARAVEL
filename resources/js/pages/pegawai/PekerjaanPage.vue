@@ -24,6 +24,7 @@ const formError = ref('');
 
 const deleteDialog = ref({ open: false, taskId: null, taskTitle: '' });
 const deleteLoading = ref(false);
+const currentEvidenceUrl = ref('');
 
 const emptyForm = () => ({
     judul: '',
@@ -63,6 +64,12 @@ const currentPage = computed(() => taskStore.pagination.currentPage);
 const lastPage = computed(() => taskStore.pagination.lastPage);
 const tasks = computed(() => taskStore.tasks);
 const isAssignedTaskEdit = computed(() => editMode.value && editTaskType.value === 'manual_assignment');
+const requiresAssignedTaskEvidence = computed(() =>
+    isAssignedTaskEdit.value
+    && form.status === 'Selesai'
+    && !form.evidence
+    && !currentEvidenceUrl.value
+);
 
 const taskSummary = computed(() => ({
     total: taskStore.pagination.total,
@@ -78,13 +85,19 @@ const { refresh: refreshTasks, lastUpdated, isRefreshing } = useAutoRefresh(
 
 onMounted(() => {
     taskStore.fetchTasks();
-    const params = { per_page: 200 };
-    if (auth.user?.department_id) params.department_id = auth.user.department_id;
-    kpiIndicatorStore.fetchIndicators(params);
+    if (!auth.user?.department_id) {
+        kpiIndicatorStore.clearIndicators();
+        return;
+    }
+
+    kpiIndicatorStore.fetchIndicators({
+        per_page: 200,
+        department_id: auth.user.department_id,
+    });
 });
 
 function validate() {
-    Object.assign(formErrors, { judul: '', start_date: '', end_date: '', jenis_pekerjaan: '', status: '', waktu_selesai: '' });
+    Object.assign(formErrors, { judul: '', start_date: '', end_date: '', jenis_pekerjaan: '', status: '', waktu_selesai: '', evidence: '' });
 
     let valid = true;
 
@@ -118,6 +131,11 @@ function validate() {
         valid = false;
     }
 
+    if (requiresAssignedTaskEvidence.value) {
+        formErrors.evidence = 'Evidence wajib diunggah saat task HR ditandai selesai.';
+        valid = false;
+    }
+
     return valid;
 }
 
@@ -129,6 +147,7 @@ function openCreate() {
     Object.assign(formErrors, {});
     formError.value = '';
     evidenceFileName.value = '';
+    currentEvidenceUrl.value = '';
     showForm.value = true;
 }
 
@@ -152,6 +171,7 @@ function openEdit(task) {
         evidence: null,
     });
     evidenceFileName.value = task.file_evidence ? task.file_evidence.split('/').pop() : '';
+    currentEvidenceUrl.value = task.file_evidence_url || '';
     Object.assign(formErrors, {});
     formError.value = '';
     showForm.value = true;
@@ -161,6 +181,7 @@ function onEvidenceChange(event) {
     const file = event.target.files?.[0] ?? null;
     form.evidence = file;
     evidenceFileName.value = file?.name ?? '';
+    formErrors.evidence = '';
 }
 
 async function submitForm() {
@@ -239,6 +260,7 @@ function cancelForm() {
     formError.value = '';
     editTaskType.value = null;
     evidenceFileName.value = '';
+    currentEvidenceUrl.value = '';
 }
 
 function openDeleteDialog(task) {
@@ -520,7 +542,7 @@ const statusBadgeMap = {
             </div>
 
                 <p v-if="isAssignedTaskEdit" class="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                    Task dari HR — hanya status, waktu, indikator masalah, dan deskripsi yang bisa diubah.
+                    Task dari HR — hanya status, waktu, indikator masalah, deskripsi, dan evidence yang bisa diubah. Evidence wajib saat status diubah ke selesai.
                 </p>
 
                 <div class="space-y-4">
@@ -628,10 +650,7 @@ const statusBadgeMap = {
                     <!-- Upload Evidence -->
                     <div>
                         <label class="form-label mb-2 block">Upload Evidence</label>
-                        <label
-                            class="group flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 transition hover:border-blue-300 hover:bg-blue-50/50"
-                            :class="isAssignedTaskEdit ? 'opacity-50 pointer-events-none' : ''"
-                        >
+                        <label class="group flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 transition hover:border-blue-300 hover:bg-blue-50/50">
                             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm transition group-hover:bg-blue-50">
                                 <svg class="h-4 w-4 text-slate-400 transition group-hover:text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -643,16 +662,32 @@ const statusBadgeMap = {
                                 <p class="truncate text-sm font-medium text-slate-700">
                                     {{ evidenceFileName || 'Klik untuk upload evidence' }}
                                 </p>
-                                <p class="mt-0.5 text-xs text-slate-400">PDF, PNG, JPG, DOC, XLSX — maks 10 MB</p>
+                                <p class="mt-0.5 text-xs text-slate-400">
+                                    PDF, PNG, JPG, DOC, XLSX — maks 10 MB
+                                    <span v-if="isAssignedTaskEdit && form.status === 'Selesai'" class="font-medium text-amber-600">· wajib saat selesai</span>
+                                </p>
                             </div>
                             <input
                                 type="file"
                                 accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xlsx"
                                 class="sr-only"
-                                :disabled="isAssignedTaskEdit"
                                 @change="onEvidenceChange"
                             >
                         </label>
+                        <p v-if="formErrors.evidence" class="mt-1.5 text-xs text-red-500">{{ formErrors.evidence }}</p>
+                        <a
+                            v-if="currentEvidenceUrl && !evidenceFileName"
+                            :href="currentEvidenceUrl"
+                            target="_blank"
+                            rel="noreferrer"
+                            class="mt-1.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                        >
+                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Evidence saat ini tersimpan — klik untuk melihat
+                        </a>
                     </div>
                 </div>
 

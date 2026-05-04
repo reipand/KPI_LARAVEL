@@ -85,16 +85,35 @@ onMounted(async () => {
     ]);
 });
 
-// Saat pegawai dipilih, reload indikator sesuai department-nya
-watch(() => form.assigned_to, (userId) => {
+async function loadIndicatorsForEmployee(userId) {
     if (!userId) {
-        kpiIndicatorStore.fetchIndicators({ per_page: 200 });
+        kpiIndicatorStore.clearIndicators();
+        form.kpi_indicator_id = '';
         return;
     }
+
     const emp = empStore.employees.find(e => String(e.id) === String(userId));
-    const params = { per_page: 200 };
-    if (emp?.department_id) params.department_id = emp.department_id;
-    kpiIndicatorStore.fetchIndicators(params);
+
+    if (!emp?.department_id) {
+        kpiIndicatorStore.clearIndicators();
+        form.kpi_indicator_id = '';
+        return;
+    }
+
+    await kpiIndicatorStore.fetchIndicators({
+        per_page: 200,
+        department_id: emp.department_id,
+        assigned_to: emp.id,
+    });
+
+    if (!kpiIndicatorStore.indicators.some((indicator) => String(indicator.id) === String(form.kpi_indicator_id))) {
+        form.kpi_indicator_id = '';
+    }
+}
+
+// Saat pegawai dipilih, reload indikator sesuai department-nya
+watch(() => form.assigned_to, (userId) => {
+    loadIndicatorsForEmployee(userId);
 });
 
 function resetForm() {

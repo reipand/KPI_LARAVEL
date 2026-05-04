@@ -11,7 +11,11 @@ class EloquentKpiIndicatorRepository implements KpiIndicatorRepositoryInterface
     public function getByDepartment(int $departmentId): Collection
     {
         return KpiIndicator::query()
-            ->where('department_id', $departmentId)
+            ->where(function ($query) use ($departmentId) {
+                $query->where('department_id', $departmentId)
+                    ->orWhereHas('position', fn ($position) => $position->where('department_id', $departmentId));
+            })
+            ->with(['department', 'position'])
             ->orderBy('id')
             ->get();
     }

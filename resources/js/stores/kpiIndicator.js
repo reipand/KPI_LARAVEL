@@ -45,6 +45,10 @@ export const useKpiIndicatorStore = defineStore('kpi-indicator', () => {
         indicators.value = indicators.value.filter((i) => i.id !== id);
     }
 
+    function clearIndicators() {
+        indicators.value = [];
+    }
+
     return {
         indicators,
         meta,
@@ -55,5 +59,6 @@ export const useKpiIndicatorStore = defineStore('kpi-indicator', () => {
         createIndicator,
         updateIndicator,
         deleteIndicator,
+        clearIndicators,
     };
 });
