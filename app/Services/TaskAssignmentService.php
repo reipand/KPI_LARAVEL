@@ -10,6 +10,7 @@ use App\Models\TaskScore;
 use App\Models\User;
 use App\Notifications\TaskAssignedNotification;
 use Carbon\CarbonImmutable;
+use Throwable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -58,7 +59,7 @@ class TaskAssignmentService
 
             // Also dispatch Laravel notification (for email channel support)
             $assignee->notify(new TaskAssignedNotification($task, $actor));
-            event(new TaskAssigned($task, $assignee, $actor));
+            $this->dispatchTaskAssignedEvent($task, $assignee, $actor);
         }
 
         return $task;
@@ -214,6 +215,15 @@ class TaskAssignmentService
             throw ValidationException::withMessages([
                 'kpi_indicator_id' => 'Indikator KPI harus sesuai dengan divisi pegawai yang dipilih.',
             ]);
+        }
+    }
+
+    private function dispatchTaskAssignedEvent(Task $task, User $assignee, User $actor): void
+    {
+        try {
+            event(new TaskAssigned($task, $assignee, $actor));
+        } catch (Throwable $exception) {
+            report($exception);
         }
     }
 }

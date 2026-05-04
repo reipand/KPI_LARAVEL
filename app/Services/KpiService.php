@@ -20,6 +20,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Throwable;
 
 class KpiService
 {
@@ -248,7 +249,7 @@ class KpiService
         $this->flushDashboardCaches($periodType, $period['start']->toDateString());
 
         if (! $silent) {
-            event(new KPIUpdated($score, $changedIndicator));
+            $this->dispatchKpiUpdatedEvent($score, $changedIndicator);
         }
 
         return $score;
@@ -724,5 +725,14 @@ class KpiService
         $start = $periodStart ?? now()->startOfMonth()->toDateString();
 
         Cache::forget($this->dashboardCacheKey($periodType, $start, null));
+    }
+
+    private function dispatchKpiUpdatedEvent(KpiScore $score, ?KpiIndicator $changedIndicator): void
+    {
+        try {
+            event(new KPIUpdated($score, $changedIndicator));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 }

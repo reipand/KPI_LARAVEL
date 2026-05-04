@@ -143,7 +143,7 @@ class User extends Authenticatable
 
     public function canManageAllData(): bool
     {
-        return $this->isHrManager() || $this->isDirektur();
+        return $this->isHrManager() || $this->isDirektur() || $this->hasKpiRole('super_admin');
     }
 
     public function isHR(): bool
