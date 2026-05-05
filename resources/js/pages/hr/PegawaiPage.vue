@@ -112,6 +112,21 @@ onMounted(async () => {
     ]);
 });
 
+watch(() => auth.activeTenantId, async (tenantId, oldTenantId) => {
+    if (!tenantId || tenantId === oldTenantId) return;
+
+    if (!showForm.value) {
+        await Promise.all([
+            store.fetchEmployees(),
+            deptStore.fetchDepartments({ tenant_id: tenantId }),
+            posStore.fetchPositions({ tenant_id: tenantId }),
+        ]);
+        return;
+    }
+
+    form.tenant_id = Number(tenantId);
+});
+
 function resetForm() {
     Object.assign(form, emptyForm());
     form.tenant_id = auth.activeTenantId ? Number(auth.activeTenantId) : (auth.user?.tenant_id ?? null);

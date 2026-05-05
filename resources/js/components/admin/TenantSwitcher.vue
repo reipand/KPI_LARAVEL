@@ -18,8 +18,12 @@
         >
           <span class="item-name">{{ t.tenant_name }}</span>
           <span class="item-role">{{ formatRole(t.role) }}</span>
-          <span v-if="t.is_primary" class="item-badge primary">Primary</span>
-          <span v-else class="item-badge secondary">Rangkap</span>
+          <span
+            v-if="String(t.id) === String(auth.activeTenantId)"
+            class="item-badge active-badge"
+          >
+            Tenant Active
+          </span>
         </button>
       </div>
     </Transition>
@@ -105,8 +109,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
   font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px;
   text-transform: uppercase;
 }
-.primary   { background: #dcfce7; color: #15803d; }
-.secondary { background: #fef9c3; color: #a16207; }
+.active-badge { background: #dcfce7; color: #15803d; }
 
 .dropdown-enter-active, .dropdown-leave-active { transition: opacity .15s, transform .15s; }
 .dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-4px); }

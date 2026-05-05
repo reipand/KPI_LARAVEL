@@ -32,12 +32,15 @@ class EloquentKpiScoreRepository implements KpiScoreRepositoryInterface
             ->first();
     }
 
-    public function getLeaderboard(string $periodType, string $periodStart, ?int $roleId = null): Collection
+    public function getLeaderboard(string $periodType, string $periodStart, ?int $tenantId = null): Collection
     {
         return KpiScore::query()
             ->with(['user'])
             ->where('period_type', $periodType)
             ->whereDate('period_start', $periodStart)
+            ->when($tenantId, function ($query) use ($tenantId) {
+                $query->whereHas('user', fn ($userQuery) => $userQuery->where('tenant_id', $tenantId));
+            })
             ->orderByDesc('normalized_score')
             ->orderByDesc('raw_score')
             ->get();

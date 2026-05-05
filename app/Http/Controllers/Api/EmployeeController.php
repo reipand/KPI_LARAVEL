@@ -16,18 +16,18 @@ class EmployeeController extends ApiController
     public function index(Request $request)
     {
         $actor = $request->user();
-        $tenantIds = $this->accessibleTenantIds($actor);
+        $scopedTenantId = $this->resolveScopedTenantId($actor);
+        $requestedTenantId = $request->filled('tenant_id') ? (int) $request->integer('tenant_id') : null;
+
+        if ($requestedTenantId && $requestedTenantId !== $scopedTenantId) {
+            abort(Response::HTTP_FORBIDDEN, 'Daftar pegawai hanya dapat ditampilkan untuk tenant yang sedang aktif.');
+        }
 
         $employees = User::query()
             ->with(['department', 'positionRef', 'primaryTenant'])
-            ->when(! $actor->canManageAllData(), fn ($query) => $query->where('tenant_id', $this->resolveScopedTenantId($actor)))
-            ->when($actor->canManageAllData() && $tenantIds !== null, fn ($query) => $query->whereIn('tenant_id', $tenantIds))
+            ->when($scopedTenantId > 0, fn ($query) => $query->where('tenant_id', $scopedTenantId))
             ->when($request->filled('jabatan'), fn ($query) => $query->where('jabatan', $request->string('jabatan')))
             ->when($request->filled('departemen'), fn ($query) => $query->where('departemen', $request->string('departemen')))
-            ->when(
-                $request->filled('tenant_id') && $this->canAccessTenant($actor, $request->integer('tenant_id')),
-                fn ($query) => $query->where('tenant_id', $request->integer('tenant_id'))
-            )
             ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->boolean('is_active')))
             ->orderBy('nama')
             ->paginate((int) $request->input('per_page', 15));
@@ -153,21 +153,6 @@ class EmployeeController extends ApiController
         }
 
         return (int) $actor->tenant_id;
-    }
-
-    private function accessibleTenantIds(User $actor): ?array
-    {
-        if ($actor->hasKpiRole('super_admin')) {
-            return null;
-        }
-
-        return collect([$actor->tenant_id])
-            ->merge($actor->tenants()->pluck('tenants.id'))
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
     }
 
     private function canAccessTenant(User $actor, int $tenantId): bool

@@ -11,5 +11,5 @@ interface KpiScoreRepositoryInterface
 
     public function findUserScore(int $userId, string $periodType, string $periodStart): ?KpiScore;
 
-    public function getLeaderboard(string $periodType, string $periodStart, ?int $roleId = null): Collection;
+    public function getLeaderboard(string $periodType, string $periodStart, ?int $tenantId = null): Collection;
 }

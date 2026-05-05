@@ -260,13 +260,15 @@ class KpiService
         $period = $this->resolvePeriod($filters['period_type'], $filters['period']);
         $roleId = $filters['role_id'] ?? null;
         $employeeId = $filters['employee_id'] ?? null;
+        $tenantId = $this->resolveScopedTenantId();
 
-        $this->ensureScoresForDashboard($period['type'], $period['start']->toDateString(), $roleId, $employeeId);
+        $this->ensureScoresForDashboard($period['type'], $period['start']->toDateString(), $tenantId, $roleId, $employeeId);
 
-        return (function () use ($period, $roleId, $employeeId) {
+        return (function () use ($period, $tenantId, $roleId, $employeeId) {
             $scores = $this->scoreRepository->getLeaderboard(
                 $period['type'],
-                $period['start']->toDateString()
+                $period['start']->toDateString(),
+                $tenantId
             );
 
             if ($roleId) {
@@ -307,11 +309,16 @@ class KpiService
 
         /** @var User $user */
         $user = User::query()
-            ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'department_id', 'position_id'])
+            ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'department_id', 'position_id', 'tenant_id'])
             ->findOrFail($userId);
 
         if ($actor && !$this->canAccessUserKpi($actor, $userId)) {
             throw new InvalidArgumentException('Anda tidak diizinkan melihat KPI user ini.');
+        }
+
+        $tenantId = $this->resolveScopedTenantId($actor);
+        if ($tenantId && (int) $user->tenant_id !== $tenantId) {
+            throw new InvalidArgumentException('User KPI tidak berada pada tenant yang sedang aktif.');
         }
 
         $score = $this->scoreRepository->findUserScore(
@@ -396,8 +403,23 @@ class KpiService
             return true;
         }
 
-        return collect(['admin', 'hr_manager', 'direktur'])
+        $canManage = collect(['admin', 'hr_manager', 'direktur', 'super_admin', 'tenant_admin'])
             ->contains(fn (string $role) => $actor->hasKpiRole($role));
+
+        if (! $canManage) {
+            return false;
+        }
+
+        $tenantId = $this->resolveScopedTenantId($actor);
+
+        if (! $tenantId) {
+            return true;
+        }
+
+        return User::query()
+            ->whereKey($targetUserId)
+            ->where('tenant_id', $tenantId)
+            ->exists();
     }
 
     public function getTrend(int $months = 6, ?string $period = null): array
@@ -448,12 +470,14 @@ class KpiService
     private function ensureScoresForDashboard(
         string $periodType,
         string $periodStart,
+        ?int $tenantId = null,
         ?int $roleId = null,
         ?int $employeeId = null,
     ): void {
         $users = User::query()
-            ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'department_id', 'position_id'])
+            ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'department_id', 'position_id', 'tenant_id'])
             ->where('role', 'employee')
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
             ->when($roleId, fn ($query) => $query->where('position_id', $roleId))
             ->when($employeeId, fn ($query) => $query->whereKey($employeeId))
             ->get();
@@ -465,6 +489,17 @@ class KpiService
 
             $this->recalculateUserScore($user, $periodType, $periodStart, silent: true);
         }
+    }
+
+    private function resolveScopedTenantId(?User $actor = null): ?int
+    {
+        if (app()->bound('current_tenant_id')) {
+            $tenantId = app('current_tenant_id');
+
+            return $tenantId ? (int) $tenantId : null;
+        }
+
+        return $actor?->tenant_id ? (int) $actor->tenant_id : null;
     }
 
     private function notifyLowPerformance(User $user, KpiScore $score): void
