@@ -21,7 +21,7 @@ return new class extends Migration
             $table->date('tanggal_masuk');
             $table->string('no_hp')->nullable();
             $table->string('email')->nullable()->unique();
-            $table->enum('role', ['pegawai', 'hr_manager', 'direktur'])->default('pegawai');
+            $table->enum('role', ['employee', 'hr_manager', 'direktur'])->default('employee');
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();

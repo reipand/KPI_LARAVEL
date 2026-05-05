@@ -9,6 +9,10 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $department = $this->relationLoaded('department') ? $this->getRelation('department') : null;
+        $tenant = $this->relationLoaded('primaryTenant') ? $this->getRelation('primaryTenant') : null;
+        $position = $this->relationLoaded('positionRef') ? $this->getRelation('positionRef') : null;
+
         return [
             'id' => $this->id,
             'nip' => $this->nip,
@@ -16,14 +20,26 @@ class UserResource extends JsonResource
             'jabatan' => $this->jabatan,
             'departemen' => $this->departemen,
             'department_id' => $this->department_id,
-            'department' => $this->whenLoaded('department', fn () => $this->department?->only(['id', 'nama', 'kode'])),
+            'department' => $this->when(
+                $department !== null,
+                fn () => $department->only(['id', 'nama', 'kode'])
+            ),
             'position_id' => $this->position_id,
-            'role_ref' => $this->whenLoaded('positionRef', fn () => $this->positionRef ? [
-                'id' => $this->positionRef->id,
-                'name' => $this->positionRef->nama,
-                'slug' => $this->positionRef->kode,
-            ] : null),
+            'tenant_id' => $this->tenant_id,
+            'tenant' => $this->when(
+                $tenant !== null,
+                fn () => $tenant->only(['id', 'tenant_code', 'tenant_name', 'status'])
+            ),
+            'role_ref' => $this->when(
+                $position !== null,
+                fn () => [
+                    'id' => $position->id,
+                    'name' => $position->nama,
+                    'slug' => $position->kode,
+                ]
+            ),
             'status_karyawan' => $this->status_karyawan,
+            'is_active' => (bool) $this->is_active,
             'tanggal_masuk' => optional($this->tanggal_masuk)->toDateString(),
             'no_hp' => $this->no_hp,
             'email' => $this->email,

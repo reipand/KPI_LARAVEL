@@ -6,6 +6,7 @@ use App\Events\UserNotificationCreated;
 use App\Models\KpiNotification;
 use App\Models\Setting;
 use App\Models\User;
+use Throwable;
 
 class NotificationService
 {
@@ -21,18 +22,26 @@ class NotificationService
             'payload' => $payload ?: null,
         ]);
 
-        UserNotificationCreated::dispatch($user->id, [
-            'id'         => $notification->id,
-            'type'       => $type,
-            'title'      => $title,
-            'body'       => $body,
-            'payload'    => $payload,
-            'is_read'    => false,
-            'read_at'    => null,
-            'created_at' => $notification->created_at->toISOString(),
-        ]);
+        try {
+            UserNotificationCreated::dispatch($user->id, [
+                'id'         => $notification->id,
+                'type'       => $type,
+                'title'      => $title,
+                'body'       => $body,
+                'payload'    => $payload,
+                'is_read'    => false,
+                'read_at'    => null,
+                'created_at' => $notification->created_at->toISOString(),
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
-        $this->fcm->sendToUser($user, $title, $body, array_merge($payload, ['type' => $type]));
+        try {
+            $this->fcm->sendToUser($user, $title, $body, array_merge($payload, ['type' => $type]));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         return $notification;
     }
@@ -78,7 +87,7 @@ class NotificationService
 
     public function broadcastToAllEmployees(string $type, string $title, string $body, array $payload = []): int
     {
-        $users = User::where('role', 'pegawai')->get();
+        $users = User::where('role', 'employee')->get();
         $count = 0;
 
         foreach ($users as $user) {

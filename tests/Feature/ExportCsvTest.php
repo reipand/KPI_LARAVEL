@@ -35,7 +35,7 @@ class ExportCsvTest extends TestCase
             'status_karyawan' => 'tetap',
             'tanggal_masuk' => '2026-01-01',
             'email' => 'pegawai1@example.com',
-            'role' => 'pegawai',
+            'role' => 'employee',
             'password' => bcrypt('password'),
         ]);
 
@@ -74,7 +74,7 @@ class ExportCsvTest extends TestCase
             'status_karyawan' => 'tetap',
             'tanggal_masuk' => '2026-01-01',
             'email' => 'pegawai2@example.com',
-            'role' => 'pegawai',
+            'role' => 'employee',
             'password' => bcrypt('password'),
         ]);
 

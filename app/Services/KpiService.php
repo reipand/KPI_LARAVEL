@@ -453,7 +453,7 @@ class KpiService
     ): void {
         $users = User::query()
             ->select(['id', 'nip', 'nama', 'jabatan', 'departemen', 'email', 'role', 'department_id', 'position_id'])
-            ->where('role', 'pegawai')
+            ->where('role', 'employee')
             ->when($roleId, fn ($query) => $query->where('position_id', $roleId))
             ->when($employeeId, fn ($query) => $query->whereKey($employeeId))
             ->get();

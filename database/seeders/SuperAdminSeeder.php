@@ -54,15 +54,14 @@ class SuperAdminSeeder extends Seeder
         DB::statement("
             ALTER TABLE `users`
             MODIFY COLUMN `role` ENUM(
-                'pegawai',
+                'employee',
                 'hr_manager',
                 'direktur',
                 'super_admin',
                 'tenant_admin',
                 'dept_head',
-                'supervisor',
-                'employee'
-            ) NOT NULL DEFAULT 'pegawai'
+                'supervisor'
+            ) NOT NULL DEFAULT 'employee'
         ");
     }
 }

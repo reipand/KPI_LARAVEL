@@ -26,7 +26,7 @@ class NotificationSystemTest extends TestCase
     public function test_task_assigned_creates_kpi_notification(): void
     {
         $hr       = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         Sanctum::actingAs($hr);
 
@@ -58,7 +58,7 @@ class NotificationSystemTest extends TestCase
     public function test_task_assigned_notification_not_duplicate_per_assign(): void
     {
         $hr       = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         Sanctum::actingAs($hr);
 
@@ -97,7 +97,7 @@ class NotificationSystemTest extends TestCase
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'ACT', 'nama' => 'Accounting']);
 
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::factory()->create([
             'name'          => 'Zero Error Dokumen',
@@ -140,7 +140,7 @@ class NotificationSystemTest extends TestCase
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'DRV', 'nama' => 'Driver Dept']);
 
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::factory()->create([
             'name'          => 'On-time Delivery',
@@ -178,7 +178,7 @@ class NotificationSystemTest extends TestCase
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'OBY', 'nama' => 'Office Boy Dept']);
 
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::factory()->create([
             'name'          => 'Cleanliness Score',
@@ -216,7 +216,7 @@ class NotificationSystemTest extends TestCase
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'RND2', 'nama' => 'R&D Dept']);
 
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::factory()->create([
             'name'          => 'Research Output',
@@ -249,7 +249,7 @@ class NotificationSystemTest extends TestCase
 
     public function test_notification_api_returns_user_notifications_with_unread_count(): void
     {
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         KpiNotification::create([
             'user_id' => $employee->id,
@@ -279,7 +279,7 @@ class NotificationSystemTest extends TestCase
 
     public function test_mark_notification_as_read(): void
     {
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         $notif = KpiNotification::create([
             'user_id' => $employee->id,
@@ -307,7 +307,7 @@ class NotificationSystemTest extends TestCase
 
     public function test_mark_all_notifications_as_read(): void
     {
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         KpiNotification::factory()->count(3)->create([
             'user_id' => $employee->id,
@@ -328,8 +328,8 @@ class NotificationSystemTest extends TestCase
 
     public function test_cannot_mark_other_users_notification_as_read(): void
     {
-        $owner = User::factory()->create(['role' => 'pegawai']);
-        $other = User::factory()->create(['role' => 'pegawai']);
+        $owner = User::factory()->create(['role' => 'employee']);
+        $other = User::factory()->create(['role' => 'employee']);
 
         $notif = KpiNotification::create([
             'user_id' => $owner->id,

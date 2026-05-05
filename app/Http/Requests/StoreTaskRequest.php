@@ -25,7 +25,7 @@ class StoreTaskRequest extends SanitizedFormRequest
 
     public function rules(): array
     {
-        if ($this->route('task')?->isManualAssignment() && !$this->user()?->canManageAllData()) {
+        if ($this->route('task')?->isManualAssignment() && !$this->user()?->canManageCompanyData()) {
             return [
                 'status' => ['required', Rule::in(['pending', 'on_progress', 'done', 'Pending', 'Dalam Proses', 'Selesai'])],
                 'waktu_mulai' => ['nullable', 'date_format:H:i'],
@@ -106,7 +106,7 @@ class StoreTaskRequest extends SanitizedFormRequest
         }
 
         return $task->isManualAssignment()
-            && ! $this->user()?->canManageAllData()
+            && ! $this->user()?->canManageCompanyData()
             && Task::normalizeStatus((string) $this->input('status')) === Task::STATUS_DONE
             && ! $task->file_evidence
             && ! $this->hasFile('file_evidence');

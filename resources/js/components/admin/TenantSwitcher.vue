@@ -49,9 +49,10 @@ function switchTenant(t) {
 
 function formatRole(name = '') {
   const m = {
+    super_admin: 'System Admin',
     tenant_admin: 'Tenant Admin', hr_manager: 'HR Manager',
-    direktur: 'Direktur', pegawai: 'Pegawai',
-    dept_head: 'Dept Head', supervisor: 'Supervisor', employee: 'Employee',
+    direktur: 'Direktur', employee: 'Pegawai',
+    dept_head: 'Dept Head', supervisor: 'Supervisor',
   }
   return m[name] ?? name
 }

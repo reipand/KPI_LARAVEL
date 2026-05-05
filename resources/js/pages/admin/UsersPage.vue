@@ -544,8 +544,8 @@ function formatRole(name) {
   const map = {
     super_admin: 'Super Admin', tenant_admin: 'Tenant Admin',
     hr_manager: 'HR Manager', direktur: 'Direktur',
-    pegawai: 'Pegawai', dept_head: 'Dept Head',
-    supervisor: 'Supervisor', employee: 'Employee',
+    employee: 'Pegawai', dept_head: 'Dept Head',
+    supervisor: 'Supervisor',
   }
   return map[name] ?? name
 }
@@ -563,8 +563,8 @@ function fieldLabel(field) {
 function roleColor(name) {
   const map = {
     super_admin: 'red', tenant_admin: 'purple', hr_manager: 'blue',
-    direktur: 'indigo', pegawai: 'gray', dept_head: 'teal',
-    supervisor: 'orange', employee: 'gray',
+    direktur: 'indigo', employee: 'gray', dept_head: 'teal',
+    supervisor: 'orange',
   }
   return map[name] ?? 'gray'
 }

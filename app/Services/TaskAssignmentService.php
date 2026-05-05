@@ -29,7 +29,7 @@ class TaskAssignmentService
 
             $this->syncTaskScore($task);
 
-            return $task->loadMissing(['assignee', 'assigner', 'taskScores']);
+            return $task->loadMissing(['assignee.primaryTenant', 'assigner.primaryTenant', 'taskScores']);
         });
 
         // Dispatch notification & broadcast outside the transaction
@@ -77,7 +77,7 @@ class TaskAssignmentService
 
             $this->syncTaskScore($task, $previousPeriod, $previousAssigneeId);
 
-            return $task->loadMissing(['assignee', 'assigner', 'taskScores']);
+            return $task->loadMissing(['assignee.primaryTenant', 'assigner.primaryTenant', 'taskScores']);
         });
     }
 
@@ -95,7 +95,7 @@ class TaskAssignmentService
 
             $this->syncTaskScore($task, $previousPeriod, $task->assigned_to_user_id);
 
-            return $task->loadMissing(['assignee', 'assigner', 'taskScores']);
+            return $task->loadMissing(['assignee.primaryTenant', 'assigner.primaryTenant', 'taskScores']);
         });
     }
 
@@ -117,7 +117,7 @@ class TaskAssignmentService
 
             $this->syncTaskScore($task, $previousPeriod, $task->assigned_to_user_id);
 
-            return $task->loadMissing(['assignee', 'assigner', 'taskScores']);
+            return $task->loadMissing(['assignee.primaryTenant', 'assigner.primaryTenant', 'taskScores']);
         });
     }
 
@@ -146,6 +146,7 @@ class TaskAssignmentService
 
         return [
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
+            'tenant_id' => $payload['tenant_id'] ?? $task?->tenant_id ?? User::query()->whereKey($assignedTo)->value('tenant_id'),
             'user_id' => $assignedTo,
             'assigned_by' => $task?->assigned_by ?: $actor->id,
             'assigned_to' => $assignedTo,

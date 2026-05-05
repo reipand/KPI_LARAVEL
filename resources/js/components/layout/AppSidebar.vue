@@ -17,7 +17,7 @@ const showLogoutDialog = ref(false);
 const user = computed(() => auth.user);
 
 const navMap = {
-    pegawai: [
+    employee: [
         {
             section: 'Menu Utama',
             items: [
@@ -95,7 +95,7 @@ const navMap = {
     ],
 };
 
-const navGroups = computed(() => navMap[user.value?.role] ?? navMap.pegawai);
+const navGroups = computed(() => navMap[auth.activeRole] ?? navMap[user.value?.role] ?? navMap.employee);
 
 function isActive(to) {
     return route.path === to || route.path.startsWith(to + '/');
@@ -115,25 +115,61 @@ const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUppe
 
 navMap.super_admin = [
     {
-        section: 'Super Admin',
+        section: 'System Admin',
         items: [
             { label: 'Tenant', to: '/admin/tenants', icon: `<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M12 10h.01M15 10h.01"/>` },
+            { label: 'Dashboard Admin', to: '/admin/dashboard', icon: `<path d="M4 19V5m0 14h16M8 15l3-3 3 2 4-6"/>` },
+            { label: 'User Management', to: '/admin/users', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/>` },
             { label: 'Template KPI', to: '/admin/kpi/templates', icon: `<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>` },
             { label: 'Assignment KPI', to: '/admin/kpi/assignments', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/>` },
+            { label: 'KPI Submission', to: '/kpi/submit', icon: `<path d="M7 3h10v18H7z"/><path d="M9 8h6M9 12h6M9 16h4"/>` },
             { label: 'Laporan', to: '/admin/reports', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
             { label: 'Audit Logs', to: '/admin/audit-logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
+        ],
+    },
+    {
+        section: 'HR Operations',
+        items: [
+            { label: 'Beranda HR', to: '/hr/dashboard', icon: `<path d="M4 19V5m0 14h16M8 15l3-3 3 2 4-6"/>` },
+            { label: 'Manajemen Pegawai', to: '/hr/pegawai', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>` },
+            { label: 'Penugasan Tugas', to: '/hr/penugasan', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 14l2 2 4-4"/>` },
+            { label: 'Mapping KPI', to: '/hr/mapping', icon: `<path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h4"/>` },
+            { label: 'Manajemen Departemen', to: '/hr/departemen', icon: `<path d="M3 9h18M9 21V9m6 12V9M3 3h18v18H3z"/>` },
+            { label: 'Manajemen Jabatan', to: '/hr/jabatan', icon: `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>` },
+            { label: 'Indikator KPI', to: '/hr/kpi-indicators', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
+            { label: 'Tinjau Laporan KPI', to: '/hr/laporan-review', icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>` },
+            { label: 'Pengaturan', to: '/hr/settings', icon: `<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M3 12h2m14 0h2M12 3v2m0 14v2M5.64 5.64l1.41 1.41m9.9 9.9 1.41 1.41m0-12.72-1.41 1.41m-9.9 9.9-1.41 1.41"/>` },
+            { label: 'Log Aktivitas', to: '/hr/logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
+        ],
+    },
+    {
+        section: 'Direktur View',
+        items: [
+            { label: 'Executive Dashboard', to: '/direktur/dashboard', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
+            { label: 'Direktur Analytics', to: '/direktur/analytics', icon: `<path d="M4 19V5m0 14h16M8 15l3-3 3 2 4-6"/>` },
+            { label: 'Ranking Pegawai', to: '/direktur/ranking', icon: `<path d="M8 6l4-4 4 4M8 18l4 4 4-4M4 10h16M4 14h16"/>` },
+        ],
+    },
+    {
+        section: 'Pegawai View',
+        items: [
+            { label: 'Beranda Pegawai', to: '/dashboard', icon: `<path d="M3 10.75L12 4l9 6.75V20a1 1 0 0 1-1 1h-5.5v-6.25h-5V21H4a1 1 0 0 1-1-1v-9.25Z"/>` },
+            { label: 'Input Pekerjaan', to: '/pekerjaan', icon: `<path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h4"/>` },
+            { label: 'Tugas Saya', to: '/my-tasks', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>` },
+            { label: 'Laporan KPI', to: '/laporan-kpi', icon: `<path d="M4 19V5m0 14h16M8 15l3-3 3 2 4-6"/>` },
+            { label: 'Progress KPI', to: '/progress-kpi', icon: `<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>` },
+            { label: 'Notifikasi', to: '/notifikasi', icon: `<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>` },
         ],
     },
 ];
 
 navMap.tenant_admin = [
     {
-        section: 'Tenant Admin',
+        section: 'HR Perusahaan',
         items: [
-            { label: 'Template KPI', to: '/admin/kpi/templates', icon: `<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>` },
-            { label: 'Assignment KPI', to: '/admin/kpi/assignments', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/>` },
-            { label: 'Laporan', to: '/admin/reports', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
-            { label: 'Audit Logs', to: '/admin/audit-logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
+            { label: 'Manajemen Pegawai', to: '/hr/pegawai', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>` },
+            { label: 'Penugasan Tugas', to: '/hr/penugasan', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/>` },
+            { label: 'Notifikasi', to: '/notifikasi', icon: `<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>` },
         ],
     },
 ];

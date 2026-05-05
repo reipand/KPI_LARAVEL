@@ -9,11 +9,13 @@ import Avatar from '@/components/ui/Avatar.vue';
 import { useEmployeeStore } from '@/stores/employee';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
+import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
 
 const store     = useEmployeeStore();
 const deptStore = useDepartmentStore();
 const posStore  = usePositionStore();
+const auth      = useAuthStore();
 const toast     = useToast();
 
 const employees   = computed(() => store.employees);
@@ -31,17 +33,34 @@ const emptyForm = () => ({
     nama:            '',
     jabatan:         '',      // auto-filled from position, sent to API
     departemen:      '',      // auto-filled from department, sent to API
+    tenant_id:       null,
     department_id:   null,
     position_id:     null,
     status_karyawan: 'Tetap',
+    is_active:       true,
     tanggal_masuk:   '',
     no_hp:           '',
     email:           '',
-    role:            'pegawai',
+    role:            'employee',
 });
 
 const form   = reactive(emptyForm());
 const errors = reactive({});
+const canSelectTenant = computed(() => ['hr_manager', 'direktur', 'super_admin'].includes(auth.user?.role));
+const tenantOptions = computed(() => auth.myTenants ?? []);
+const allowedRoleOptions = computed(() => (
+    auth.user?.role === 'tenant_admin'
+        ? [
+            { value: 'employee', label: 'Pegawai' },
+            { value: 'tenant_admin', label: 'HR Perusahaan' },
+        ]
+        : [
+            { value: 'employee', label: 'Pegawai' },
+            { value: 'tenant_admin', label: 'HR Perusahaan' },
+            { value: 'hr_manager', label: 'HR Global' },
+            { value: 'direktur', label: 'Direktur' },
+        ]
+));
 
 // When dept changes → fill departemen string & reset position
 watch(() => form.department_id, (id) => {
@@ -59,6 +78,19 @@ watch(() => form.position_id, (id) => {
     form.jabatan = pos?.nama ?? '';
 });
 
+watch(() => form.tenant_id, async (tenantId, oldTenantId) => {
+    if (syncingHierarchy.value || !tenantId || tenantId === oldTenantId) return;
+    form.department_id = null;
+    form.position_id = null;
+    form.departemen = '';
+    form.jabatan = '';
+
+    await Promise.all([
+        deptStore.fetchDepartments({ tenant_id: tenantId }),
+        posStore.fetchPositions({ tenant_id: tenantId }),
+    ]);
+});
+
 // Filtered positions based on department
 const filteredPositions = computed(() =>
     form.department_id
@@ -66,14 +98,23 @@ const filteredPositions = computed(() =>
         : posStore.positions
 );
 
-onMounted(() => {
-    store.fetchEmployees();
-    deptStore.fetchDepartments();
-    posStore.fetchPositions();
+onMounted(async () => {
+    if (!auth.myTenants?.length) {
+        await auth.fetchMyTenants().catch(() => {});
+    }
+
+    const initialTenantId = auth.activeTenantId || auth.user?.tenant_id || null;
+
+    await Promise.all([
+        store.fetchEmployees(),
+        deptStore.fetchDepartments(initialTenantId ? { tenant_id: initialTenantId } : {}),
+        posStore.fetchPositions(initialTenantId ? { tenant_id: initialTenantId } : {}),
+    ]);
 });
 
 function resetForm() {
     Object.assign(form, emptyForm());
+    form.tenant_id = auth.activeTenantId ? Number(auth.activeTenantId) : (auth.user?.tenant_id ?? null);
     formError.value = '';
     Object.keys(errors).forEach(k => { errors[k] = ''; });
 }
@@ -95,21 +136,32 @@ function openEdit(emp) {
         nama:            emp.nama ?? '',
         jabatan:         emp.jabatan ?? '',
         departemen:      emp.departemen ?? '',
+        tenant_id:       emp.tenant_id ?? null,
         department_id:   emp.department_id ?? null,
         position_id:     emp.position_id ?? null,
         status_karyawan: emp.status_karyawan ?? 'Tetap',
+        is_active:       emp.is_active ?? true,
         tanggal_masuk:   emp.tanggal_masuk ?? '',
         no_hp:           emp.no_hp ?? '',
         email:           emp.email ?? '',
-        role:            emp.role ?? 'pegawai',
+        role:            emp.role ?? 'employee',
     });
+    if (emp.tenant_id) {
+        Promise.all([
+            deptStore.fetchDepartments({ tenant_id: emp.tenant_id }),
+            posStore.fetchPositions({ tenant_id: emp.tenant_id }),
+        ]).finally(() => {
+            nextTick(() => { syncingHierarchy.value = false; });
+        });
+    } else {
+        nextTick(() => { syncingHierarchy.value = false; });
+    }
     // Turn off flag AFTER the async watcher flush, not synchronously
-    nextTick(() => { syncingHierarchy.value = false; });
     showForm.value = true;
 }
 
 function validate() {
-    Object.assign(errors, { nip: '', nama: '', jabatan: '', departemen: '', tanggal_masuk: '', role: '' });
+    Object.assign(errors, { nip: '', nama: '', jabatan: '', departemen: '', tenant_id: '', tanggal_masuk: '', role: '' });
     let valid = true;
     [['nip','NIP'], ['nama','Nama'], ['jabatan','Jabatan'], ['departemen','Departemen'],
      ['tanggal_masuk','Tanggal masuk'], ['role','Role']].forEach(([f, label]) => {
@@ -118,6 +170,10 @@ function validate() {
             valid = false;
         }
     });
+    if (canSelectTenant.value && !form.tenant_id) {
+        errors.tenant_id = 'Perusahaan wajib dipilih.';
+        valid = false;
+    }
     return valid;
 }
 
@@ -159,8 +215,8 @@ async function confirmDelete() {
     }
 }
 
-const roleBadge = { pegawai: 'badge-info', hr_manager: 'badge-warning', direktur: 'badge-success' };
-const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Direktur' };
+const roleBadge = { employee: 'badge-info', tenant_admin: 'badge-warning', hr_manager: 'badge-warning', direktur: 'badge-success' };
+const roleLabel = { employee: 'Pegawai', tenant_admin: 'HR Perusahaan', hr_manager: 'HR Global', direktur: 'Direktur' };
 </script>
 
 <template>
@@ -206,6 +262,7 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                                     <p class="truncate text-sm font-semibold text-slate-900">{{ emp.nama }}</p>
                                     <p class="mt-0.5 truncate text-xs text-slate-500">
                                         {{ emp.nip }}
+                                        <template v-if="emp.tenant?.tenant_name"> · {{ emp.tenant.tenant_name }}</template>
                                         <template v-if="emp.jabatan"> · {{ emp.jabatan }}</template>
                                         <template v-if="emp.departemen"> · {{ emp.departemen }}</template>
                                     </p>
@@ -219,6 +276,12 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                             <div class="hidden min-w-[110px] md:block">
                                 <span :class="roleBadge[emp.role] ?? 'badge-info'">
                                     {{ roleLabel[emp.role] ?? emp.role }}
+                                </span>
+                            </div>
+
+                            <div class="hidden min-w-[110px] md:block">
+                                <span :class="emp.is_active ? 'badge-success' : 'badge-neutral'">
+                                    {{ emp.is_active ? 'Aktif' : 'Nonaktif' }}
                                 </span>
                             </div>
 
@@ -256,6 +319,20 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                     <p v-if="errors.nama" class="mt-1 text-xs text-red-500">{{ errors.nama }}</p>
                 </div>
 
+                <div class="sm:col-span-2">
+                    <label class="form-label">Perusahaan <span v-if="canSelectTenant" class="text-red-500">*</span></label>
+                    <select v-if="canSelectTenant" v-model="form.tenant_id" class="form-input">
+                        <option :value="null">— Pilih Perusahaan —</option>
+                        <option v-for="tenant in tenantOptions" :key="tenant.id" :value="tenant.id">
+                            {{ tenant.tenant_name }}
+                        </option>
+                    </select>
+                    <div v-else class="form-input bg-slate-50 text-slate-600">
+                        {{ auth.activeTenant?.tenant_name || 'Perusahaan aktif' }}
+                    </div>
+                    <p v-if="errors.tenant_id" class="mt-1 text-xs text-red-500">{{ errors.tenant_id }}</p>
+                </div>
+
                 <!-- Departemen -->
                 <div>
                     <label class="form-label">Departemen <span class="text-red-500">*</span></label>
@@ -289,6 +366,18 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                     </select>
                 </div>
 
+                <div>
+                    <label class="form-label">Status Kerja</label>
+                    <label class="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-700">
+                        <input
+                            v-model="form.is_active"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-blue-600"
+                        />
+                        <span>Masih aktif bekerja di perusahaan</span>
+                    </label>
+                </div>
+
                 <!-- Tanggal Masuk -->
                 <div>
                     <label class="form-label">Tanggal Masuk <span class="text-red-500">*</span></label>
@@ -312,9 +401,7 @@ const roleLabel = { pegawai: 'Pegawai', hr_manager: 'HR Manager', direktur: 'Dir
                 <div class="sm:col-span-2">
                     <label class="form-label">Role <span class="text-red-500">*</span></label>
                     <select v-model="form.role" class="form-input">
-                        <option value="pegawai">Pegawai</option>
-                        <option value="hr_manager">HR Manager</option>
-                        <option value="direktur">Direktur</option>
+                        <option v-for="role in allowedRoleOptions" :key="role.value" :value="role.value">{{ role.label }}</option>
                     </select>
                     <p v-if="errors.role" class="mt-1 text-xs text-red-500">{{ errors.role }}</p>
                 </div>

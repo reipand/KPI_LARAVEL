@@ -16,7 +16,7 @@ class KpiReportApiTest extends TestCase
     public function test_pegawai_can_create_submitted_report_and_hr_can_find_it(): void
     {
         $pegawai = User::factory()->create([
-            'role' => 'pegawai',
+            'role' => 'employee',
         ]);
 
         $hr = User::factory()->create([
@@ -73,7 +73,7 @@ class KpiReportApiTest extends TestCase
     public function test_pegawai_can_submit_existing_draft_report(): void
     {
         $pegawai = User::factory()->create([
-            'role' => 'pegawai',
+            'role' => 'employee',
         ]);
 
         $component = KpiComponent::query()->create([

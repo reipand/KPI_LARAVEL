@@ -27,7 +27,7 @@ class AnalyticsController extends ApiController
 
         $users = User::query()
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
-            ->where('role', 'pegawai')
+            ->where('role', 'employee')
             ->get();
 
         // Monthly averages from kpi_reports
@@ -118,7 +118,7 @@ class AnalyticsController extends ApiController
 
         // Task-based KPI scores
         $users = User::query()
-            ->where('role', 'pegawai')
+            ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->get()
             ->groupBy('department_id');
@@ -179,7 +179,7 @@ class AnalyticsController extends ApiController
             ->toArray();
 
         // Task-based distribution
-        $userQuery = User::where('role', 'pegawai')
+        $userQuery = User::where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId));
 
         $taskDistribution = ['Baik Sekali' => 0, 'Baik' => 0, 'Cukup' => 0, 'Kurang' => 0, 'Buruk' => 0];
@@ -222,7 +222,7 @@ class AnalyticsController extends ApiController
         $departmentId = $request->input('department_id');
 
         $totalEmployees = User::query()
-            ->where('role', 'pegawai')
+            ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->count();
 

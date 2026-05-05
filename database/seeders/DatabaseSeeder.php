@@ -66,7 +66,7 @@ class DatabaseSeeder extends Seeder
                 'tanggal_masuk' => '2024-02-01',
                 'no_hp' => '081345678901',
                 'email' => 'nadia.permatasari@bass.co.id',
-                'role' => 'pegawai',
+                'role' => 'employee',
             ],
             [
                 'nip' => 'BASS-FIN-01-2024',
@@ -77,7 +77,7 @@ class DatabaseSeeder extends Seeder
                 'tanggal_masuk' => '2024-03-15',
                 'no_hp' => '081377788899',
                 'email' => 'rizki.pratama@bass.co.id',
-                'role' => 'pegawai',
+                'role' => 'employee',
             ],
         ];
 

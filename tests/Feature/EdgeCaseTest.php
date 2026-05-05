@@ -32,7 +32,7 @@ class EdgeCaseTest extends TestCase
     {
         $hr       = User::factory()->create(['role' => 'hr_manager']);
         $orphan = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => null,
         ]);
 
@@ -63,7 +63,7 @@ class EdgeCaseTest extends TestCase
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'FNA2', 'nama' => 'Finance Dept']);
 
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::factory()->create([
             'name'          => 'Zero Error Invoice',
@@ -97,7 +97,7 @@ class EdgeCaseTest extends TestCase
     public function test_task_without_end_date_stores_correctly(): void
     {
         $hr       = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         Sanctum::actingAs($hr);
 
@@ -128,7 +128,7 @@ class EdgeCaseTest extends TestCase
     public function test_multi_day_task_stores_start_and_end_date(): void
     {
         $hr       = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         Sanctum::actingAs($hr);
 
@@ -155,7 +155,7 @@ class EdgeCaseTest extends TestCase
     public function test_task_done_status_gives_full_score(): void
     {
         $hr       = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         Sanctum::actingAs($hr);
 
@@ -185,7 +185,7 @@ class EdgeCaseTest extends TestCase
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'MUL', 'nama' => 'Multi Dept']);
 
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $ind1 = KpiIndicator::factory()->create([
             'name' => 'KPI A', 'weight' => 40,
@@ -228,7 +228,7 @@ class EdgeCaseTest extends TestCase
         $dept2 = Department::factory()->create(['kode' => 'D02', 'nama' => 'Dept B']);
 
         $employee = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept1->id,
         ]);
 
@@ -263,7 +263,7 @@ class EdgeCaseTest extends TestCase
         $dept = Department::factory()->create(['kode' => 'HGA2', 'nama' => 'HR & GA']);
 
         $employee = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept->id,
         ]);
 

@@ -19,7 +19,7 @@ class KpiManagementApiTest extends TestCase
         $dept  = Department::factory()->create(['kode' => 'SLS', 'nama' => 'Sales']);
 
         $employee = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept->id,
         ]);
 
@@ -54,8 +54,8 @@ class KpiManagementApiTest extends TestCase
         $actor = User::factory()->create(['role' => 'direktur']);
         $dept  = Department::factory()->create(['kode' => 'ENG', 'nama' => 'Engineering']);
 
-        $topUser = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
-        $lowUser = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $topUser = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
+        $lowUser = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         $indicator = KpiIndicator::query()->create([
             'name'          => 'Bug Fix',

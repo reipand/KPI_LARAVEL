@@ -315,6 +315,7 @@ function isOverdue(task) {
                                         </svg>
                                         {{ task.assignee?.nama ?? task.assigned_to }}
                                     </span>
+                                    <span v-if="task.assignee?.tenant?.tenant_name">· {{ task.assignee.tenant.tenant_name }}</span>
                                     <span>
                                         <svg class="mr-0.5 inline-block h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
@@ -360,7 +361,7 @@ function isOverdue(task) {
                             :key="emp.id"
                             :value="emp.id"
                         >
-                            {{ emp.nama }} — {{ emp.jabatan }}
+                            {{ emp.nama }} — {{ emp.jabatan }}{{ emp.tenant?.tenant_name ? ` — ${emp.tenant.tenant_name}` : '' }}
                         </option>
                     </select>
                     <p v-if="errors.assigned_to" class="mt-1 text-xs text-red-500">{{ errors.assigned_to }}</p>

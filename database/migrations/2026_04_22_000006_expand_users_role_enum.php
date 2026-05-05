@@ -17,15 +17,14 @@ return new class extends Migration
         DB::statement("
             ALTER TABLE `users`
             MODIFY COLUMN `role` ENUM(
-                'pegawai',
+                'employee',
                 'hr_manager',
                 'direktur',
                 'super_admin',
                 'tenant_admin',
                 'dept_head',
-                'supervisor',
-                'employee'
-            ) NOT NULL DEFAULT 'pegawai'
+                'supervisor'
+            ) NOT NULL DEFAULT 'employee'
         ");
     }
 
@@ -33,7 +32,7 @@ return new class extends Migration
     {
         DB::statement("
             ALTER TABLE `users`
-            MODIFY COLUMN `role` ENUM('pegawai','hr_manager','direktur') NOT NULL DEFAULT 'pegawai'
+            MODIFY COLUMN `role` ENUM('employee','hr_manager','direktur') NOT NULL DEFAULT 'employee'
         ");
     }
 };

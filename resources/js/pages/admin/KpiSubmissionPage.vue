@@ -1,4 +1,5 @@
 <template>
+  <AppLayout>
   <div class="page">
     <div class="page-header">
       <div>
@@ -118,10 +119,12 @@
       </Transition>
     </Teleport>
   </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import AppLayout from '@/components/layout/AppLayout.vue'
 import { useKpiAssignmentStore } from '@/stores/kpiAssignment'
 import StatusBadge from '@/components/admin/StatusBadge.vue'
 

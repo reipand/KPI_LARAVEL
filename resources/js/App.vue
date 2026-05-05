@@ -7,7 +7,7 @@ const auth = useAuthStore();
 
 onMounted(() => {
     // Jika sudah login (ada token tersimpan), refresh tenant list
-    if (auth.isLoggedIn && !auth.isSuperAdmin) {
+    if (auth.isLoggedIn) {
         auth.fetchMyTenants().catch(() => {});
     }
 });

@@ -55,7 +55,7 @@ const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUppe
 
 onMounted(() => {
     // Refresh tenant list jika user punya multi-tenant access
-    if (!auth.isSuperAdmin && auth.isLoggedIn) {
+    if (auth.isLoggedIn) {
         auth.fetchMyTenants().catch(() => {});
     }
 });

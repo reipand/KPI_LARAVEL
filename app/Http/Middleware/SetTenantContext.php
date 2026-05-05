@@ -24,10 +24,25 @@ class SetTenantContext
             return $next($request);
         }
 
-        // Super Admin role bypasses tenant isolation entirely
+        // Super Admin bypasses tenant isolation, but can still opt into a tenant context
+        // so tenant-scoped features can work against the selected company.
         if ($user->hasRole('super_admin')) {
+            $requestedTenantId = (int) $request->header('X-Tenant-ID');
+            $tenant = null;
+
+            if ($requestedTenantId > 0) {
+                $tenant = Tenant::withoutGlobalScopes()
+                    ->whereKey($requestedTenantId)
+                    ->where('status', 'active')
+                    ->first();
+            }
+
             app()->instance('bypass_tenant_scope', true);
-            app()->instance('current_tenant_id', null);
+            app()->instance('current_tenant_id', $tenant?->id);
+
+            if ($tenant) {
+                app()->instance('current_tenant', $tenant);
+            }
 
             return $next($request);
         }

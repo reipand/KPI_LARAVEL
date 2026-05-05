@@ -138,6 +138,23 @@ class UserManagementController extends Controller
     {
         $user = $request->user();
 
+        if ($user->hasRole('super_admin')) {
+            $tenants = Tenant::withoutGlobalScopes()
+                ->orderBy('status')
+                ->orderBy('tenant_name')
+                ->get()
+                ->map(fn (Tenant $tenant) => [
+                    'id'          => $tenant->id,
+                    'tenant_code' => $tenant->tenant_code,
+                    'tenant_name' => $tenant->tenant_name,
+                    'status'      => $tenant->status,
+                    'is_primary'  => false,
+                    'role'        => 'super_admin',
+                ]);
+
+            return response()->json(['data' => $tenants->values()]);
+        }
+
         $tenants = collect();
 
         // Primary tenant from users.tenant_id

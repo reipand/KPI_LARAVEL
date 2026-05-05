@@ -70,27 +70,27 @@ const routes = [
     {
         path: '/dashboard',
         component: PegawaiDashboard,
-        meta: { requiresAuth: true, roles: ['pegawai'] },
+        meta: { requiresAuth: true, roles: ['employee'] },
     },
     {
         path: '/pekerjaan',
         component: PekerjaanPage,
-        meta: { requiresAuth: true, roles: ['pegawai'] },
+        meta: { requiresAuth: true, roles: ['employee'] },
     },
     {
         path: '/laporan-kpi',
         component: KpiReportPage,
-        meta: { requiresAuth: true, roles: ['pegawai'] },
+        meta: { requiresAuth: true, roles: ['employee'] },
     },
     {
         path: '/progress-kpi',
         component: KpiProgressPage,
-        meta: { requiresAuth: true, roles: ['pegawai'] },
+        meta: { requiresAuth: true, roles: ['employee'] },
     },
     {
         path: '/my-tasks',
         component: MyTasksPage,
-        meta: { requiresAuth: true, roles: ['pegawai'] },
+        meta: { requiresAuth: true, roles: ['employee'] },
     },
 
     // HR Manager
@@ -102,7 +102,7 @@ const routes = [
     {
         path: '/hr/pegawai',
         component: PegawaiPage,
-        meta: { requiresAuth: true, roles: ['hr_manager'] },
+        meta: { requiresAuth: true, roles: ['hr_manager', 'tenant_admin'] },
     },
     {
         path: '/hr/mapping',
@@ -157,7 +157,7 @@ const routes = [
     {
         path: '/hr/penugasan',
         component: TaskAssignmentPage,
-        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur', 'tenant_admin'] },
     },
     {
         path: '/hr/kpi-indicators',
@@ -186,7 +186,7 @@ const routes = [
     {
         path: '/notifikasi',
         component: NotificationsPage,
-        meta: { requiresAuth: true, roles: ['pegawai', 'hr_manager', 'direktur'] },
+        meta: { requiresAuth: true, roles: ['employee', 'hr_manager', 'direktur', 'tenant_admin'] },
     },
 
     // Halaman khusus
@@ -250,7 +250,7 @@ const routes = [
     {
         path: '/kpi/submit',
         component: KpiSubmissionPage,
-        meta: { requiresAuth: true, roles: ['pegawai', 'hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
+        meta: { requiresAuth: true, roles: ['employee', 'hr_manager', 'direktur', 'tenant_admin', 'super_admin'] },
     },
 
     // Catch-all → login
@@ -266,11 +266,19 @@ const router = createRouter({
 // ─── Navigation guards ─────────────────────────────────────────────────────
 export function defaultRouteForRole(role) {
     if (role === 'super_admin') return '/admin/tenants';
-    if (role === 'tenant_admin') return '/admin/kpi/templates';
+    if (role === 'tenant_admin') return '/hr/pegawai';
     if (role === 'hr_manager') return '/hr/dashboard';
     if (role === 'direktur') return '/direktur/dashboard';
 
     return '/dashboard';
+}
+
+function resolveStoredRole(user) {
+    if (user?.role === 'super_admin') {
+        return 'super_admin';
+    }
+
+    return localStorage.getItem('active_role') || user?.role || null;
 }
 
 router.beforeEach((to, _from, next) => {
@@ -278,7 +286,7 @@ router.beforeEach((to, _from, next) => {
     const user  = readStoredUser();
 
     // Role aktif: pakai active_role (tenant-specific) jika ada, fallback ke role utama
-    const activeRole = localStorage.getItem('active_role') || user?.role;
+    const activeRole = resolveStoredRole(user);
 
     if (token && !user) {
         localStorage.removeItem('token');
@@ -296,6 +304,10 @@ router.beforeEach((to, _from, next) => {
     // Halaman yang butuh autentikasi
     if (to.meta.requiresAuth) {
         if (!token) return next('/login');
+
+        if (activeRole === 'super_admin') {
+            return next();
+        }
 
         // Cek role menggunakan activeRole (termasuk role rangkap)
         if (to.meta.roles && !to.meta.roles.includes(activeRole)) {

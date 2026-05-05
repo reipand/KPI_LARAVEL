@@ -192,18 +192,18 @@ class ExportController extends ApiController
             ->get();
 
         $departmentRows = $departments->map(function (Department $department) use ($reportData, $bulan, $tahun) {
-            $pegawai = $department->users->where('role', 'pegawai');
-            $percentages = $pegawai
+            $employees = $department->users->where('role', 'employee');
+            $percentages = $employees
                 ->map(fn (User $user) => $reportData->has($user->id) ? (float) $reportData[$user->id]->avg_persen : null)
                 ->filter(fn ($score) => $score !== null);
 
-            $taskScores = $pegawai
+            $taskScores = $employees
                 ->map(fn (User $user) => $this->kpiCalculator->calculateForUser($user, $bulan, $tahun)['total'])
                 ->filter(fn ($score) => $score > 0);
 
             return [
                 'name' => $department->nama,
-                'employee_count' => $pegawai->count(),
+                'employee_count' => $employees->count(),
                 'avg_percentage' => $percentages->isNotEmpty() ? round($percentages->average(), 1) : null,
                 'avg_task_score' => $taskScores->isNotEmpty() ? round($taskScores->average(), 2) : null,
             ];
@@ -218,7 +218,7 @@ class ExportController extends ApiController
 
         $taskDistribution = ['Baik Sekali' => 0, 'Baik' => 0, 'Cukup' => 0, 'Kurang' => 0, 'Buruk' => 0];
         User::query()
-            ->where('role', 'pegawai')
+            ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->get()
             ->each(function (User $user) use (&$taskDistribution, $bulan, $tahun) {
@@ -249,7 +249,7 @@ class ExportController extends ApiController
             'generatedAt' => now(),
             'summary' => [
                 'total_employees' => User::query()
-                    ->where('role', 'pegawai')
+                    ->where('role', 'employee')
                     ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
                     ->count(),
                 'total_departments' => Department::query()

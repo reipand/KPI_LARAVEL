@@ -27,8 +27,8 @@ export const useAuthStore = defineStore('auth', () => {
         if (_activeRole.value) return _activeRole.value;
         return user.value?.role ?? null;
     });
-    const isPegawai  = computed(() => activeRole.value === 'pegawai');
-    const isHR       = computed(() => activeRole.value === 'hr_manager');
+    const isEmployee = computed(() => activeRole.value === 'employee');
+    const isHR       = computed(() => ['hr_manager', 'tenant_admin', 'super_admin'].includes(activeRole.value));
     const isDirektur = computed(() => activeRole.value === 'direktur');
 
     // ─── Actions ──────────────────────────────────────────────────────────
@@ -39,11 +39,18 @@ export const useAuthStore = defineStore('auth', () => {
             const { data: resp } = await api.post('/auth/login', { nip, nama });
             const { token: rawToken, user: rawUser } = resp.data;
 
+            myTenants.value = [];
+            activeTenantId.value = null;
+            _activeRole.value = rawUser.role ?? null;
+
             token.value = rawToken;
             user.value  = rawUser;
 
             localStorage.setItem('token', rawToken);
             localStorage.setItem('user', JSON.stringify(rawUser));
+            localStorage.removeItem('my_tenants');
+            localStorage.removeItem('active_tenant_id');
+            localStorage.setItem('active_role', rawUser.role);
 
             // Fetch tenant dulu agar activeTenantId tersedia sebelum dashboard load
             await fetchMyTenants().catch(() => {});
@@ -80,7 +87,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function fetchMyTenants() {
-        if (isSuperAdmin.value) return;
         try {
             const { data } = await api.get('/v2/my/tenants');
             myTenants.value = data.data ?? [];
@@ -124,7 +130,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     return {
         user, token, isLoading, myTenants, activeTenantId, activeTenant, activeRole,
-        isLoggedIn, isPegawai, isHR, isDirektur, isSuperAdmin, hasMultiTenant,
+        isLoggedIn, isEmployee, isHR, isDirektur, isSuperAdmin, hasMultiTenant,
         login, logout, fetchMe, fetchMyTenants, setActiveTenant,
     };
 });

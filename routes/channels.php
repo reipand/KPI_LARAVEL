@@ -20,6 +20,6 @@ Broadcast::channel('kpi.user.{userId}', function (?User $user, int $userId) {
         return true;
     }
 
-    return collect(['admin', 'hr_manager', 'direktur'])
+    return collect(['admin', 'hr_manager', 'direktur', 'super_admin'])
         ->contains(fn (string $role) => $user->hasKpiRole($role));
 });

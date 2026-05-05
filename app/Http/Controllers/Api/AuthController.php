@@ -64,6 +64,14 @@ class AuthController extends ApiController
             );
         }
 
+        if (! $user->is_active) {
+            return $this->error(
+                'Akun Anda sedang nonaktif. Hubungi HR untuk aktivasi kembali.',
+                [],
+                Response::HTTP_FORBIDDEN
+            );
+        }
+
         RateLimiter::clear($key);
 
         $expirationMinutes = (int) config('sanctum.expiration', 480);

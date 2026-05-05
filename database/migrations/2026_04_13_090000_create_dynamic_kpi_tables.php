@@ -81,7 +81,7 @@ return new class extends Migration
         DB::table('roles')->insert([
             [
                 'name' => 'Pegawai',
-                'slug' => 'pegawai',
+                'slug' => 'employee',
                 'description' => 'Default employee role',
                 'created_at' => now(),
                 'updated_at' => now(),

@@ -16,7 +16,7 @@ class KpiReportEvidenceTest extends TestCase
     public function test_kpi_report_resource_returns_evidence_path_and_url(): void
     {
         $pegawai = User::factory()->create([
-            'role' => 'pegawai',
+            'role' => 'employee',
         ]);
 
         $component = KpiComponent::query()->create([

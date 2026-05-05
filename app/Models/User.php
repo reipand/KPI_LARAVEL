@@ -28,6 +28,7 @@ class User extends Authenticatable
         'department_id',
         'position_id',
         'status_karyawan',
+        'is_active',
         'tanggal_masuk',
         'no_hp',
         'email',
@@ -45,6 +46,7 @@ class User extends Authenticatable
     {
         return [
             'tanggal_masuk' => 'date',
+            'is_active' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -54,6 +56,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Tenant::class, 'user_tenants')
                     ->withPivot('role', 'is_primary')
                     ->withTimestamps();
+    }
+
+    public function primaryTenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class, 'tenant_id');
     }
 
     public function hasAccessToTenant(int $tenantId): bool
@@ -126,14 +133,19 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class);
     }
 
-    public function isPegawai(): bool
+    public function isEmployee(): bool
     {
-        return $this->role === 'pegawai';
+        return $this->role === 'employee';
     }
 
     public function isHrManager(): bool
     {
         return $this->role === 'hr_manager';
+    }
+
+    public function isTenantAdmin(): bool
+    {
+        return $this->role === 'tenant_admin' || $this->hasRole('tenant_admin');
     }
 
     public function isDirektur(): bool
@@ -144,6 +156,11 @@ class User extends Authenticatable
     public function canManageAllData(): bool
     {
         return $this->isHrManager() || $this->isDirektur() || $this->hasKpiRole('super_admin');
+    }
+
+    public function canManageCompanyData(): bool
+    {
+        return $this->canManageAllData() || $this->isTenantAdmin();
     }
 
     public function isHR(): bool

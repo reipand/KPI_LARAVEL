@@ -68,7 +68,7 @@ class RefactorIntegrityTest extends TestCase
         $dept = Department::factory()->create(['kode' => 'ITD', 'nama' => 'Information Technology']);
 
         $employee = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept->id,
         ]);
 
@@ -104,7 +104,7 @@ class RefactorIntegrityTest extends TestCase
         $dept = Department::factory()->create(['kode' => 'ITD', 'nama' => 'Information Technology']);
 
         $employee = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept->id,
         ]);
 
@@ -141,7 +141,7 @@ class RefactorIntegrityTest extends TestCase
     public function test_spatie_role_can_be_assigned_to_user(): void
     {
         $role = Role::firstOrCreate(['name' => 'IT', 'guard_name' => 'web']);
-        $user = User::factory()->create(['role' => 'pegawai']);
+        $user = User::factory()->create(['role' => 'employee']);
 
         $user->assignRole($role);
 
@@ -175,7 +175,7 @@ class RefactorIntegrityTest extends TestCase
     public function test_user_spatie_roles_relationship_returns_assigned_role_names(): void
     {
         $role    = Role::firstOrCreate(['name' => 'IT', 'guard_name' => 'web']);
-        $itStaff = User::factory()->create(['role' => 'pegawai']);
+        $itStaff = User::factory()->create(['role' => 'employee']);
         $itStaff->assignRole($role);
 
         // Reload with Spatie roles relation to verify eager-load path

@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTaskMappingRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\ActivityLog;
 use App\Models\KpiIndicator;
+use App\Models\Tenant;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TaskAssignmentService;
@@ -27,14 +28,28 @@ class TaskController extends ApiController
     public function index(Request $request)
     {
         $user = $request->user();
+        $tenantIds = $this->accessibleTenantIds($user);
 
         $tasks = Task::query()
-            ->with(['user', 'assignee', 'assigner', 'kpiIndicator.position', 'mapper', 'taskScores'])
-            ->when($user->isPegawai(), fn ($query) => $query->where(fn ($inner) => $inner
+            ->with([
+                'user.primaryTenant',
+                'assignee.primaryTenant',
+                'assigner.primaryTenant',
+                'kpiIndicator.position',
+                'mapper.primaryTenant',
+                'taskScores',
+            ])
+            ->when($user->isTenantAdmin(), fn ($query) => $query->where('tenant_id', $this->resolveScopedTenantId($user)))
+            ->when($user->canManageAllData() && $tenantIds !== null, fn ($query) => $query->whereIn('tenant_id', $tenantIds))
+            ->when(
+                $request->filled('tenant_id') && $user->canManageAllData() && $this->canAccessTenant($user, $request->integer('tenant_id')),
+                fn ($query) => $query->where('tenant_id', $request->integer('tenant_id'))
+            )
+            ->when($user->isEmployee(), fn ($query) => $query->where(fn ($inner) => $inner
                 ->where('user_id', $user->id)
                 ->orWhere('assigned_to', $user->id)))
-            ->when($request->filled('user_id') && !$user->isPegawai(), fn ($query) => $query->where('user_id', $request->integer('user_id')))
-            ->when($request->filled('assigned_to') && !$user->isPegawai(), fn ($query) => $query->where('assigned_to', $request->integer('assigned_to')))
+            ->when($request->filled('user_id') && !$user->isEmployee(), fn ($query) => $query->where('user_id', $request->integer('user_id')))
+            ->when($request->filled('assigned_to') && !$user->isEmployee(), fn ($query) => $query->where('assigned_to', $request->integer('assigned_to')))
             ->when($request->filled('task_type') || $request->filled('type'), function ($query) use ($request) {
                 $query->where('task_type', (string) ($request->input('task_type') ?? $request->input('type')));
             })
@@ -50,11 +65,14 @@ class TaskController extends ApiController
     public function store(StoreTaskRequest $request)
     {
         if ($request->isManualAssignmentPayload()) {
-            if (!$request->user()->canManageAllData()) {
+            if (!$request->user()->canManageCompanyData()) {
                 return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
             }
 
-            $task = $this->taskAssignmentService->create($request->validated(), $request->user());
+            $payload = $request->validated();
+            $payload['tenant_id'] = $this->resolveAssignableTenantId($request->user(), (int) $payload['assigned_to']);
+
+            $task = $this->taskAssignmentService->create($payload, $request->user());
 
             ActivityLog::record(
                 $request->user(),
@@ -70,6 +88,7 @@ class TaskController extends ApiController
 
         $data = collect($request->validated())->except('file_evidence')->toArray();
         $this->ensureIndicatorMatchesUserDepartment($data['kpi_indicator_id'] ?? null, $request->user());
+        $data['tenant_id'] = $this->resolveScopedTenantId($request->user());
 
         if ($request->hasFile('file_evidence')) {
             $data['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
@@ -86,14 +105,22 @@ class TaskController extends ApiController
             $request
         );
 
-        return $this->resource(new TaskResource($task->load(['user', 'kpiIndicator.position', 'mapper'])), 'Pekerjaan berhasil ditambahkan.', Response::HTTP_CREATED);
+        return $this->resource(new TaskResource($task->load(['user.primaryTenant', 'kpiIndicator.position', 'mapper.primaryTenant'])), 'Pekerjaan berhasil ditambahkan.', Response::HTTP_CREATED);
     }
 
     public function update(StoreTaskRequest $request, Task $task)
     {
+        $this->ensureTaskAccessible($task, $request->user());
+
         if ($task->isManualAssignment()) {
-            if ($request->user()->canManageAllData()) {
-                $task = $this->taskAssignmentService->update($task, $request->validated(), $request->user());
+            if ($request->user()->canManageCompanyData()) {
+                $payload = $request->validated();
+                $payload['tenant_id'] = $this->resolveAssignableTenantId(
+                    $request->user(),
+                    (int) ($payload['assigned_to'] ?? $task->assigned_to_user_id)
+                );
+
+                $task = $this->taskAssignmentService->update($task, $payload, $request->user());
 
                 ActivityLog::record(
                     $request->user(),
@@ -135,11 +162,17 @@ class TaskController extends ApiController
         }
 
         if ($request->isManualAssignmentPayload()) {
-            if (!$request->user()->canManageAllData()) {
+            if (!$request->user()->canManageCompanyData()) {
                 return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
             }
 
-            $task = $this->taskAssignmentService->update($task, $request->validated(), $request->user());
+            $payload = $request->validated();
+            $payload['tenant_id'] = $this->resolveAssignableTenantId(
+                $request->user(),
+                (int) ($payload['assigned_to'] ?? $task->assigned_to_user_id)
+            );
+
+            $task = $this->taskAssignmentService->update($task, $payload, $request->user());
 
             ActivityLog::record(
                 $request->user(),
@@ -176,13 +209,15 @@ class TaskController extends ApiController
             $request
         );
 
-        return $this->resource(new TaskResource($task->load(['user', 'kpiIndicator.position', 'mapper'])), 'Pekerjaan berhasil diperbarui.');
+        return $this->resource(new TaskResource($task->load(['user.primaryTenant', 'kpiIndicator.position', 'mapper.primaryTenant'])), 'Pekerjaan berhasil diperbarui.');
     }
 
     public function destroy(Request $request, Task $task)
     {
+        $this->ensureTaskAccessible($task, $request->user());
+
         if ($task->isManualAssignment()) {
-            if (!$request->user()->canManageAllData()) {
+            if (!$request->user()->canManageCompanyData()) {
                 return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
             }
 
@@ -220,6 +255,8 @@ class TaskController extends ApiController
 
     public function mapping(UpdateTaskMappingRequest $request, Task $task)
     {
+        $this->ensureTaskAccessible($task, $request->user());
+
         if (!$request->user()->canManageAllData()) {
             return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
         }
@@ -243,15 +280,17 @@ class TaskController extends ApiController
             $request
         );
 
-        return $this->resource(new TaskResource($task->load(['user', 'kpiIndicator.position', 'mapper'])), 'Mapping KPI berhasil diperbarui.');
+        return $this->resource(new TaskResource($task->load(['user.primaryTenant', 'assignee.primaryTenant', 'kpiIndicator.position', 'mapper.primaryTenant'])), 'Mapping KPI berhasil diperbarui.');
     }
 
     public function myTasks(Request $request)
     {
         $tasks = Task::query()
             ->with(['assignee', 'assigner', 'kpiIndicator.position', 'taskScores'])
+            ->with(['assignee.primaryTenant', 'assigner.primaryTenant'])
             ->where('task_type', Task::TYPE_MANUAL_ASSIGNMENT)
             ->where('assigned_to', $request->user()->id)
+            ->when($request->user()->tenant_id, fn ($query) => $query->where('tenant_id', $this->resolveScopedTenantId($request->user())))
             ->latest('end_date')
             ->paginate((int) $request->input('per_page', 15));
 
@@ -260,6 +299,8 @@ class TaskController extends ApiController
 
     public function updateStatus(UpdateTaskStatusRequest $request, Task $task)
     {
+        $this->ensureTaskAccessible($task, $request->user());
+
         if (!$task->isManualAssignment()) {
             return $this->error('Endpoint ini hanya untuk task assignment HR.', status: Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -312,5 +353,84 @@ class TaskController extends ApiController
                 'kpi_indicator_id' => 'Indikator KPI harus sesuai dengan divisi pegawai terkait.',
             ]);
         }
+    }
+
+    private function ensureTaskAccessible(Task $task, User $user): void
+    {
+        if ($user->canManageAllData()) {
+            if ($task->tenant_id && ! $this->canAccessTenant($user, (int) $task->tenant_id)) {
+                abort(Response::HTTP_FORBIDDEN, 'Task ini berada di perusahaan lain.');
+            }
+
+            return;
+        }
+
+        if ($user->isTenantAdmin() && (int) $task->tenant_id !== $this->resolveScopedTenantId($user)) {
+            abort(Response::HTTP_FORBIDDEN, 'Task ini berada di perusahaan lain.');
+        }
+    }
+
+    private function resolveAssignableTenantId(User $actor, int $assigneeId): int
+    {
+        $tenantId = (int) User::query()->whereKey($assigneeId)->value('tenant_id');
+
+        if ($tenantId <= 0) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'Pegawai belum terhubung ke perusahaan mana pun.',
+            ]);
+        }
+
+        if (! $actor->canManageAllData() && $tenantId !== $this->resolveScopedTenantId($actor)) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'HR perusahaan hanya bisa memberi tugas ke pegawai di perusahaan yang sama.',
+            ]);
+        }
+
+        if ($actor->canManageAllData() && ! $this->canAccessTenant($actor, $tenantId)) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'Anda tidak memiliki akses ke perusahaan pegawai tersebut.',
+            ]);
+        }
+
+        return $tenantId;
+    }
+
+    private function resolveScopedTenantId(User $actor): int
+    {
+        $tenantId = app()->bound('current_tenant_id') ? (int) app('current_tenant_id') : 0;
+
+        if ($tenantId > 0) {
+            return $tenantId;
+        }
+
+        return (int) $actor->tenant_id;
+    }
+
+    private function accessibleTenantIds(User $actor): ?array
+    {
+        if ($actor->hasKpiRole('super_admin')) {
+            return null;
+        }
+
+        return collect([$actor->tenant_id])
+            ->merge($actor->tenants()->pluck('tenants.id'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function canAccessTenant(User $actor, int $tenantId): bool
+    {
+        if ($tenantId <= 0) {
+            return false;
+        }
+
+        if ($actor->hasKpiRole('super_admin')) {
+            return Tenant::withoutGlobalScopes()->whereKey($tenantId)->exists();
+        }
+
+        return $actor->hasAccessToTenant($tenantId);
     }
 }

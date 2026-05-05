@@ -19,10 +19,16 @@ class PositionController extends ApiController
     )]
     public function index(Request $request)
     {
+        $user = $request->user();
+        $scopedTenantId = $user && ! $user->canManageAllData()
+            ? (app()->bound('current_tenant_id') ? app('current_tenant_id') : $user->tenant_id)
+            : null;
+
         $positions = Position::query()
             ->with('department:id,nama,kode')
             ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
             ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->integer('department_id')))
+            ->when($scopedTenantId, fn ($q) => $q->where('tenant_id', $scopedTenantId))
             ->when($request->filled('tenant_id'), fn ($q) => $q->where('tenant_id', $request->integer('tenant_id')))
             ->orderBy('nama')
             ->get();

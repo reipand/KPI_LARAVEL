@@ -19,7 +19,7 @@ class KpiAutomationTest extends TestCase
         $dept = Department::factory()->create(['kode' => 'SPT', 'nama' => 'Support']);
 
         $user = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept->id,
         ]);
 
@@ -52,7 +52,7 @@ class KpiAutomationTest extends TestCase
         $dept  = Department::factory()->create(['kode' => 'WHS', 'nama' => 'Warehouse']);
 
         $employee = User::factory()->create([
-            'role'          => 'pegawai',
+            'role'          => 'employee',
             'department_id' => $dept->id,
         ]);
 

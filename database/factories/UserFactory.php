@@ -30,10 +30,11 @@ class UserFactory extends Factory
             'jabatan' => fake()->jobTitle(),
             'departemen' => fake()->randomElement(['Operasional', 'Finance', 'HR']),
             'status_karyawan' => fake()->randomElement(['tetap', 'kontrak']),
+            'is_active' => true,
             'tanggal_masuk' => fake()->dateTimeBetween('-5 years', 'now')->format('Y-m-d'),
             'no_hp' => fake()->phoneNumber(),
             'email' => fake()->unique()->safeEmail(),
-            'role' => 'pegawai',
+            'role' => 'employee',
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];

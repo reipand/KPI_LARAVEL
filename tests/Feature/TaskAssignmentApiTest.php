@@ -21,7 +21,7 @@ class TaskAssignmentApiTest extends TestCase
     {
         $hr   = User::factory()->create(['role' => 'hr_manager']);
         $dept = Department::factory()->create(['kode' => 'OPS', 'nama' => 'Operations']);
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $dept->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $dept->id]);
 
         KpiIndicator::query()->create([
             'name'          => 'Delivery',
@@ -70,7 +70,7 @@ class TaskAssignmentApiTest extends TestCase
     public function test_assignee_can_update_status_and_score_recalculates(): void
     {
         $hr = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         $task = Task::query()->create([
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
@@ -113,7 +113,7 @@ class TaskAssignmentApiTest extends TestCase
     public function test_assignee_must_upload_evidence_when_marking_manual_assignment_done_via_status_endpoint(): void
     {
         $hr = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         $task = Task::query()->create([
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
@@ -151,8 +151,8 @@ class TaskAssignmentApiTest extends TestCase
     public function test_my_tasks_returns_only_manual_assigned_tasks_for_user(): void
     {
         $hr = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
-        $other = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
+        $other = User::factory()->create(['role' => 'employee']);
 
         Task::query()->create([
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
@@ -196,7 +196,7 @@ class TaskAssignmentApiTest extends TestCase
     public function test_assignee_can_update_manual_assignment_progress_via_regular_update_endpoint(): void
     {
         $hr = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         $task = Task::query()->create([
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
@@ -258,7 +258,7 @@ class TaskAssignmentApiTest extends TestCase
     public function test_assignee_must_upload_evidence_when_marking_manual_assignment_done_via_regular_update_endpoint(): void
     {
         $hr = User::factory()->create(['role' => 'hr_manager']);
-        $employee = User::factory()->create(['role' => 'pegawai']);
+        $employee = User::factory()->create(['role' => 'employee']);
 
         $task = Task::query()->create([
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
@@ -301,7 +301,7 @@ class TaskAssignmentApiTest extends TestCase
         $hr = User::factory()->create(['role' => 'hr_manager']);
         $itDepartment = Department::factory()->create(['kode' => 'IT', 'nama' => 'IT']);
         $financeDepartment = Department::factory()->create(['kode' => 'FIN', 'nama' => 'Finance']);
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $itDepartment->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $itDepartment->id]);
 
         $financeIndicator = KpiIndicator::factory()->create([
             'name' => 'Finance Accuracy',
@@ -328,7 +328,7 @@ class TaskAssignmentApiTest extends TestCase
         $hr = User::factory()->create(['role' => 'hr_manager']);
         $itDepartment = Department::factory()->create(['kode' => 'IT', 'nama' => 'IT']);
         $financeDepartment = Department::factory()->create(['kode' => 'FIN', 'nama' => 'Finance']);
-        $employee = User::factory()->create(['role' => 'pegawai', 'department_id' => $itDepartment->id]);
+        $employee = User::factory()->create(['role' => 'employee', 'department_id' => $itDepartment->id]);
         $itPosition = Position::query()->create([
             'nama' => 'IT Support',
             'kode' => 'ITS',
