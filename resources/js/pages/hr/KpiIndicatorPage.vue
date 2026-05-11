@@ -8,8 +8,10 @@ import Alert from '@/components/ui/Alert.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import { useToast } from '@/composables/useToast';
 import { useKpiIndicatorStore } from '@/stores/kpiIndicator';
+import { useAuthStore } from '@/stores/auth';
 
 const store = useKpiIndicatorStore();
+const auth = useAuthStore();
 const toast = useToast();
 
 const indicators = computed(() => store.indicators);
@@ -21,6 +23,7 @@ const selectedId = ref(null);
 const submitting = ref(false);
 const formError = ref('');
 const deleteState = ref({ open: false, id: null, name: '' });
+const activeTenantName = computed(() => auth.activeTenant?.tenant_name || 'Tenant aktif');
 
 // ─── Threshold builder ────────────────────────────────────────────────────────
 const emptyThreshold = () => ({ min_pct: 0, score_pct: 0 });
@@ -67,6 +70,15 @@ watch(filterDeptId, () => {
 });
 
 onMounted(async () => {
+    if (!auth.myTenants?.length) {
+        await auth.fetchMyTenants().catch(() => {});
+    }
+
+    await Promise.all([store.fetchIndicators(), store.fetchMeta()]);
+});
+
+watch(() => auth.activeTenantId, async (tenantId, oldTenantId) => {
+    if (!tenantId || tenantId === oldTenantId) return;
     await Promise.all([store.fetchIndicators(), store.fetchMeta()]);
 });
 
@@ -224,7 +236,10 @@ function formulaBadgeClass(type) {
                 <div class="page-hero-meta">HR Panel · Manajemen KPI</div>
                 <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">Indikator KPI</h2>
                 <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                    Kelola indikator KPI per departemen beserta formula penilaian yang digunakan.
+                    Kelola indikator KPI per tenant beserta formula penilaian yang digunakan.
+                </p>
+                <p class="mt-3 inline-flex rounded-full bg-white/14 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
+                    Tenant aktif: {{ activeTenantName }}
                 </p>
             </div>
         </section>

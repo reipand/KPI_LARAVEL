@@ -10,10 +10,12 @@ import { useToast } from '@/composables/useToast';
 import { useSlaStore } from '@/stores/sla';
 import { useDepartmentStore } from '@/stores/department';
 import { usePositionStore } from '@/stores/position';
+import { useAuthStore } from '@/stores/auth';
 
 const store     = useSlaStore();
 const deptStore = useDepartmentStore();
 const posStore  = usePositionStore();
+const auth      = useAuthStore();
 const toast     = useToast();
 
 const slas           = computed(() => store.slas);
@@ -36,6 +38,7 @@ const emptyForm = () => ({
 
 const form   = reactive(emptyForm());
 const errors = reactive({});
+const activeTenantName = computed(() => auth.activeTenant?.tenant_name || 'Tenant aktif');
 
 const filteredPositions = computed(() =>
     form.department_id
@@ -55,10 +58,26 @@ watch(() => form.position_id, (id) => {
     form.jabatan = position?.nama ?? '';
 });
 
-onMounted(() => {
-    store.fetchSla();
-    deptStore.fetchDepartments();
-    posStore.fetchPositions();
+onMounted(async () => {
+    if (!auth.myTenants?.length) {
+        await auth.fetchMyTenants().catch(() => {});
+    }
+
+    await Promise.all([
+        store.fetchSla(),
+        deptStore.fetchDepartments(),
+        posStore.fetchPositions(),
+    ]);
+});
+
+watch(() => auth.activeTenantId, async (tenantId, oldTenantId) => {
+    if (!tenantId || tenantId === oldTenantId) return;
+
+    await Promise.all([
+        store.fetchSla(),
+        deptStore.fetchDepartments(),
+        posStore.fetchPositions(),
+    ]);
 });
 
 function resetForm() {
@@ -156,7 +175,10 @@ async function confirmDelete() {
                 <div class="page-hero-meta">HR Panel</div>
                 <h2 class="mt-4 text-2xl font-bold leading-tight md:text-3xl">SLA Pekerjaan</h2>
                 <p class="mt-2 max-w-xl text-sm leading-6 text-white/78">
-                    Kelola standar durasi kerja berdasarkan jabatan dan jenis pekerjaan.
+                    Kelola standar durasi kerja berdasarkan jabatan dan jenis pekerjaan untuk tenant yang sedang aktif.
+                </p>
+                <p class="mt-3 inline-flex rounded-full bg-white/14 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
+                    Tenant aktif: {{ activeTenantName }}
                 </p>
             </div>
         </section>
