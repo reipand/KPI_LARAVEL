@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 
 class KpiReportController extends ApiController
 {
@@ -21,9 +22,11 @@ class KpiReportController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $tenantId = $this->resolveScopedTenantId($user);
         $search = trim((string) $request->input('search', ''));
 
         $query = KpiReport::with(['user', 'kpiIndicator'])
+            ->where('tenant_id', $tenantId)
             ->when(! $user->canManageAllData(), fn ($q) => $q->where('user_id', $user->id))
             ->when($request->filled('user_id') && $user->canManageAllData(), fn ($q) => $q->where('user_id', $request->user_id))
             ->when($request->filled('kpi_indicator_id'), fn ($q) => $q->where('kpi_indicator_id', $request->kpi_indicator_id))
@@ -62,6 +65,7 @@ class KpiReportController extends ApiController
     public function store(StoreKpiReportRequest $request): JsonResponse
     {
         $user = $request->user();
+        $tenantId = $this->resolveScopedTenantId($user);
         $data = $request->validated();
 
         // Pegawai can only report their own KPI
@@ -71,8 +75,12 @@ class KpiReportController extends ApiController
             $data['user_id'] = $data['user_id'] ?? $user->id;
         }
 
+        $this->ensureTargetUserAccessible($data['user_id'], $tenantId);
+
         // Compute percentage from component target if not provided
-        $component = KpiIndicator::find($data["kpi_indicator_id"]);
+        $component = KpiIndicator::query()
+            ->where('tenant_id', $tenantId)
+            ->find($data['kpi_indicator_id']);
         $nilaiTarget = $data['nilai_target'] ?? ($component?->default_target_value ?? null);
         $data['nilai_target'] = $nilaiTarget;
 
@@ -90,6 +98,7 @@ class KpiReportController extends ApiController
             $data['submitted_at'] = now();
         }
 
+        $data['tenant_id'] = $tenantId;
         $report = KpiReport::create($data);
         $report->load(['user', 'kpiIndicator']);
 
@@ -105,6 +114,8 @@ class KpiReportController extends ApiController
     public function update(StoreKpiReportRequest $request, KpiReport $kpiReport): JsonResponse
     {
         $user = $request->user();
+        $tenantId = $this->resolveScopedTenantId($user);
+        $this->ensureReportAccessible($user, $kpiReport);
 
         // Only the author or HR/Direktur can edit
         if (! $user->canManageAllData() && $kpiReport->user_id !== $user->id) {
@@ -112,6 +123,21 @@ class KpiReportController extends ApiController
         }
 
         $data = $request->validated();
+        $data['user_id'] = $user->canManageAllData()
+            ? ($data['user_id'] ?? $kpiReport->user_id)
+            : $kpiReport->user_id;
+        $this->ensureTargetUserAccessible($data['user_id'], $tenantId);
+
+        if (array_key_exists('kpi_indicator_id', $data)) {
+            $indicatorExists = KpiIndicator::query()
+                ->where('tenant_id', $tenantId)
+                ->whereKey($data['kpi_indicator_id'])
+                ->exists();
+
+            if (! $indicatorExists) {
+                return $this->error('Indikator KPI berada di tenant lain.', [], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        }
 
         $nilaiTarget = $data['nilai_target'] ?? $kpiReport->nilai_target;
         $nilaiAktual = $data['nilai_aktual'] ?? $kpiReport->nilai_aktual;
@@ -143,6 +169,7 @@ class KpiReportController extends ApiController
     public function destroy(Request $request, KpiReport $kpiReport): JsonResponse
     {
         $user = $request->user();
+        $this->ensureReportAccessible($user, $kpiReport);
 
         if (! $user->canManageAllData() && $kpiReport->user_id !== $user->id) {
             return $this->error('Anda tidak memiliki akses untuk menghapus laporan ini.', [], 403);
@@ -162,6 +189,13 @@ class KpiReportController extends ApiController
 
     public function review(Request $request, KpiReport $kpiReport): JsonResponse
     {
+        $actor = $request->user();
+        $this->ensureReportAccessible($actor, $kpiReport);
+
+        if (! $actor->canManageAllData()) {
+            return $this->error('Anda tidak memiliki akses untuk mereview laporan ini.', [], 403);
+        }
+
         $data = $request->validate([
             'status' => ['required', 'in:approved,rejected'],
             'review_note' => ['nullable', 'string', 'max:1000'],
@@ -202,6 +236,7 @@ class KpiReportController extends ApiController
     public function uploadEvidence(Request $request, KpiReport $kpiReport): JsonResponse
     {
         $user = $request->user();
+        $this->ensureReportAccessible($user, $kpiReport);
 
         if (! $user->canManageAllData() && $kpiReport->user_id !== $user->id) {
             return $this->error('Akses ditolak.', [], 403);
@@ -234,7 +269,14 @@ class KpiReportController extends ApiController
         $submitterName = $report->user?->nama ?? 'Pegawai';
         $component     = $report->kpiIndicator?->name ?? 'KPI';
 
-        User::where('role', 'hr_manager')->get()->each(function (User $hr) use ($submitterName, $component, $report) {
+        User::query()
+            ->where('tenant_id', $report->tenant_id)
+            ->where(function ($query) {
+                $query->where('role', 'hr_manager')
+                    ->orWhereHas('roles', fn ($roleQuery) => $roleQuery->where('name', 'hr_manager'));
+            })
+            ->get()
+            ->each(function (User $hr) use ($submitterName, $component, $report) {
             $this->notificationService->sendNotification(
                 $hr,
                 'report_submitted',
@@ -243,5 +285,35 @@ class KpiReportController extends ApiController
                 ['report_id' => $report->id],
             );
         });
+    }
+
+    private function ensureReportAccessible(User $actor, KpiReport $kpiReport): void
+    {
+        if ((int) $kpiReport->tenant_id !== $this->resolveScopedTenantId($actor)) {
+            abort(Response::HTTP_FORBIDDEN, 'Laporan KPI ini berada di tenant lain.');
+        }
+    }
+
+    private function ensureTargetUserAccessible(int $userId, int $tenantId): void
+    {
+        $exists = User::query()
+            ->whereKey($userId)
+            ->where('tenant_id', $tenantId)
+            ->exists();
+
+        if (! $exists) {
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'User laporan KPI berada di tenant lain.');
+        }
+    }
+
+    private function resolveScopedTenantId(User $actor): int
+    {
+        $tenantId = app()->bound('current_tenant_id') ? (int) app('current_tenant_id') : 0;
+
+        if ($tenantId > 0) {
+            return $tenantId;
+        }
+
+        return (int) $actor->tenant_id;
     }
 }

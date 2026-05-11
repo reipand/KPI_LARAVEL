@@ -8,9 +8,21 @@ use Illuminate\Support\Collection;
 
 class EloquentKpiIndicatorRepository implements KpiIndicatorRepositoryInterface
 {
+    private function scopedQuery()
+    {
+        $query = KpiIndicator::query();
+        $tenantId = app()->bound('current_tenant_id') ? (int) app('current_tenant_id') : 0;
+
+        if ($tenantId > 0) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query;
+    }
+
     public function getByDepartment(int $departmentId): Collection
     {
-        return KpiIndicator::query()
+        return $this->scopedQuery()
             ->where(function ($query) use ($departmentId) {
                 $query->where('department_id', $departmentId)
                     ->orWhereHas('position', fn ($position) => $position->where('department_id', $departmentId));
@@ -31,14 +43,14 @@ class EloquentKpiIndicatorRepository implements KpiIndicatorRepositoryInterface
 
     public function findById(int $id): ?KpiIndicator
     {
-        return KpiIndicator::query()
+        return $this->scopedQuery()
             ->with(['department'])
             ->find($id);
     }
 
     public function all(): Collection
     {
-        return KpiIndicator::query()
+        return $this->scopedQuery()
             ->with(['department'])
             ->orderBy('department_id')
             ->orderBy('id')

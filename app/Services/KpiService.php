@@ -39,8 +39,11 @@ class KpiService
         $notificationData = null;
 
         $score = DB::transaction(function () use ($payload, &$notificationData) {
+            $tenantId = $this->resolveScopedTenantId();
             /** @var User $user */
-            $user = User::query()->findOrFail($payload['user_id']);
+            $user = User::query()
+                ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+                ->findOrFail($payload['user_id']);
 
             if (! $user->department_id) {
                 throw new InvalidArgumentException('User belum memiliki departemen yang terhubung.');
@@ -126,9 +129,11 @@ class KpiService
     public function generateMonthlyKPI(?string $period = null): int
     {
         $resolvedPeriod = $this->resolvePeriod('monthly', $period ?? now()->toDateString());
+        $tenantId = $this->resolveScopedTenantId();
         $users = User::query()
             ->select(['id', 'department_id', 'role', 'nama', 'email', 'jabatan', 'nip'])
             ->whereNotNull('department_id')
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
             ->get();
 
         foreach ($users as $user) {
@@ -665,9 +670,14 @@ class KpiService
 
     private function hrNotificationRecipients(): Collection
     {
+        $tenantId = $this->resolveScopedTenantId();
+
         return User::query()
-            ->where('role', 'hr_manager')
-            ->orWhereHas('roles', fn ($query) => $query->where('name', 'hr_manager'))
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+            ->where(function ($query) {
+                $query->where('role', 'hr_manager')
+                    ->orWhereHas('roles', fn ($roleQuery) => $roleQuery->where('name', 'hr_manager'));
+            })
             ->get();
     }
 

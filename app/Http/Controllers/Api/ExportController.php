@@ -27,10 +27,14 @@ class ExportController extends ApiController
     {
         $bulan = (int) $request->input('bulan', now()->month);
         $tahun = (int) $request->input('tahun', now()->year);
+        $tenantId = $this->resolveScopedTenantId($request);
+
+        $this->ensureUserAccessible($request, $user, $tenantId);
 
         $kpiData = $this->kpiCalculator->calculateForUser($user, $bulan, $tahun);
 
         $reports = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->where('user_id', $user->id)
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
@@ -92,11 +96,15 @@ class ExportController extends ApiController
         $bulan = (int) $request->input('bulan', now()->month);
         $tahun = (int) $request->input('tahun', now()->year);
         $departmentId = $request->input('department_id');
+        $tenantId = $this->resolveScopedTenantId($request);
 
         $ranking = $this->kpiCalculator
             ->ranking($bulan, $tahun)
             ->when($departmentId, fn ($items) => $items->filter(
                 fn ($item) => (string) $item['user']->department_id === (string) $departmentId
+            ))
+            ->when($tenantId, fn ($items) => $items->filter(
+                fn ($item) => (int) $item['user']->tenant_id === (int) $tenantId
             ))
             ->values();
 
@@ -142,10 +150,14 @@ class ExportController extends ApiController
         $tahun = (int) $request->input('tahun', now()->year);
         $bulan = $request->integer('bulan') ?: null;
         $departmentId = $request->input('department_id');
-        $department = $departmentId ? Department::find($departmentId) : null;
+        $tenantId = $this->resolveScopedTenantId($request);
+        $department = $departmentId
+            ? Department::query()->where('tenant_id', $tenantId)->find($departmentId)
+            : null;
         $months = range(1, 12);
 
         $monthlyReports = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
             ->selectRaw('MONTH(tanggal) as bulan, AVG(persentase) as avg_persentase, COUNT(*) as jumlah')
@@ -165,6 +177,7 @@ class ExportController extends ApiController
         });
 
         $reportStats = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -176,6 +189,7 @@ class ExportController extends ApiController
             ->first();
 
         $reportData = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -185,6 +199,7 @@ class ExportController extends ApiController
             ->keyBy('user_id');
 
         $departments = Department::query()
+            ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
             ->with('users:id,nama,department_id,role')
@@ -218,6 +233,7 @@ class ExportController extends ApiController
 
         $taskDistribution = ['Baik Sekali' => 0, 'Baik' => 0, 'Cukup' => 0, 'Kurang' => 0, 'Buruk' => 0];
         User::query()
+            ->where('tenant_id', $tenantId)
             ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->get()
@@ -230,6 +246,7 @@ class ExportController extends ApiController
             });
 
         $topReports = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -249,10 +266,12 @@ class ExportController extends ApiController
             'generatedAt' => now(),
             'summary' => [
                 'total_employees' => User::query()
+                    ->where('tenant_id', $tenantId)
                     ->where('role', 'employee')
                     ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
                     ->count(),
                 'total_departments' => Department::query()
+                    ->where('tenant_id', $tenantId)
                     ->where('is_active', true)
                     ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
                     ->count(),
@@ -280,8 +299,10 @@ class ExportController extends ApiController
         $bulan = (int) $request->input('bulan', now()->month);
         $tahun = (int) $request->input('tahun', now()->year);
         $departmentId = $request->input('department_id');
+        $tenantId = $this->resolveScopedTenantId($request);
 
         $reports = \App\Models\KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -325,5 +346,31 @@ class ExportController extends ApiController
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function ensureUserAccessible(Request $request, User $user, int $tenantId): void
+    {
+        if ((int) $user->tenant_id !== $tenantId) {
+            abort(Response::HTTP_FORBIDDEN, 'User berada di tenant lain.');
+        }
+
+        if (! $request->user()->canManageAllData() && (int) $request->user()->id !== (int) $user->id) {
+            abort(Response::HTTP_FORBIDDEN, 'Akses ditolak.');
+        }
+    }
+
+    private function resolveScopedTenantId(Request $request): int
+    {
+        $tenantId = app()->bound('current_tenant_id') ? (int) app('current_tenant_id') : 0;
+
+        if ($tenantId > 0) {
+            return $tenantId;
+        }
+
+        if ($request->user()?->tenant_id) {
+            return (int) $request->user()->tenant_id;
+        }
+
+        abort(Response::HTTP_FORBIDDEN, 'Tenant aktif tidak ditemukan.');
     }
 }

@@ -13,9 +13,13 @@ class StoreKpiReportRequest extends SanitizedFormRequest
 
     public function rules(): array
     {
+        $tenantId = app()->bound('current_tenant_id')
+            ? (int) app('current_tenant_id')
+            : (int) ($this->user()?->tenant_id ?? 0);
+
         return [
-            'user_id' => ['nullable', 'exists:users,id'],
-            'kpi_indicator_id' => ['required', 'exists:kpi_indicators,id'],
+            'user_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId))],
+            'kpi_indicator_id' => ['required', Rule::exists('kpi_indicators', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId))],
             'period_type' => ['required', Rule::in(['daily', 'weekly', 'monthly'])],
             'tanggal' => ['required', 'date'],
             'period_label' => ['required', 'string', 'max:100'],

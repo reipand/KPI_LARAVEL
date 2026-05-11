@@ -31,6 +31,11 @@ class KpiController extends ApiController
             return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
         }
 
+        $tenantId = $this->resolveScopedTenantId($request);
+        if ($tenantId && (int) $user->tenant_id !== $tenantId) {
+            return $this->error('User KPI berada di tenant lain.', status: Response::HTTP_FORBIDDEN);
+        }
+
         $score = $this->calculator->calculateForUser(
             $user,
             $request->integer('bulan') ?: null,
@@ -47,5 +52,16 @@ class KpiController extends ApiController
             ->values();
 
         return $this->success(KpiScoreResource::collection($ranking)->resolve(), 'Berhasil');
+    }
+
+    private function resolveScopedTenantId(Request $request): ?int
+    {
+        if (app()->bound('current_tenant_id')) {
+            $tenantId = app('current_tenant_id');
+
+            return $tenantId ? (int) $tenantId : null;
+        }
+
+        return $request->user()?->tenant_id ? (int) $request->user()->tenant_id : null;
     }
 }

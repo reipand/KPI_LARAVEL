@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\KpiCalculatorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class AnalyticsController extends ApiController
 {
@@ -21,17 +22,20 @@ class AnalyticsController extends ApiController
     {
         $tahun = (int) $request->input('tahun', now()->year);
         $departmentId = $request->input('department_id');
+        $tenantId = $this->resolveScopedTenantId($request);
 
         $months = range(1, 12);
         $labels = collect($months)->map(fn ($m) => date('M', mktime(0, 0, 0, $m, 1)));
 
         $users = User::query()
+            ->where('tenant_id', $tenantId)
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->where('role', 'employee')
             ->get();
 
         // Monthly averages from kpi_reports
         $reportData = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
             ->selectRaw('MONTH(tanggal) as bulan, AVG(persentase) as avg_persentase, COUNT(*) as jumlah')
@@ -90,8 +94,10 @@ class AnalyticsController extends ApiController
         $tahun = (int) $request->input('tahun', now()->year);
         $bulan = $request->input('bulan');
         $departmentId = $request->input('department_id');
+        $tenantId = $this->resolveScopedTenantId($request);
 
         $departments = Department::query()
+            ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
             ->get();
@@ -100,6 +106,7 @@ class AnalyticsController extends ApiController
 
         // Percentage-based scores from kpi_reports
         $reportData = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -118,6 +125,7 @@ class AnalyticsController extends ApiController
 
         // Task-based KPI scores
         $users = User::query()
+            ->where('tenant_id', $tenantId)
             ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->get()
@@ -166,9 +174,11 @@ class AnalyticsController extends ApiController
         $tahun = (int) $request->input('tahun', now()->year);
         $bulan = $request->input('bulan');
         $departmentId = $request->input('department_id');
+        $tenantId = $this->resolveScopedTenantId($request);
 
         // Report-based distribution
         $reportCounts = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -179,7 +189,8 @@ class AnalyticsController extends ApiController
             ->toArray();
 
         // Task-based distribution
-        $userQuery = User::where('role', 'employee')
+        $userQuery = User::where('tenant_id', $tenantId)
+            ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId));
 
         $taskDistribution = ['Baik Sekali' => 0, 'Baik' => 0, 'Cukup' => 0, 'Kurang' => 0, 'Buruk' => 0];
@@ -220,13 +231,16 @@ class AnalyticsController extends ApiController
         $bulan = $request->integer('bulan') ?: null;
 
         $departmentId = $request->input('department_id');
+        $tenantId = $this->resolveScopedTenantId($request);
 
         $totalEmployees = User::query()
+            ->where('tenant_id', $tenantId)
             ->where('role', 'employee')
             ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
             ->count();
 
         $reportStats = KpiReport::query()
+            ->where('tenant_id', $tenantId)
             ->whereYear('tanggal', $tahun)
             ->when($bulan, fn ($q) => $q->whereMonth('tanggal', $bulan))
             ->when($departmentId, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('department_id', $departmentId)))
@@ -238,6 +252,7 @@ class AnalyticsController extends ApiController
             ->first();
 
         $totalDepartments = Department::query()
+            ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->when($departmentId, fn ($q) => $q->whereKey($departmentId))
             ->count();
@@ -255,5 +270,21 @@ class AnalyticsController extends ApiController
             'tahun' => $tahun,
             'department_id' => $departmentId,
         ], 'Ringkasan analytics berhasil dimuat');
+    }
+
+    private function resolveScopedTenantId(Request $request): int
+    {
+        $tenantId = app()->bound('current_tenant_id') ? (int) app('current_tenant_id') : 0;
+
+        if ($tenantId > 0) {
+            return $tenantId;
+        }
+
+        $actor = $request->user();
+        if ($actor?->tenant_id) {
+            return (int) $actor->tenant_id;
+        }
+
+        abort(Response::HTTP_FORBIDDEN, 'Tenant aktif tidak ditemukan.');
     }
 }

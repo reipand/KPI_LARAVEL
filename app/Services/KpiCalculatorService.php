@@ -10,7 +10,10 @@ class KpiCalculatorService
 {
     public function calculateForUser(User $user, ?int $month = null, ?int $year = null): array
     {
+        $tenantId = $this->resolveScopedTenantId($user);
+
         $components = KpiComponent::query()
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
             ->where('is_active', true)
             ->where(fn ($query) => $query
                 ->whereNull('department_id')
@@ -24,6 +27,7 @@ class KpiCalculatorService
             ->get();
 
         $tasks = $user->tasks()
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
             ->when($month, fn ($query) => $query->whereMonth('tanggal', $month))
             ->when($year, fn ($query) => $query->whereYear('tanggal', $year))
             ->get();
@@ -62,11 +66,26 @@ class KpiCalculatorService
 
     public function ranking(?int $month = null, ?int $year = null): Collection
     {
+        $tenantId = $this->resolveScopedTenantId();
+
         return User::query()
+            ->where('role', 'employee')
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
             ->get()
             ->map(fn (User $user) => $this->calculateForUser($user, $month, $year))
             ->sortByDesc('total')
             ->values();
+    }
+
+    private function resolveScopedTenantId(?User $user = null): ?int
+    {
+        if (app()->bound('current_tenant_id')) {
+            $tenantId = app('current_tenant_id');
+
+            return $tenantId ? (int) $tenantId : null;
+        }
+
+        return $user?->tenant_id ? (int) $user->tenant_id : null;
     }
 
     private function calculateComponentScore(string $type, Collection $tasks, float $target): int
