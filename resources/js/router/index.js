@@ -40,6 +40,8 @@ const KpiProgressPage = () => import('@/pages/pegawai/KpiProgressPage.vue');
 const MyTasksPage           = () => import('@/pages/pegawai/MyTasksPage.vue');
 const TaskAssignmentPage    = () => import('@/pages/hr/TaskAssignmentPage.vue');
 const KpiIndicatorPage      = () => import('@/pages/hr/KpiIndicatorPage.vue');
+const NonKpiReviewPage      = () => import('@/pages/hr/NonKpiReviewPage.vue');
+const WorkMonitorPage       = () => import('@/pages/hr/WorkMonitorPage.vue');
 
 // Shared
 const NotificationsPage = () => import('@/pages/NotificationsPage.vue');
@@ -75,7 +77,7 @@ const routes = [
     {
         path: '/pekerjaan',
         component: PekerjaanPage,
-        meta: { requiresAuth: true, roles: ['employee'] },
+        meta: { requiresAuth: true, roles: ['employee', 'hr_manager'] },
     },
     {
         path: '/laporan-kpi',
@@ -90,7 +92,7 @@ const routes = [
     {
         path: '/my-tasks',
         component: MyTasksPage,
-        meta: { requiresAuth: true, roles: ['employee'] },
+        meta: { requiresAuth: true, roles: ['employee', 'hr_manager'] },
     },
 
     // HR Manager
@@ -162,6 +164,16 @@ const routes = [
     {
         path: '/hr/kpi-indicators',
         component: KpiIndicatorPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
+        path: '/hr/non-kpi-review',
+        component: NonKpiReviewPage,
+        meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
+    },
+    {
+        path: '/hr/work-monitor',
+        component: WorkMonitorPage,
         meta: { requiresAuth: true, roles: ['hr_manager', 'direktur'] },
     },
 

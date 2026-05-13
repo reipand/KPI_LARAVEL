@@ -53,6 +53,7 @@ class TaskController extends ApiController
             ->when($request->filled('task_type') || $request->filled('type'), function ($query) use ($request) {
                 $query->where('task_type', (string) ($request->input('task_type') ?? $request->input('type')));
             })
+            ->when($request->has('is_kpi'), fn ($query) => $query->where('is_kpi', $request->boolean('is_kpi')))
             ->when($request->filled('bulan'), fn ($query) => $query->whereMonth(DB::raw('COALESCE(end_date, tanggal)'), $request->integer('bulan')))
             ->when($request->filled('tahun'), fn ($query) => $query->whereYear(DB::raw('COALESCE(end_date, tanggal)'), $request->integer('tahun')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', Task::statusForStorage((string) $request->input('status'))))
@@ -86,7 +87,9 @@ class TaskController extends ApiController
             return $this->resource(new TaskResource($task), 'Task KPI berhasil di-assign.', Response::HTTP_CREATED);
         }
 
-        $data = collect($request->validated())->except('file_evidence')->toArray();
+        $data = $this->normalizeKpiClassification(
+            collect($request->validated())->except('file_evidence')->toArray()
+        );
         $this->ensureIndicatorMatchesUserDepartment($data['kpi_indicator_id'] ?? null, $request->user());
         $data['tenant_id'] = $this->resolveScopedTenantId($request->user());
 
@@ -95,6 +98,10 @@ class TaskController extends ApiController
         }
 
         $task = $request->user()->tasks()->create($data);
+
+        if ($task->is_kpi) {
+            $this->taskAssignmentService->syncLegacyTaskScore($task->load(['user', 'kpiIndicator']));
+        }
 
         ActivityLog::record(
             $request->user(),
@@ -186,10 +193,17 @@ class TaskController extends ApiController
             return $this->resource(new TaskResource($task), 'Task KPI berhasil diperbarui.');
         }
 
-        $this->authorize('delete', $task);
+        if (!$request->user()->canManageAllData() && (int) $task->user_id !== (int) $request->user()->id) {
+            return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
+        }
 
-        $data = collect($request->validated())->except('file_evidence')->toArray();
-        $this->ensureIndicatorMatchesUserDepartment($data['kpi_indicator_id'] ?? $task->kpi_indicator_id, $request->user());
+        $data = $this->normalizeKpiClassification(
+            collect($request->validated())->except('file_evidence')->toArray()
+        );
+        $indicatorId = array_key_exists('kpi_indicator_id', $data)
+            ? $data['kpi_indicator_id']
+            : $task->kpi_indicator_id;
+        $this->ensureIndicatorMatchesUserDepartment($indicatorId ? (int) $indicatorId : null, $request->user());
 
         if ($request->hasFile('file_evidence')) {
             if ($task->file_evidence) {
@@ -198,7 +212,14 @@ class TaskController extends ApiController
             $data['file_evidence'] = $request->file('file_evidence')->store('task-evidence', 'public');
         }
 
+        $previousPeriod = $task->task_period;
         $task->update($data);
+        $task->refresh();
+
+        $this->taskAssignmentService->syncLegacyTaskScore(
+            $task->load(['user', 'kpiIndicator']),
+            $previousPeriod
+        );
 
         ActivityLog::record(
             $request->user(),
@@ -236,7 +257,9 @@ class TaskController extends ApiController
             return $this->success(null, 'Task KPI berhasil dihapus.');
         }
 
-        $this->authorize('delete', $task);
+        if (!$request->user()->canManageAllData() && (int) $task->user_id !== (int) $request->user()->id) {
+            return $this->error('Akses ditolak.', status: Response::HTTP_FORBIDDEN);
+        }
 
         $payload = ['judul' => $task->judul, 'user_id' => $task->user_id];
         $task->delete();
@@ -281,6 +304,58 @@ class TaskController extends ApiController
         );
 
         return $this->resource(new TaskResource($task->load(['user.primaryTenant', 'assignee.primaryTenant', 'kpiIndicator.position', 'mapper.primaryTenant'])), 'Mapping KPI berhasil diperbarui.');
+    }
+
+    public function nonKpiIndex(Request $request)
+    {
+        $user = $request->user();
+        $tenantIds = $this->accessibleTenantIds($user);
+
+        $tasks = Task::query()
+            ->with(['user.primaryTenant', 'assignee.primaryTenant'])
+            ->where('is_kpi', false)
+            ->when($user->isTenantAdmin(), fn ($q) => $q->where('tenant_id', $this->resolveScopedTenantId($user)))
+            ->when($user->canManageAllData() && $tenantIds !== null, fn ($q) => $q->whereIn('tenant_id', $tenantIds))
+            ->when($request->filled('bulan'), fn ($q) => $q->whereMonth(DB::raw('COALESCE(end_date, tanggal)'), $request->integer('bulan')))
+            ->when($request->filled('tahun'), fn ($q) => $q->whereYear(DB::raw('COALESCE(end_date, tanggal)'), $request->integer('tahun')))
+            ->when($request->filled('non_kpi_category'), fn ($q) => $q->where('non_kpi_category', $request->input('non_kpi_category')))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', Task::statusForStorage((string) $request->input('status'))))
+            ->latest(DB::raw('COALESCE(end_date, tanggal)'))
+            ->paginate((int) $request->input('per_page', 20));
+
+        return $this->paginated(TaskResource::collection($tasks), $tasks);
+    }
+
+    public function nonKpiReview(Request $request, Task $task)
+    {
+        $this->ensureTaskAccessible($task, $request->user());
+
+        $request->validate([
+            'review_quality'      => ['nullable', 'integer', 'min:1', 'max:5'],
+            'review_timeliness'   => ['nullable', 'integer', 'min:1', 'max:5'],
+            'review_initiative'   => ['nullable', 'integer', 'min:1', 'max:5'],
+            'review_contribution' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'review_note'         => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $task->update($request->only([
+            'review_quality',
+            'review_timeliness',
+            'review_initiative',
+            'review_contribution',
+            'review_note',
+        ]));
+
+        ActivityLog::record(
+            $request->user(),
+            'task.non_kpi_reviewed',
+            Task::class,
+            $task->id,
+            $request->only(['review_quality', 'review_timeliness', 'review_initiative', 'review_contribution']),
+            $request
+        );
+
+        return $this->resource(new TaskResource($task->load(['user.primaryTenant', 'assignee.primaryTenant'])), 'Review disimpan.');
     }
 
     public function myTasks(Request $request)
@@ -368,6 +443,25 @@ class TaskController extends ApiController
         if ($user->isTenantAdmin() && (int) $task->tenant_id !== $this->resolveScopedTenantId($user)) {
             abort(Response::HTTP_FORBIDDEN, 'Task ini berada di perusahaan lain.');
         }
+    }
+
+    private function normalizeKpiClassification(array $data): array
+    {
+        if (! array_key_exists('is_kpi', $data)) {
+            return $data;
+        }
+
+        $isKpi = filter_var($data['is_kpi'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        $data['is_kpi'] = $isKpi ?? true;
+
+        if (! $data['is_kpi']) {
+            $data['kpi_indicator_id'] = null;
+            return $data;
+        }
+
+        $data['non_kpi_category'] = null;
+
+        return $data;
     }
 
     private function resolveAssignableTenantId(User $actor, int $assigneeId): int

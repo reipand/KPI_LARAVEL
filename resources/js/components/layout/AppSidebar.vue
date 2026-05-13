@@ -1,8 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import Dialog from '@/components/ui/Dialog.vue';
 
 const props = defineProps({
     collapsed: { type: Boolean, default: false },
@@ -13,7 +12,6 @@ const emit = defineEmits(['close', 'toggle']);
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
-const showLogoutDialog = ref(false);
 const user = computed(() => auth.user);
 
 const navMap = {
@@ -37,11 +35,19 @@ const navMap = {
     ],
     hr_manager: [
         {
+            section: 'Pekerjaan Saya',
+            items: [
+                { label: 'Input Pekerjaan', to: '/pekerjaan', icon: `<path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h4"/>` },
+                { label: 'Tugas Saya', to: '/my-tasks', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>` },
+            ],
+        },
+        {
             section: 'Menu Utama',
             items: [
                 { label: 'Beranda HR', to: '/hr/dashboard', icon: `<path d="M4 19V5m0 14h16M8 15l3-3 3 2 4-6"/>` },
                 { label: 'Mapping KPI', to: '/hr/mapping', icon: `<path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h4"/>` },
                 { label: 'Penugasan Tugas', to: '/hr/penugasan', icon: `<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>` },
+                { label: 'Monitoring Pekerjaan', to: '/hr/work-monitor', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/><path d="M15 15l5 5m-2.5-5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>` },
                 { label: 'Tinjau Laporan KPI', to: '/hr/laporan-review', icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>` },
                 { label: 'Detail KPI Pegawai', to: '/hr/kpi-pegawai', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/>` },
                 { label: 'Analytics', to: '/hr/analytics', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
@@ -78,6 +84,7 @@ const navMap = {
         {
             section: 'Manajemen',
             items: [
+                { label: 'Monitoring Pekerjaan', to: '/hr/work-monitor', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/><path d="M15 15l5 5m-2.5-5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>` },
                 { label: 'Tinjau Laporan KPI', to: '/hr/laporan-review', icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>` },
                 { label: 'Detail KPI Pegawai', to: '/hr/kpi-pegawai', icon: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/>` },
                 { label: 'Analytics HR', to: '/hr/analytics', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
@@ -101,17 +108,10 @@ function isActive(to) {
     return route.path === to || route.path.startsWith(to + '/');
 }
 
-async function confirmLogout() {
-    showLogoutDialog.value = false;
-    await auth.logout();
-}
-
 function navigate(to) {
     router.push(to);
     emit('close');
 }
-
-const avatarLetter = computed(() => (user.value?.nama || 'U').slice(0, 1).toUpperCase());
 
 navMap.super_admin = [
     {
@@ -137,6 +137,7 @@ navMap.super_admin = [
             { label: 'Manajemen Departemen', to: '/hr/departemen', icon: `<path d="M3 9h18M9 21V9m6 12V9M3 3h18v18H3z"/>` },
             { label: 'Manajemen Jabatan', to: '/hr/jabatan', icon: `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>` },
             { label: 'Indikator KPI', to: '/hr/kpi-indicators', icon: `<path d="M4 19V5m0 14h16"/><path d="M7 15V9m5 6V5m5 10v-3"/>` },
+            { label: 'Monitoring Pekerjaan', to: '/hr/work-monitor', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/><path d="M15 15l5 5m-2.5-5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>` },
             { label: 'Tinjau Laporan KPI', to: '/hr/laporan-review', icon: `<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>` },
             { label: 'Pengaturan', to: '/hr/settings', icon: `<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M3 12h2m14 0h2M12 3v2m0 14v2M5.64 5.64l1.41 1.41m9.9 9.9 1.41 1.41m0-12.72-1.41 1.41m-9.9 9.9-1.41 1.41"/>` },
             { label: 'Log Aktivitas', to: '/hr/logs', icon: `<path d="M4 6h16M4 10h16M4 14h10M4 18h6"/>` },
@@ -302,70 +303,5 @@ navMap.tenant_admin = [
             </template>
         </nav>
 
-        <!-- ── User footer ─────────────────────────────────────────────── -->
-        <div class="border-t border-white/10 p-2.5">
-            <div
-                :class="[
-                    'flex items-center gap-2.5 rounded-xl px-2.5 py-2',
-                    collapsed ? 'justify-center' : '',
-                ]"
-            >
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-600 text-sm font-bold text-white">
-                    {{ avatarLetter }}
-                </div>
-
-                <Transition
-                    enter-active-class="transition-all duration-200"
-                    enter-from-class="opacity-0"
-                    enter-to-class="opacity-100"
-                    leave-active-class="transition-all duration-100"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                >
-                    <div v-if="!collapsed" class="min-w-0 flex-1">
-                        <p class="truncate text-[13px] font-semibold text-white">{{ user?.nama || '-' }}</p>
-                        <p class="truncate text-[10px] text-white/40">{{ user?.jabatan || user?.role || '-' }}</p>
-                    </div>
-                </Transition>
-
-                <button
-                    v-if="!collapsed"
-                    type="button"
-                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/40 transition hover:bg-white/10 hover:text-rose-400"
-                    title="Keluar"
-                    @click="showLogoutDialog = true"
-                >
-                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-                    </svg>
-                </button>
-
-                <!-- Logout button when collapsed -->
-                <button
-                    v-if="collapsed"
-                    type="button"
-                    class="absolute bottom-3 right-0 left-0 mx-auto flex h-7 w-7 items-center justify-center rounded-md text-white/40 transition hover:bg-white/10 hover:text-rose-400"
-                    title="Keluar"
-                    @click="showLogoutDialog = true"
-                />
-            </div>
-        </div>
     </div>
-
-    <Dialog
-        v-model:open="showLogoutDialog"
-        title="Keluar dari aplikasi"
-        description="Apakah Anda yakin ingin keluar? Anda perlu login kembali untuk mengakses dashboard."
-    >
-        <div class="mt-4 flex justify-end gap-2">
-            <button class="btn-secondary" @click="showLogoutDialog = false">Batal</button>
-            <button
-                class="btn-danger"
-                :disabled="auth.isLoading"
-                @click="confirmLogout"
-            >
-                {{ auth.isLoading ? 'Keluar...' : 'Keluar' }}
-            </button>
-        </div>
-    </Dialog>
 </template>

@@ -17,6 +17,14 @@ class Task extends Model
     public const STATUS_ON_PROGRESS = 'on_progress';
     public const STATUS_DONE = 'done';
 
+    public const NON_KPI_CATEGORIES = [
+        'cross_division',
+        'incidental',
+        'operational_support',
+        'problem_solving',
+        'administration',
+    ];
+
     protected $fillable = [
         'task_type',
         'tenant_id',
@@ -37,12 +45,19 @@ class Task extends Model
         'deskripsi',
         'file_evidence',
         'kpi_indicator_id',
+        'is_kpi',
+        'non_kpi_category',
         'manual_score',
         'mapped_by',
         'mapped_at',
         'weight',
         'target_value',
         'actual_value',
+        'review_quality',
+        'review_timeliness',
+        'review_initiative',
+        'review_contribution',
+        'review_note',
     ];
 
     protected function casts(): array
@@ -54,6 +69,11 @@ class Task extends Model
             'ada_delay' => 'boolean',
             'ada_error' => 'boolean',
             'ada_komplain' => 'boolean',
+            'is_kpi' => 'boolean',
+            'review_quality' => 'integer',
+            'review_timeliness' => 'integer',
+            'review_initiative' => 'integer',
+            'review_contribution' => 'integer',
             'manual_score' => 'decimal:2',
             'mapped_at' => 'datetime',
             'weight' => 'decimal:2',

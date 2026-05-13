@@ -42,6 +42,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetTenantContext::class]
     Route::get('/my-tasks', [TaskController::class, 'myTasks']);
     Route::match(['put', 'post'], '/tasks/{task}/update-status', [TaskController::class, 'updateStatus']);
     Route::put('/tasks/{task}/mapping', [TaskController::class, 'mapping'])->middleware('role:super_admin,hr_manager,direktur');
+    Route::get('/tasks/non-kpi', [TaskController::class, 'nonKpiIndex'])->middleware('role:super_admin,hr_manager,direktur');
+    Route::patch('/tasks/{task}/non-kpi-review', [TaskController::class, 'nonKpiReview'])->middleware('role:super_admin,hr_manager,direktur');
 
     Route::get('/kpi/me', [KpiController::class, 'me']);
     Route::get('/kpi/ranking', [KpiManagementController::class, 'ranking']);

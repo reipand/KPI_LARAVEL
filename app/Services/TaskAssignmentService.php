@@ -143,6 +143,7 @@ class TaskAssignmentService
     private function buildPayload(array $payload, User $actor, ?Task $task = null): array
     {
         $assignedTo = (int) ($payload['assigned_to'] ?? $task?->assigned_to_user_id);
+        $isKpi = $this->resolveIsKpi($payload, $task);
 
         return [
             'task_type' => Task::TYPE_MANUAL_ASSIGNMENT,
@@ -157,11 +158,87 @@ class TaskAssignmentService
             'jenis_pekerjaan' => $payload['jenis_pekerjaan'] ?? 'Task KPI',
             'status' => Task::statusForStorage($payload['status']),
             'deskripsi' => $payload['deskripsi'] ?? $payload['description'] ?? null,
-            'kpi_indicator_id' => $payload['kpi_indicator_id'] ?? null,
+            'is_kpi' => $isKpi,
+            'non_kpi_category' => $isKpi ? null : ($payload['non_kpi_category'] ?? null),
+            'kpi_indicator_id' => $isKpi ? ($payload['kpi_indicator_id'] ?? null) : null,
             'weight' => round((float) $payload['weight'], 2),
             'target_value' => array_key_exists('target_value', $payload) ? round((float) $payload['target_value'], 2) : null,
             'actual_value' => array_key_exists('actual_value', $payload) ? round((float) $payload['actual_value'], 2) : null,
         ];
+    }
+
+    private function resolveIsKpi(array $payload, ?Task $task = null): bool
+    {
+        if (! array_key_exists('is_kpi', $payload)) {
+            return $task?->is_kpi ?? true;
+        }
+
+        return filter_var($payload['is_kpi'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true;
+    }
+
+    public function syncLegacyTaskScore(Task $task, ?string $previousPeriod = null): void
+    {
+        if (! $task->is_kpi) {
+            TaskScore::query()->where('task_id', $task->id)->delete();
+            return;
+        }
+
+        $user = $task->user;
+        if (! $user) {
+            return;
+        }
+
+        $period = $task->task_period;
+        $score  = $this->resolveLegacyScore($task);
+
+        TaskScore::query()->updateOrCreate(
+            ['task_id' => $task->id],
+            ['user_id' => $user->id, 'score' => $score, 'period' => $period]
+        );
+
+        $this->kpiService->recalculateUserScore(
+            $user,
+            'monthly',
+            CarbonImmutable::createFromFormat('Y-m', $period)->startOfMonth()->toDateString()
+        );
+
+        if ($previousPeriod && $previousPeriod !== $period) {
+            $this->kpiService->recalculateUserScore(
+                $user,
+                'monthly',
+                CarbonImmutable::createFromFormat('Y-m', $previousPeriod)->startOfMonth()->toDateString()
+            );
+        }
+    }
+
+    private function resolveLegacyScore(Task $task): float
+    {
+        $weight      = (float) $task->weight;
+        $targetValue = $task->target_value !== null ? (float) $task->target_value : null;
+        $actualValue = $task->actual_value !== null ? (float) $task->actual_value : null;
+
+        // Fall back to indicator defaults when task has no weight/target
+        if ($weight <= 0 && $task->kpi_indicator_id) {
+            $indicator   = $task->kpiIndicator ?? KpiIndicator::query()->find($task->kpi_indicator_id);
+            $weight      = $indicator ? (float) $indicator->weight : 0;
+            $targetValue ??= $indicator?->default_target_value !== null
+                ? (float) $indicator->default_target_value
+                : null;
+        }
+
+        if ($weight <= 0) {
+            return 0.0;
+        }
+
+        if ($targetValue !== null && $targetValue > 0 && $actualValue !== null) {
+            return round(min($actualValue / $targetValue, 1.0) * $weight, 2);
+        }
+
+        return round(match ($task->status_code) {
+            Task::STATUS_DONE       => $weight,
+            Task::STATUS_ON_PROGRESS => $weight * 0.5,
+            default                  => 0.0,
+        }, 2);
     }
 
     private function syncTaskScore(Task $task, ?string $previousPeriod = null, ?int $previousAssigneeId = null): void
@@ -199,7 +276,13 @@ class TaskAssignmentService
 
     private function ensureIndicatorMatchesAssigneeDepartment(array $payload, ?Task $task = null): void
     {
-        $indicatorId = $payload['kpi_indicator_id'] ?? $task?->kpi_indicator_id;
+        if (! $this->resolveIsKpi($payload, $task)) {
+            return;
+        }
+
+        $indicatorId = array_key_exists('kpi_indicator_id', $payload)
+            ? $payload['kpi_indicator_id']
+            : $task?->kpi_indicator_id;
 
         if (! $indicatorId) {
             return;

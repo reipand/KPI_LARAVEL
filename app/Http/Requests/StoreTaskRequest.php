@@ -50,6 +50,12 @@ class StoreTaskRequest extends SanitizedFormRequest
                 'weight' => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'target_value' => ['nullable', 'numeric', 'min:0'],
                 'actual_value' => ['nullable', 'numeric', 'min:0'],
+                'is_kpi' => ['nullable', 'boolean'],
+                'non_kpi_category' => [
+                    'nullable',
+                    Rule::requiredIf(fn () => $this->isNonKpiInput()),
+                    Rule::in(Task::NON_KPI_CATEGORIES),
+                ],
                 'kpi_indicator_id' => ['nullable', 'exists:kpi_indicators,id'],
                 'jenis_pekerjaan' => ['nullable', 'string', 'max:255'],
                 'status' => ['required', Rule::in(['pending', 'on_progress', 'done', 'Pending', 'Dalam Proses', 'Selesai'])],
@@ -62,7 +68,16 @@ class StoreTaskRequest extends SanitizedFormRequest
             'end_date' => ['nullable', 'date', 'after_or_equal:tanggal'],
             'judul' => ['required', 'string', 'max:255'],
             'jenis_pekerjaan' => ['required', 'string', 'max:255'],
+            'is_kpi' => ['nullable', 'boolean'],
+            'non_kpi_category' => [
+                'nullable',
+                Rule::requiredIf(fn () => $this->isNonKpiInput()),
+                Rule::in(Task::NON_KPI_CATEGORIES),
+            ],
             'kpi_indicator_id' => ['nullable', 'exists:kpi_indicators,id'],
+            'weight'           => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'target_value'     => ['nullable', 'numeric', 'min:0'],
+            'actual_value'     => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', Rule::in(['Selesai', 'Dalam Proses', 'Pending'])],
             'waktu_mulai' => ['nullable', 'date_format:H:i'],
             'waktu_selesai' => ['nullable', 'date_format:H:i'],
@@ -110,5 +125,13 @@ class StoreTaskRequest extends SanitizedFormRequest
             && Task::normalizeStatus((string) $this->input('status')) === Task::STATUS_DONE
             && ! $task->file_evidence
             && ! $this->hasFile('file_evidence');
+    }
+
+    private function isNonKpiInput(): bool
+    {
+        return $this->input('is_kpi') === false
+            || $this->input('is_kpi') === 'false'
+            || $this->input('is_kpi') === 0
+            || $this->input('is_kpi') === '0';
     }
 }

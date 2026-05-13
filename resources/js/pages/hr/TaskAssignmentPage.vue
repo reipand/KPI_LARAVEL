@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input.vue';
 import Textarea from '@/components/ui/Textarea.vue';
 import Alert from '@/components/ui/Alert.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import DatePicker from '@/components/ui/DatePicker.vue';
 import { ClipboardList, CheckCircle2, Clock, Users } from 'lucide-vue-next';
 import { useToast } from '@/composables/useToast';
 import { useTaskAssignmentStore } from '@/stores/taskAssignment';
@@ -16,6 +17,19 @@ const store = useTaskAssignmentStore();
 const empStore = useEmployeeStore();
 const kpiIndicatorStore = useKpiIndicatorStore();
 const toast = useToast();
+
+const months = [
+    { value: 1, label: 'Januari' }, { value: 2, label: 'Februari' },
+    { value: 3, label: 'Maret' },   { value: 4, label: 'April' },
+    { value: 5, label: 'Mei' },     { value: 6, label: 'Juni' },
+    { value: 7, label: 'Juli' },    { value: 8, label: 'Agustus' },
+    { value: 9, label: 'September' },{ value: 10, label: 'Oktober' },
+    { value: 11, label: 'November' },{ value: 12, label: 'Desember' },
+];
+const years = computed(() => {
+    const y = new Date().getFullYear();
+    return [y - 1, y, y + 1];
+});
 
 const showForm = ref(false);
 const editMode = ref(false);
@@ -31,6 +45,8 @@ const emptyForm = () => ({
     start_date: '',
     end_date: '',
     jenis_pekerjaan: 'Task KPI',
+    is_kpi: true,
+    non_kpi_category: '',
     kpi_indicator_id: '',
     weight: '',
     target_value: '',
@@ -72,6 +88,14 @@ const statusOptions = [
     { value: 'Selesai',       label: 'Selesai' },
 ];
 
+const nonKpiCategoryOptions = [
+    { value: 'cross_division', label: 'Bantuan Lintas Divisi' },
+    { value: 'incidental', label: 'Tugas Insidental' },
+    { value: 'operational_support', label: 'Support Operasional' },
+    { value: 'problem_solving', label: 'Problem Solving' },
+    { value: 'administration', label: 'Administrasi Tambahan' },
+];
+
 const statusBadge = {
     'Selesai':      'badge-success',
     'Dalam Proses': 'badge-warning',
@@ -84,6 +108,11 @@ onMounted(async () => {
         empStore.fetchEmployees ? empStore.fetchEmployees() : empStore.fetchEmployees?.(),
     ]);
 });
+
+watch(
+    () => [store.filters.bulan, store.filters.tahun, store.filters.status],
+    () => store.fetchAssignedTasks(),
+);
 
 async function loadIndicatorsForEmployee(userId) {
     if (!userId) {
@@ -103,6 +132,7 @@ async function loadIndicatorsForEmployee(userId) {
     await kpiIndicatorStore.fetchIndicators({
         per_page: 200,
         department_id: emp.department_id,
+        position_id: emp.position_id || undefined,
         assigned_to: emp.id,
     });
 
@@ -140,6 +170,8 @@ function openEdit(task) {
         start_date:   task.start_date ?? '',
         end_date:     task.end_date ?? '',
         jenis_pekerjaan: task.jenis_pekerjaan ?? 'Task KPI',
+        is_kpi:       task.is_kpi ?? true,
+        non_kpi_category: task.non_kpi_category ?? '',
         kpi_indicator_id: task.kpi_indicator_id ?? task.kpi_indicator?.id ?? '',
         weight:       task.weight ?? '',
         target_value: task.target_value ?? '',
@@ -161,7 +193,7 @@ function applyKpiIndicatorDefaults() {
 }
 
 function validate() {
-    Object.assign(errors, { judul: '', assigned_to: '', start_date: '', end_date: '', weight: '' });
+    Object.assign(errors, { judul: '', assigned_to: '', start_date: '', end_date: '', non_kpi_category: '', weight: '' });
     let valid = true;
 
     if (!form.judul.trim()) { errors.judul = 'Judul tugas wajib diisi.'; valid = false; }
@@ -170,6 +202,9 @@ function validate() {
     if (!form.end_date) { errors.end_date = 'Tanggal selesai wajib diisi.'; valid = false; }
     if (form.start_date && form.end_date && form.end_date < form.start_date) {
         errors.end_date = 'Tanggal selesai tidak boleh sebelum tanggal mulai.'; valid = false;
+    }
+    if (!form.is_kpi && !form.non_kpi_category) {
+        errors.non_kpi_category = 'Kategori Non-KPI wajib dipilih.'; valid = false;
     }
     if (form.weight !== '' && (Number(form.weight) < 0 || Number(form.weight) > 100)) {
         errors.weight = 'Bobot harus antara 0 dan 100.'; valid = false;
@@ -191,7 +226,9 @@ async function submit() {
             start_date:   form.start_date,
             end_date:     form.end_date,
             jenis_pekerjaan: form.jenis_pekerjaan || 'Task KPI',
-            kpi_indicator_id: form.kpi_indicator_id ? Number(form.kpi_indicator_id) : null,
+            is_kpi:       form.is_kpi,
+            non_kpi_category: form.is_kpi ? null : form.non_kpi_category,
+            kpi_indicator_id: form.is_kpi ? (form.kpi_indicator_id ? Number(form.kpi_indicator_id) : null) : null,
             weight:       form.weight !== '' ? Number(form.weight) : null,
             target_value: form.target_value !== '' ? Number(form.target_value) : null,
             status:       form.status,
@@ -277,6 +314,22 @@ function isOverdue(task) {
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap items-center gap-3">
+            <select v-model="store.filters.bulan" class="form-input !w-auto">
+                <option value="">Semua Bulan</option>
+                <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
+            </select>
+            <select v-model="store.filters.tahun" class="form-input !w-auto">
+                <option value="">Semua Tahun</option>
+                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+            <select v-model="store.filters.status" class="form-input !w-auto">
+                <option value="">Semua Status</option>
+                <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
         </div>
 
         <!-- Task List -->
@@ -374,6 +427,25 @@ function isOverdue(task) {
                 </div>
 
                 <div>
+                    <label class="form-label">Jenis Pekerjaan</label>
+                    <Input v-model="form.jenis_pekerjaan" placeholder="Contoh: Task KPI, Administratif, Pelayanan" />
+                </div>
+
+                <div>
+                    <label class="form-label">Jenis Pencatatan</label>
+                    <div class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:flex-row sm:gap-4">
+                        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                            <input type="radio" :value="true" v-model="form.is_kpi" class="accent-primary" />
+                            <span>Masuk KPI</span>
+                        </label>
+                        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                            <input type="radio" :value="false" v-model="form.is_kpi" class="accent-primary" />
+                            <span>Non-KPI / Operasional</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div v-if="form.is_kpi">
                     <label class="form-label">Indikator KPI</label>
                     <select v-model="form.kpi_indicator_id" class="form-input" @change="applyKpiIndicatorDefaults">
                         <option value="">Tanpa indikator KPI</option>
@@ -390,9 +462,13 @@ function isOverdue(task) {
                     </p>
                 </div>
 
-                <div>
-                    <label class="form-label">Jenis Pekerjaan</label>
-                    <Input v-model="form.jenis_pekerjaan" placeholder="Contoh: Task KPI, Administratif, Pelayanan" />
+                <div v-if="!form.is_kpi">
+                    <label class="form-label">Kategori Non-KPI <span class="text-red-500">*</span></label>
+                    <select v-model="form.non_kpi_category" class="form-input">
+                        <option value="">Pilih kategori...</option>
+                        <option v-for="opt in nonKpiCategoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <p v-if="errors.non_kpi_category" class="mt-1 text-xs text-red-500">{{ errors.non_kpi_category }}</p>
                 </div>
 
                 <div>
@@ -403,12 +479,16 @@ function isOverdue(task) {
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label class="form-label">Tanggal Mulai <span class="text-red-500">*</span></label>
-                        <Input v-model="form.start_date" type="date" />
+                        <DatePicker v-model="form.start_date" placeholder="Pilih tanggal mulai" />
                         <p v-if="errors.start_date" class="mt-1 text-xs text-red-500">{{ errors.start_date }}</p>
                     </div>
                     <div>
                         <label class="form-label">Tanggal Selesai <span class="text-red-500">*</span></label>
-                        <Input v-model="form.end_date" type="date" />
+                        <DatePicker
+                            v-model="form.end_date"
+                            placeholder="Pilih tanggal selesai"
+                            :min-date="form.start_date || null"
+                        />
                         <p v-if="errors.end_date" class="mt-1 text-xs text-red-500">{{ errors.end_date }}</p>
                     </div>
                 </div>

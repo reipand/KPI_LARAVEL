@@ -13,6 +13,25 @@ const auth = useAuthStore();
 const { isDark, toggle: toggleTheme } = useTheme();
 const user = computed(() => auth.user);
 
+// ── User dropdown ────────────────────────────────────────────────────────────
+const showUserMenu = ref(false);
+const userMenuRef  = ref(null);
+
+function toggleUserMenu() {
+    showUserMenu.value = !showUserMenu.value;
+}
+
+function handleClickOutside(e) {
+    if (userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+        showUserMenu.value = false;
+    }
+}
+
+async function logout() {
+    showUserMenu.value = false;
+    await auth.logout();
+}
+
 // ── Live / Echo connectivity indicator ──────────────────────────────────────
 const isLive = ref(false);
 
@@ -24,8 +43,12 @@ let echoTimer = null;
 onMounted(() => {
     checkEcho();
     echoTimer = setInterval(checkEcho, 3000);
+    document.addEventListener('click', handleClickOutside);
 });
-onUnmounted(() => clearInterval(echoTimer));
+onUnmounted(() => {
+    clearInterval(echoTimer);
+    document.removeEventListener('click', handleClickOutside);
+});
 
 // ── Page title map ───────────────────────────────────────────────────────────
 const pageMap = {
@@ -42,6 +65,7 @@ const pageMap = {
     '/hr/settings': 'Pengaturan',
     '/hr/departemen': 'Manajemen Departemen',
     '/hr/analytics': 'Analytics KPI',
+    '/hr/work-monitor': 'Monitoring Pekerjaan',
     '/hr/laporan-review': 'Tinjau Laporan KPI',
     '/hr/kpi-pegawai': 'Detail KPI Pegawai',
     '/direktur/dashboard': 'Executive Dashboard',
@@ -136,19 +160,67 @@ onMounted(() => {
             <!-- Notifications -->
             <NotificationBell />
 
-            <!-- User chip — sm+ only -->
-            <div class="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 sm:flex dark:border-slate-700 dark:bg-slate-900">
-                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-600 text-[11px] font-bold text-white">
-                    {{ avatarLetter }}
-                </div>
-                <div class="min-w-0">
-                    <p class="max-w-[120px] truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                        {{ user?.nama || '-' }}
-                    </p>
-                    <p class="max-w-[120px] truncate text-[10px] text-slate-400 dark:text-slate-500">
-                        {{ auth.activeTenant?.tenant_name || user?.jabatan || user?.role || '-' }}
-                    </p>
-                </div>
+            <!-- User chip + dropdown — sm+ only -->
+            <div ref="userMenuRef" class="relative hidden sm:block">
+                <button
+                    type="button"
+                    class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    @click.stop="toggleUserMenu"
+                >
+                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-600 text-[11px] font-bold text-white">
+                        {{ avatarLetter }}
+                    </div>
+                    <div class="min-w-0 text-left">
+                        <p class="max-w-[120px] truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                            {{ user?.nama || '-' }}
+                        </p>
+                        <p class="max-w-[120px] truncate text-[10px] text-slate-400 dark:text-slate-500">
+                            {{ auth.activeTenant?.tenant_name || user?.jabatan || user?.role || '-' }}
+                        </p>
+                    </div>
+                    <svg
+                        class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200"
+                        :class="showUserMenu ? 'rotate-180' : ''"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    >
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </button>
+
+                <!-- Dropdown menu -->
+                <Transition
+                    enter-active-class="transition duration-100 ease-out"
+                    enter-from-class="opacity-0 scale-95"
+                    enter-to-class="opacity-100 scale-100"
+                    leave-active-class="transition duration-75 ease-in"
+                    leave-from-class="opacity-100 scale-100"
+                    leave-to-class="opacity-0 scale-95"
+                >
+                    <div
+                        v-if="showUserMenu"
+                        class="absolute right-0 top-full z-50 mt-1.5 w-48 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                    >
+                        <div class="border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
+                            <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">{{ user?.nama || '-' }}</p>
+                            <p v-if="user?.departemen || user?.jabatan" class="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                                <span v-if="user?.departemen">{{ user.departemen }}</span>
+                                <span v-if="user?.departemen && user?.jabatan"> · </span>
+                                <span v-if="user?.jabatan">{{ user.jabatan }}</span>
+                            </p>
+                            <p v-else class="mt-0.5 text-[10px] text-slate-400">{{ user?.role || '-' }}</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 transition hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                            @click="logout"
+                        >
+                            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                            </svg>
+                            Keluar
+                        </button>
+                    </div>
+                </Transition>
             </div>
         </div>
     </header>

@@ -26,6 +26,10 @@ class KpiIndicatorController extends ApiController
             ? $request->integer('department_id')
             : $this->resolveDepartmentScope($request);
 
+        $positionId = $request->filled('position_id')
+            ? $request->integer('position_id')
+            : $this->resolvePositionScope($request);
+
         $indicators = KpiIndicator::query()
             ->with(['department', 'position'])
             ->where('tenant_id', $scopedTenantId)
@@ -33,6 +37,13 @@ class KpiIndicatorController extends ApiController
                 $query->where(function ($scoped) use ($departmentId) {
                     $scoped->where('department_id', $departmentId)
                         ->orWhereHas('position', fn ($position) => $position->where('department_id', $departmentId));
+                });
+            })
+            ->when($positionId, function ($query) use ($positionId) {
+                // Tampilkan indikator yang berlaku untuk jabatan ini ATAU yang berlaku untuk semua jabatan (position_id = null)
+                $query->where(function ($q) use ($positionId) {
+                    $q->whereNull('position_id')
+                        ->orWhere('position_id', $positionId);
                 });
             })
             ->orderBy('department_id')
@@ -183,6 +194,25 @@ class KpiIndicatorController extends ApiController
 
         if ($user && ! $user->canManageAllData()) {
             return $user->department_id ? (int) $user->department_id : -1;
+        }
+
+        return null;
+    }
+
+    private function resolvePositionScope(Request $request): ?int
+    {
+        if ($request->filled('user_id')) {
+            return User::query()->whereKey($request->integer('user_id'))->value('position_id');
+        }
+
+        if ($request->filled('assigned_to')) {
+            return User::query()->whereKey($request->integer('assigned_to'))->value('position_id');
+        }
+
+        $user = $request->user();
+
+        if ($user && ! $user->canManageAllData()) {
+            return $user->position_id ? (int) $user->position_id : null;
         }
 
         return null;

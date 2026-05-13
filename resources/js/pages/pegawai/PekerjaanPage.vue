@@ -1,8 +1,9 @@
 ﻿<script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import DatePicker from '@/components/ui/DatePicker.vue';
 import { BarChart2, CheckCircle2, Loader2, AlertTriangle } from 'lucide-vue-next';
 import { useAutoRefresh, formatTime } from '@/composables/useAutoRefresh';
 import { useToast } from '@/composables/useToast';
@@ -21,6 +22,8 @@ const editId = ref(null);
 const editTaskType = ref(null);
 const formLoading = ref(false);
 const formError = ref('');
+const formTouched = ref(false);
+const showDiscardWarning = ref(false);
 
 const deleteDialog = ref({ open: false, taskId: null, taskTitle: '' });
 const deleteLoading = ref(false);
@@ -38,7 +41,12 @@ const emptyForm = () => ({
     ada_error: false,
     ada_komplain: false,
     deskripsi: '',
+    is_kpi: true,
+    non_kpi_category: '',
     kpi_indicator_id: '',
+    weight: null,
+    target_value: null,
+    actual_value: '',
     evidence: null,
 });
 
@@ -54,6 +62,13 @@ const form = reactive(emptyForm());
 const formErrors = reactive({});
 
 const jobTypeOptions = ['Administratif', 'Teknis', 'Pelayanan', 'Koordinasi', 'Lainnya'];
+const nonKpiCategoryOptions = [
+    { value: 'cross_division', label: 'Bantuan Lintas Divisi' },
+    { value: 'incidental', label: 'Tugas Insidental' },
+    { value: 'operational_support', label: 'Support Operasional' },
+    { value: 'problem_solving', label: 'Problem Solving' },
+    { value: 'administration', label: 'Administrasi Tambahan' },
+];
 const statusOptions = [
     { value: 'Selesai', label: 'Selesai' },
     { value: 'Dalam Proses', label: 'Dalam Proses' },
@@ -78,6 +93,23 @@ const taskSummary = computed(() => ({
     flagged: tasks.value.filter((task) => task.ada_delay || task.ada_error || task.ada_komplain).length,
 }));
 
+// Auto-populate weight + target when KPI indicator changes
+watch(() => form.kpi_indicator_id, (id) => {
+    if (!id || !form.is_kpi) {
+        form.weight = null;
+        form.target_value = null;
+        return;
+    }
+    const indicator = kpiIndicatorStore.indicators.find((i) => String(i.id) === String(id));
+    if (indicator) {
+        form.weight = indicator.weight ?? null;
+        form.target_value = indicator.default_target_value ?? null;
+    }
+});
+
+// Track form edits to warn before discarding
+watch(form, () => { if (showForm.value) formTouched.value = true; }, { deep: true });
+
 const { refresh: refreshTasks, lastUpdated, isRefreshing } = useAutoRefresh(
     () => taskStore.fetchTasks(),
     { interval: 60_000 },
@@ -93,11 +125,12 @@ onMounted(() => {
     kpiIndicatorStore.fetchIndicators({
         per_page: 200,
         department_id: auth.user.department_id,
+        position_id: auth.user.position_id || undefined,
     });
 });
 
 function validate() {
-    Object.assign(formErrors, { judul: '', start_date: '', end_date: '', jenis_pekerjaan: '', status: '', waktu_selesai: '', evidence: '' });
+    Object.assign(formErrors, { judul: '', start_date: '', end_date: '', jenis_pekerjaan: '', non_kpi_category: '', status: '', waktu_selesai: '', evidence: '' });
 
     let valid = true;
 
@@ -121,12 +154,17 @@ function validate() {
         valid = false;
     }
 
+    if (!isAssignedTaskEdit.value && !form.is_kpi && !form.non_kpi_category) {
+        formErrors.non_kpi_category = 'Kategori Non-KPI wajib dipilih.';
+        valid = false;
+    }
+
     if (!form.status) {
         formErrors.status = 'Status wajib dipilih.';
         valid = false;
     }
 
-    if (form.waktu_mulai && form.waktu_selesai && form.waktu_mulai >= form.waktu_selesai) {
+    if (form.waktu_mulai && form.waktu_selesai && form.waktu_mulai > form.waktu_selesai) {
         formErrors.waktu_selesai = 'Waktu selesai harus setelah waktu mulai.';
         valid = false;
     }
@@ -139,6 +177,25 @@ function validate() {
     return valid;
 }
 
+// Intercept backdrop/ESC close — show warning if form has unsaved data
+function handleFormClose(newVal) {
+    if (!newVal && formTouched.value) {
+        showDiscardWarning.value = true;
+        return;
+    }
+    showForm.value = false;
+}
+
+function discardForm() {
+    showDiscardWarning.value = false;
+    formTouched.value = false;
+    showForm.value = false;
+    formError.value = '';
+    editTaskType.value = null;
+    evidenceFileName.value = '';
+    currentEvidenceUrl.value = '';
+}
+
 function openCreate() {
     editMode.value = false;
     editId.value = null;
@@ -146,6 +203,7 @@ function openCreate() {
     Object.assign(form, emptyForm());
     Object.assign(formErrors, {});
     formError.value = '';
+    formTouched.value = false;
     evidenceFileName.value = '';
     currentEvidenceUrl.value = '';
     showForm.value = true;
@@ -167,13 +225,19 @@ function openEdit(task) {
         ada_error: Boolean(task.ada_error),
         ada_komplain: Boolean(task.ada_komplain),
         deskripsi: task.deskripsi || '',
+        is_kpi: task.is_kpi ?? true,
+        non_kpi_category: task.non_kpi_category || '',
         kpi_indicator_id: task.kpi_indicator_id ? String(task.kpi_indicator_id) : '',
+        weight: task.weight ?? null,
+        target_value: task.target_value ?? null,
+        actual_value: task.actual_value !== null && task.actual_value !== undefined ? String(task.actual_value) : '',
         evidence: null,
     });
     evidenceFileName.value = task.file_evidence ? task.file_evidence.split('/').pop() : '';
     currentEvidenceUrl.value = task.file_evidence_url || '';
     Object.assign(formErrors, {});
     formError.value = '';
+    formTouched.value = false;
     showForm.value = true;
 }
 
@@ -223,7 +287,12 @@ async function submitForm() {
                     ada_error: form.ada_error ? 1 : 0,
                     ada_komplain: form.ada_komplain ? 1 : 0,
                     deskripsi: form.deskripsi,
-                    kpi_indicator_id: form.kpi_indicator_id || '',
+                    is_kpi: form.is_kpi ? 1 : 0,
+                    non_kpi_category: form.is_kpi ? null : form.non_kpi_category,
+                    kpi_indicator_id: form.is_kpi ? (form.kpi_indicator_id || null) : null,
+                    weight: form.is_kpi ? (form.weight ?? null) : null,
+                    target_value: form.is_kpi ? (form.target_value ?? null) : null,
+                    actual_value: form.is_kpi && form.actual_value !== '' ? Number(form.actual_value) : null,
                 };
             await taskStore.updateTask(editId.value, buildPayload(base));
             toast.success('Pekerjaan berhasil diperbarui.');
@@ -240,7 +309,12 @@ async function submitForm() {
                 ada_error: form.ada_error ? 1 : 0,
                 ada_komplain: form.ada_komplain ? 1 : 0,
                 deskripsi: form.deskripsi,
-                kpi_indicator_id: form.kpi_indicator_id || '',
+                is_kpi: form.is_kpi ? 1 : 0,
+                non_kpi_category: form.is_kpi ? null : form.non_kpi_category,
+                kpi_indicator_id: form.is_kpi ? (form.kpi_indicator_id || null) : null,
+                weight: form.is_kpi ? (form.weight ?? null) : null,
+                target_value: form.is_kpi ? (form.target_value ?? null) : null,
+                actual_value: form.is_kpi && form.actual_value !== '' ? Number(form.actual_value) : null,
             };
             await taskStore.createTask(buildPayload(base));
             toast.success('Pekerjaan berhasil disimpan.');
@@ -256,6 +330,7 @@ async function submitForm() {
 }
 
 function cancelForm() {
+    formTouched.value = false;
     showForm.value = false;
     formError.value = '';
     editTaskType.value = null;
@@ -533,9 +608,10 @@ const statusBadgeMap = {
         </section>
 
         <Dialog
-            v-model:open="showForm"
+            :open="showForm"
             :title="editMode ? 'Edit Pekerjaan' : 'Input Pekerjaan Baru'"
             class="w-full max-w-lg sm:max-w-2xl"
+            @update:open="handleFormClose"
         >
             <div v-if="formError" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {{ formError }}
@@ -563,34 +639,95 @@ const statusBadgeMap = {
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label class="form-label">Tanggal Mulai <span class="text-red-500">*</span></label>
-                            <input v-model="form.start_date" type="date" class="form-input" :disabled="isAssignedTaskEdit" />
+                            <DatePicker
+                                v-model="form.start_date"
+                                placeholder="Pilih tanggal mulai"
+                                :disabled="isAssignedTaskEdit"
+                            />
                             <p v-if="formErrors.start_date" class="mt-1 text-xs text-red-500">{{ formErrors.start_date }}</p>
                         </div>
                         <div>
-                            <label class="form-label">Tanggal Selesai</label>
-                            <input v-model="form.end_date" type="date" class="form-input" :min="form.start_date || undefined" :disabled="isAssignedTaskEdit" />
+                            <label class="form-label">
+                                Tanggal Selesai
+                                <span class="text-xs font-normal text-slate-400">(opsional)</span>
+                            </label>
+                            <DatePicker
+                                v-model="form.end_date"
+                                placeholder="Pilih tanggal selesai"
+                                :min-date="form.start_date || null"
+                                :disabled="isAssignedTaskEdit"
+                            />
                             <p v-if="formErrors.end_date" class="mt-1 text-xs text-red-500">{{ formErrors.end_date }}</p>
                         </div>
                     </div>
 
-                    <!-- Jenis & Indikator KPI -->
+                    <!-- Jenis Pekerjaan -->
+                    <div>
+                        <label class="form-label">Jenis Pekerjaan</label>
+                        <select v-model="form.jenis_pekerjaan" class="form-input" :disabled="isAssignedTaskEdit">
+                            <option value="">Pilih jenis...</option>
+                            <option v-for="opt in jobTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
+                        </select>
+                        <p v-if="formErrors.jenis_pekerjaan" class="mt-1 text-xs text-red-500">{{ formErrors.jenis_pekerjaan }}</p>
+                    </div>
+
+                    <!-- Toggle KPI / Non-KPI -->
+                    <div>
+                        <label class="form-label">Jenis Pencatatan</label>
+                        <div class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:flex-row sm:gap-4">
+                            <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                                <input type="radio" :value="true" v-model="form.is_kpi" class="accent-primary" :disabled="isAssignedTaskEdit" />
+                                <span>Masuk KPI</span>
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                                <input type="radio" :value="false" v-model="form.is_kpi" class="accent-primary" :disabled="isAssignedTaskEdit" />
+                                <span>Non-KPI / Operasional</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Indikator KPI / Kategori Non-KPI -->
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                            <label class="form-label">Jenis Pekerjaan</label>
-                            <select v-model="form.jenis_pekerjaan" class="form-input" :disabled="isAssignedTaskEdit">
-                                <option value="">Pilih jenis...</option>
-                                <option v-for="opt in jobTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
-                            </select>
-                            <p v-if="formErrors.jenis_pekerjaan" class="mt-1 text-xs text-red-500">{{ formErrors.jenis_pekerjaan }}</p>
-                        </div>
-                        <div>
                             <label class="form-label">Indikator KPI</label>
-                            <select v-model="form.kpi_indicator_id" class="form-input" :disabled="isAssignedTaskEdit">
-                                <option value="">— Tanpa indikator KPI —</option>
+                            <select v-if="form.is_kpi" v-model="form.kpi_indicator_id" class="form-input" :disabled="isAssignedTaskEdit">
+                                <option value="">Tanpa indikator KPI</option>
                                 <option v-for="opt in indicatorOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                             </select>
-                            <p class="mt-1 text-[11px] text-slate-400">Hubungkan ke indikator KPI divisi Anda.</p>
+                            <p v-if="form.is_kpi" class="mt-1 text-[11px] text-slate-400">Hubungkan ke indikator KPI divisi Anda.</p>
                         </div>
+                        <div v-if="!form.is_kpi">
+                            <label class="form-label">Kategori Non-KPI <span class="text-red-500">*</span></label>
+                            <select v-model="form.non_kpi_category" class="form-input" :disabled="isAssignedTaskEdit">
+                                <option value="">Pilih kategori...</option>
+                                <option v-for="opt in nonKpiCategoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                            </select>
+                            <p v-if="formErrors.non_kpi_category" class="mt-1 text-xs text-red-500">{{ formErrors.non_kpi_category }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Realisasi (actual_value) — hanya tampil jika KPI dan ada indikator -->
+                    <div v-if="form.is_kpi && form.kpi_indicator_id && !isAssignedTaskEdit">
+                        <label class="form-label">
+                            Realisasi
+                            <span class="text-xs font-normal text-slate-400">(opsional — isi jika sudah ada capaian)</span>
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <input
+                                v-model="form.actual_value"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="form-input"
+                                placeholder="Contoh: 85"
+                            />
+                            <span v-if="form.target_value" class="shrink-0 text-xs text-slate-400">
+                                dari target {{ form.target_value }}
+                            </span>
+                        </div>
+                        <p class="mt-1 text-[11px] text-slate-400">
+                            Nilai aktual yang telah dicapai. Target diambil otomatis dari indikator KPI.
+                        </p>
                     </div>
 
                     <!-- Status & Waktu -->
@@ -608,7 +745,10 @@ const statusBadgeMap = {
                             <input v-model="form.waktu_mulai" type="time" class="form-input" />
                         </div>
                         <div>
-                            <label class="form-label">Waktu Selesai</label>
+                            <label class="form-label">
+                                Waktu Selesai
+                                <span class="text-xs font-normal text-slate-400">(opsional)</span>
+                            </label>
                             <input v-model="form.waktu_selesai" type="time" class="form-input" />
                             <p v-if="formErrors.waktu_selesai" class="mt-1 text-xs text-red-500">{{ formErrors.waktu_selesai }}</p>
                         </div>
@@ -699,6 +839,25 @@ const statusBadgeMap = {
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83" />
                     </svg>
                     {{ formLoading ? 'Menyimpan...' : editMode ? 'Perbarui Pekerjaan' : 'Simpan Pekerjaan' }}
+                </button>
+            </div>
+        </Dialog>
+
+        <!-- Warning: form has unsaved data -->
+        <Dialog
+            v-model:open="showDiscardWarning"
+            title="Pengisian belum disimpan"
+            class="w-full max-w-sm"
+        >
+            <p class="mt-3 text-sm text-slate-600">
+                Data yang sudah kamu isi akan hilang jika keluar sekarang. Yakin ingin membatalkan?
+            </p>
+            <div class="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+                <button class="btn-secondary w-full sm:w-auto" @click="showDiscardWarning = false">
+                    Lanjut mengisi
+                </button>
+                <button class="btn-danger w-full sm:w-auto" @click="discardForm">
+                    Keluar tanpa simpan
                 </button>
             </div>
         </Dialog>

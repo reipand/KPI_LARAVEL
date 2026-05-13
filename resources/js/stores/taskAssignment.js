@@ -12,8 +12,8 @@ export const useTaskAssignmentStore = defineStore('task-assignment', () => {
 
     const filters = reactive({
         status: '',
-        bulan: new Date().getMonth() + 1,
-        tahun: new Date().getFullYear(),
+        bulan: '',
+        tahun: '',
         assigned_to: '',
     });
 
